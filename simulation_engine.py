@@ -8,6 +8,7 @@ class Building(object):
                  windows,
                  walls,
                  roof,
+                 floor,
                  energy_reference_area,
                  heat_recovery_nutzungsgrad,
                  thermal_storage_capacity_per_floor_area,
@@ -17,8 +18,9 @@ class Building(object):
         self.gebaeudekategorie_sia = gebaeudekategorie_sia
         self.regelung = regelung
         self.windows = windows  # np.array of windows with |area|u-value|g-value|orientation|shading_f1|shading_f2|
-        self.walls = walls  # np.array of walls with |area|u-value| so far b-values not possible
+        self.walls = walls  # np.array of walls with |area|u-value| so far, b-values are not possible
         self.roof = roof  # np.array of roofs with |area|u-value|
+        self.floor = floor  # np.array of floowrs with |area|u-value|b-value|
         self.energy_reference_area = energy_reference_area  # One value, float
         self.anlagennutzungsgrad_wrg = heat_recovery_nutzungsgrad  # One value, float
         self.warmespeicherfahigkeit_pro_ebf = thermal_storage_capacity_per_floor_area # One value, float
@@ -103,16 +105,17 @@ class Building(object):
             a_wg_022 = np.array([0]) # Wand gegen Erdreich [m2]
             a_wn_023 = np.array([0])  # Wand gegen benachbarten beheizten Raum im Bilanzperimeter [m2]
             a_fe_024 = np.array([0])  # Boden gegen Aussenluft [m2]
-            a_fu_025 = np.array([506])  # Boden gegen unbeheizte Räume (und gegen Erdreich?) [m2]
+            a_fu_025 = self.floor[0]  # Boden gegen unbeheizte Räume [m2]
             a_fg_026 = np.array([0])  # Boden gegen Erdreich mit Bauteilheizung [m2]
             a_fu_027 = np.array([0])  # Boden gegen unbeheizte Räume mit Bauteilheizung[m2]
             a_fn_028 = np.array([0])  # Boden gegen beheizte Räume mit Bauteilheizung im Bilanzperimeter [m2]
             a_rn_029 = np.array([0])  # Decke gegen beheizte Räume mit Bauteilheizung im Bilanzparameter [m2]
             a_wh_030 = np.array([0])  # Fenster horizontal [m2]
-            a_ws_031 = np.array([131.5])  # Fenster Süed [m2]
-            a_we_032 = np.array([131.5])  # Fenster Ost [m2]
-            a_ww_033 = np.array([131.5])  # Fenster West [m2]
-            a_wn_034 = np.array([131.5])  # Fenster Nord [m2]
+            ## These areas are no longer defined individually but are part of the window array
+            # a_ws_031 = np.array([131.5])  # Fenster Süed [m2]
+            # a_we_032 = np.array([131.5])  # Fenster Ost [m2]
+            # a_ww_033 = np.array([131.5])  # Fenster West [m2]
+            # a_wn_034 = np.array([131.5])  # Fenster Nord [m2]
 
             i_rw_035 = np.array([0.]) # Wärmebrücke Decke/Wand [m]
             i_wf_036 = np.array([0.])  # Wärmebrücke Gebäudesockel [m]
@@ -133,19 +136,22 @@ class Building(object):
             u_wn_049 = np.array([0])  # Wand gegen benachbarten konditionierten Raum im Bilanzperimeter [W/(m2K)]
             theta_in_050 = np.array([0])  # korrigierte Raumtemperatur des benachbarten konditionierten Raumes [degC]
             u_fe_051 = np.array([0])  # Boden gegen Aussenluft [W/(m2K)]
-            u_fu_052 = np.array([0.09])  # Boden gegen unbeheizte Räume [W/(m2K)]
+            u_fu_052 = self.floor[1]  # Boden gegen unbeheizte Räume [W/(m2K)]
             u_fu_053 = np.array([0])  # Boden gegen unbeheizte Räume mit Bauteilheizung [W/(m2K)]
-            b_uf_054 = np.array([0.4])  # Reduktionsfaktor Boden gegen unbeheizte Räume [-]
+            b_uf_054 = self.floor[2]  # Reduktionsfaktor Boden gegen unbeheizte Räume [-]
             u_fg0_055 = np.array([0])  # Boden gegen Erdreich mit Bauteilheizung [W/(m2K)]
             b_gf_056 = np.array([0])  # Reduktionsfaktro Boden gegen Erdreich [-]
             u_fn_057 = np.array([0])  # Boden gegen beheizte Räume mit Bauteilheizung [W/(m2K)]
             u_rn_058 = np.array([0])  # Decke gegen beheizte Räume mit Bauteilheizung [W/(m2K)]
             delta_theta_059 = 0.0  # Temperaturzuschlag für Bauteilheizung [K], dies anpassen nach Tab16 SIA380-1 3.5.4.5
-            u_wh_060 = np.array([0.6])  # Fenster horizontal [W/(m2K)]
-            u_ws_061 = np.array([0.6])   # Fenster süd [W/(m2K)]
-            u_we_062 = np.array([0.6])   # Fenster ost [W/(m2K)]
-            u_ww_063 = np.array([0.6])   # Fenster west [W/(m2K)]
-            u_wn_064 = np.array([0.6])   # Fenster nord [W/(m2K)]
+            u_wh_060 = np.array([0])  # Fenster horizontal [W/(m2K)]
+
+            ## no longer specified individally, now part of the windows array
+            # u_ws_061 = np.array([0.6])   # Fenster süd [W/(m2K)]
+            # u_we_062 = np.array([0.6])   # Fenster ost [W/(m2K)]
+            # u_ww_063 = np.array([0.6])   # Fenster west [W/(m2K)]
+            # u_wn_064 = np.array([0.6])   # Fenster nord [W/(m2K)]
+
             psi_rw_065 = np.array([0])  # Wärmebrücke Decke/Wand [W/(mK)]
             psi_wf_066 = np.array([0])  # Wärmebrücke Fensteranschlag [W/(mK)]
             psi_b_067 = np.array([0])  # Wärmebrücke Balkon [W/(mK)]
@@ -184,15 +190,20 @@ class Building(object):
             q_wn_089 = np.sum((theta_ic_083-theta_in_050) * t_c_009 * a_wn_023 * u_wn_049 * 24 / (a_e_017 * 1000))  # Wand gegen benachbarte Räume
             q_fe_090 = np.sum((theta_ic_083-theta_e_011) * t_c_009 * a_fe_024 * u_fe_051 * 24 / (a_e_017 * 1000))  # Boden gegen Aussenluft
             q_fu_091 = np.sum((theta_ic_083-theta_e_011) * t_c_009 * a_fu_025 * u_fu_052 * b_uf_054 * 24 / (a_e_017 * 1000))  # Boden gegen unbeheizte Räume
-            q_fg_092 = np.sum((theta_ic_083-theta_e_011 + delta_theta_059) * t_c_009 * a_fg_026 * u_fg0_055 * b_gf_056 * 24 / (a_e_017 * 1000))
-            q_fu_093 = np.sum((theta_ic_083-theta_e_011 + delta_theta_059) * t_c_009 * a_fu_027 * u_fu_053 * b_uf_054 * 24 / (a_e_017 * 1000))
-            q_fn_094 = np.sum((theta_ic_083 - theta_in_050 + delta_theta_059) * t_c_009 * a_fn_028 * u_fn_057 * 24 / (a_e_017 * 1000))
-            q_rn_095 = np.sum((theta_ic_083 - theta_in_050 + delta_theta_059) * t_c_009 * a_rn_029 * u_rn_058 * 24 / (a_e_017 * 1000))
-            q_wh_096 = np.sum((theta_ic_083 - theta_e_011) * t_c_009 * a_wh_030 * u_wh_060 * 24 / (a_e_017 * 1000))
-            q_ws_097 = np.sum((theta_ic_083 - theta_e_011) * t_c_009 * a_ws_031 * u_ws_061 * 24 / (a_e_017 * 1000))
-            q_we_098 = np.sum((theta_ic_083 - theta_e_011) * t_c_009 * a_we_032 * u_we_062 * 24 / (a_e_017 * 1000))
-            q_ww_099 = np.sum((theta_ic_083 - theta_e_011) * t_c_009 * a_ww_033 * u_ww_063 * 24 / (a_e_017 * 1000))
-            q_wn_100 = np.sum((theta_ic_083 - theta_e_011) * t_c_009 * a_wn_034 * u_wn_064 * 24 / (a_e_017 * 1000))
+            q_fg_092 = np.sum((theta_ic_083-theta_e_011 + delta_theta_059) * t_c_009 * a_fg_026 * u_fg0_055 * b_gf_056 * 24 / (a_e_017 * 1000))  # Boden gegen Erdreich mit Bauteilheizung
+            q_fu_093 = np.sum((theta_ic_083-theta_e_011 + delta_theta_059) * t_c_009 * a_fu_027 * u_fu_053 * b_uf_054 * 24 / (a_e_017 * 1000))  # Boden gegen unbeheizte Räume mit Bauteilheizung
+            q_fn_094 = np.sum((theta_ic_083 - theta_in_050 + delta_theta_059) * t_c_009 * a_fn_028 * u_fn_057 * 24 / (a_e_017 * 1000))  # Boden gegen beheizte Räume mit Bauteilheizung
+            q_rn_095 = np.sum((theta_ic_083 - theta_in_050 + delta_theta_059) * t_c_009 * a_rn_029 * u_rn_058 * 24 / (a_e_017 * 1000))  # Decke gegen beheizte Räume mit Bauteilheizung
+            q_wh_096 = np.sum((theta_ic_083 - theta_e_011) * t_c_009 * a_wh_030 * u_wh_060 * 24 / (a_e_017 * 1000))  # Fenster horizontal
+
+
+            q_w_097_to_100 = np.sum((theta_ic_083 - theta_e_011) * t_c_009 * self.windows[1] * self.windows[2] * 24 / (a_e_017 * 1000))
+            ## No longer calculated individally. Now part of the windows array (see equation just above)
+            # q_ws_097 = np.sum((theta_ic_083 - theta_e_011) * t_c_009 * a_ws_031 * u_ws_061 * 24 / (a_e_017 * 1000))
+            # q_we_098 = np.sum((theta_ic_083 - theta_e_011) * t_c_009 * a_we_032 * u_we_062 * 24 / (a_e_017 * 1000))
+            # q_ww_099 = np.sum((theta_ic_083 - theta_e_011) * t_c_009 * a_ww_033 * u_ww_063 * 24 / (a_e_017 * 1000))
+            # q_wn_100 = np.sum((theta_ic_083 - theta_e_011) * t_c_009 * a_wn_034 * u_wn_064 * 24 / (a_e_017 * 1000))
+
             q_lrw_101 = np.sum((theta_ic_083 - theta_e_011) * t_c_009 * i_rw_035 * psi_rw_065 * 24 / (a_e_017 * 1000))
             q_lwf_102 = np.sum((theta_ic_083 - theta_e_011) * t_c_009 * i_wf_036 * psi_wf_066 * 24 / (a_e_017 * 1000))
             q_ib_103 = np.sum((theta_ic_083 - theta_e_011) * t_c_009 * i_b_037 * psi_b_067 * 24 / (a_e_017 * 1000))
@@ -201,7 +212,7 @@ class Building(object):
             q_p106 = np.sum((theta_ic_083 - theta_e_011) * t_c_009 * z_040 * chi_070 * 24 / (a_e_017 * 1000))
 
             q_t_107_temporary = q_re_084 + q_ru_085 + q_we_086 + q_wu_087 + q_wg_088 + q_wn_089 + q_fe_090 + q_fu_091 + q_fg_092 + q_fu_093\
-                    + q_fn_094 + q_rn_095 + q_wh_096 + q_ws_097 + q_we_098 + q_ww_099 + q_wn_100 + q_lrw_101 + q_lwf_102 + q_ib_103\
+                    + q_fn_094 + q_rn_095 + q_wh_096 + q_w_097_to_100 + q_lrw_101 + q_lwf_102 + q_ib_103\
                     + q_lw_104 + q_lf_105 + q_p106  ## Tansmissionswärmeverluste
 
             rhoa_ca_108 = (1220-0.14 * h_010)/3600
@@ -228,10 +239,11 @@ class Building(object):
             h_112 = np.sum(a_re_018*u_re_041) + np.sum(a_ru_019 * u_ru_042 * b_ur_043) + np.sum(a_we_020 * u_we_044) \
                     + np.sum(a_wu_021 * u_wu_045 * b_uw_046) + np.sum(a_wg_022 * u_wg0_047 * b_gw_048) + np.sum(a_fe_024 * u_fe_051) \
                     + np.sum(a_fu_025 * u_fu_052 * b_uf_054) + np.sum(a_fg_026 * u_fg0_055 * b_gf_056) + np.sum(a_fu_027 * u_fu_053 * b_uf_054)\
-                    + np.sum(a_fn_028 * u_fn_057) + np.sum(a_rn_029 * u_rn_058) + np.sum(a_wh_030 * u_wh_060) + np.sum(a_ws_031 * u_ws_061)\
-                    + np.sum(a_we_032 * u_we_062) + np.sum(a_ww_033 * u_ww_063) + np.sum(a_wn_034 * u_wn_064) + np.sum(i_rw_035 * psi_rw_065)\
-                    + np.sum(i_wf_036 * psi_wf_066) + np.sum(i_b_037 * psi_b_067) + np.sum(i_w_038 * psi_w_068) + np.sum(i_f_039 * b_uf_054 * psi_f_069)\
-                    + np.sum(z_040 * chi_070) + np.sum(a_e_017 * rhoa_ca_108 * q_th_109)  # Diese Gleichung überprüfen lassen.
+                    + np.sum(a_fn_028 * u_fn_057) + np.sum(a_rn_029 * u_rn_058) + np.sum(a_wh_030 * u_wh_060) \
+                    + np.sum(self.windows[1]*self.windows[2]) + np.sum(i_rw_035 * psi_rw_065)\
+                    + np.sum(i_wf_036 * psi_wf_066) + np.sum(i_b_037 * psi_b_067) + np.sum(i_w_038 * psi_w_068)\
+                    + np.sum(i_f_039 * b_uf_054 * psi_f_069) + np.sum(z_040 * chi_070)\
+                    + np.sum(a_e_017 * rhoa_ca_108 * q_th_109)  # Diese Gleichung überprüfen lassen.
 
             ### Wärmeeinträge
             q_i_el_113 = e_f_el_006 * f_el_007 * t_c_009 / 365
