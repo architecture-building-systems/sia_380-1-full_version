@@ -3,6 +3,59 @@ import numpy as np
 import simulation_engine as se
 
 
+class TestBuildingInitialization(unittest.TestCase):
+    def test_initialization(self):
+        """
+
+        :return:
+        """
+        u_windows = 0.6
+        u_walls = 0.08
+        u_roof = 0.06
+        u_floor = 0.09
+        b_floor = 0.4
+
+        gebaeudekategorie_sia = 1.1
+        regelung = "einzelraum"
+        windows = np.array([["N", "E", "S", "W"],
+                            [131.5, 131.5, 131.5, 131.5],
+                            [u_windows, u_windows, u_windows, u_windows],
+                            [0.6, 0.6, 0.6, 0.6]],
+                           dtype=object)  # dtype=object is necessary because there are different data types
+        walls = np.array([[412.5, 412.5, 412.5, 412.5],
+                          [u_walls, u_walls, u_walls, u_walls]])
+        roof = np.array([[506], [u_roof]])
+        floor = np.array([[506.0], [u_floor], [b_floor]])
+        energy_reference_area = 2275
+        heat_recovery_nutzungsgrad = 0.0
+        thermal_storage_capacity_per_floor_area = 0.08
+        korrekturfaktor_luftungs_eff_f_v = 1.0
+        height_above_sea = 435.0
+
+        Test_building = se.Building(gebaeudekategorie_sia,
+                                    regelung,
+                                    windows,
+                                    walls,
+                                    roof,
+                                    floor,
+                                    energy_reference_area,
+                                    heat_recovery_nutzungsgrad,
+                                    thermal_storage_capacity_per_floor_area,
+                                    korrekturfaktor_luftungs_eff_f_v,
+                                    height_above_sea)
+
+        self.assertEqual(gebaeudekategorie_sia, Test_building.gebaeudekategorie_sia)
+        self.assertEqual("einzelraum", Test_building.regelung)
+        self.assertEqual(435.0, Test_building.hohe_uber_meer)
+        self.assertEqual(2275, Test_building.energy_reference_area)
+        self.assertEqual(0.6, Test_building.windows[2][0])
+        self.assertEqual(0.08, Test_building.walls[1][0])
+        self.assertEqual(0.06, Test_building.roof[1][0])
+        self.assertEqual(0.09, Test_building.floor[1][0])
+        self.assertEqual(0.4, Test_building.floor[2][0])
+        self.assertEqual(0.0, Test_building.anlagennutzungsgrad_wrg)
+
+
 class TestSia380_1(unittest.TestCase):
     def test_heating_demand(self):
         """
