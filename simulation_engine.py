@@ -28,6 +28,11 @@ class Building(object):
         self.hohe_uber_meer = height_above_sea
 
 
+        # Further optional attributes:
+        self.heating_system = None
+        self.electricity_mix = None
+        self.dhw_demand = None  # np.array of monthly values per energy reference area [kWh/(m2*month)]
+        self.dhw_heating_system = None
 
 
 
@@ -46,7 +51,6 @@ class Building(object):
         reduktion_elektrizitat = {1:0.7, 2:0.7, 3:0.9, 4:0.9, 5:0.8, 6:0.7, 7:0.8, 8:0.7, 9:0.9, 10:0.9, 11:0.9, 12:0.7}  # 380-1 Tab13
         aussenluft_strome = {1:0.7, 2:0.7, 3:0.7, 4:0.7, 5:0.7, 6:1.2, 7:1.0, 8:1.0, 9:0.7, 10:0.3, 11:0.7, 12:0.7}  # 380-1 Tab14
 
-
         ## Klimadaten aus SIA2028 (Zürich-Kloten)
 
         mj_to_kwh_factor = 1.0/3.6
@@ -61,14 +65,14 @@ class Building(object):
         t_c = [31,28,31,30,31,30,31,31,30,31,30,31]  # Tage pro Monat.
 
         ### Nutzungsdaten: (gemäss SIA 380-1, Messwerte können verwendet werden.)
-        theta_i_001 = standard_raumtemperaturen[self.gebaeudekategorie_sia] # Raumtemperatur in °C Gemäss SIA380-1 2016 Tab7 (grundsätzlich 20°C)
+        theta_i_001 = standard_raumtemperaturen[int(self.gebaeudekategorie_sia)] # Raumtemperatur in °C Gemäss SIA380-1 2016 Tab7 (grundsätzlich 20°C)
         delta_phi_i_002 = regelzuschlaege[self.regelung] # Regelungszuschlag für die Raumtemperatur [K] gemäss SIA380-1 2016 Tab8
-        a_p_003 = personenflachen[self.gebaeudekategorie_sia]  # Personenfläche m2/P
-        q_p_004 = warmeabgabe_p_p[self.gebaeudekategorie_sia] # Wärmeabgabe pro Person W/P
-        t_p_005 = prasenzzeiten[self.gebaeudekategorie_sia]  # Präsenzzeit pro Tag h/d
-        e_f_el_006 = elektrizitatsbedarf[self.gebaeudekategorie_sia]  # Elektrizitätsbedarf pro Jahr kWh/m2
-        f_el_007 = reduktion_elektrizitat[self.gebaeudekategorie_sia]  # Reduktionsfaktor Elektrizität [-]
-        q_th_008 = aussenluft_strome[self.gebaeudekategorie_sia]  # thermisch wirksamer Aussenluftvolumenstrom gem 3.5.5 m3/(hm2)
+        a_p_003 = personenflachen[int(self.gebaeudekategorie_sia)]  # Personenfläche m2/P
+        q_p_004 = warmeabgabe_p_p[int(self.gebaeudekategorie_sia)] # Wärmeabgabe pro Person W/P
+        t_p_005 = prasenzzeiten[int(self.gebaeudekategorie_sia)]  # Präsenzzeit pro Tag h/d
+        e_f_el_006 = elektrizitatsbedarf[int(self.gebaeudekategorie_sia)]  # Elektrizitätsbedarf pro Jahr kWh/m2
+        f_el_007 = reduktion_elektrizitat[int(self.gebaeudekategorie_sia)]  # Reduktionsfaktor Elektrizität [-]
+        q_th_008 = aussenluft_strome[int(self.gebaeudekategorie_sia)]  # thermisch wirksamer Aussenluftvolumenstrom gem 3.5.5 m3/(hm2)
 
         h_010 = self.hohe_uber_meer  # Höhge über Meer [m]
 
@@ -300,6 +304,59 @@ class Building(object):
         self.heizwarmebedarf = heizwarmebedarf
         return(transmissionsverluste, luftungsverluste, gesamtwarmeverluste, interne_eintrage, solare_eintrage,
                totale_warmeeintrage, genutzte_warmeeintrage, heizwarmebedarf)
+
+
+    def run_SIA_380_emissions(self):
+        """
+        Beachte: Die SIA Norm kennt keinen flexiblen Strommix. Soll das Stromprodukt ausgewählt werden können,
+        müssten hiere noch weitere Anpassungen durchgeführt werden.
+        :return:
+        """
+        if not hasattr(self, 'heizwarmebedarf'):
+            print("Before you can calculate the emissions, you first have to run the heating demand simulation")
+            quit()
+
+        ### Datenbanken: Werte von SIA 380 2015
+
+        annual_dhw_demand = {1.1:19.8, 1.2:13.5, 2.1:39.5, 2.2:0., 3.1:3.6, 3.2:3.6, 3.3:0.0, 3.4:0.0, 4.1:5.3, 4.2:0.0,
+                             4.3:0.0, 4.4:7.9, 5.1:2.7, 5.2:2.7, 5.3:1.5, 6.1:108.9, 7.1:7.3, 7.2:7.3, 8.1:67.7,
+                             8.2:0.0, 8.3:0.0, 9.1:2.4, 9.2:2.4, 9.3:2.4, 10.1:0.9, 11.1:52.9, 11.2:87.1, 12:None}
+                            # according to SIA2024 possbily needs to be changed to SIA 385/2
+
+
+        treibhausgaskoeffizient = {"Oil":0.319, "Natural Gas":0.249, "Wood":0.020, "Pellets":0.048,
+                                   "GSHP_CH_mix":0.055, "ASHP_CH_mix":0.076, "GSHP_EU_mix":0.207, "ASHP_EU_mix":0.285,
+                                   "electricity_CH":0.139, "electricity_EU":0.522, "PV_electricity":0.095}
+                                    # kgCO2/kWh von SIA 380 2015, Anhang C Tab.5 und Tab.6,
+
+        n_e_primarenergiefaktor = {"Oil":1.29, "Natural Gas":1.16, "Wood":0.09, "Pellets":0.26, "GSHP_CH_mix":0.71,
+                                   "ASHP_CH_mix":0.97, "GSHP_EU_mix":2.67, "ASHP_EU_mix":3.64, "electricity_CH":2.69,
+                                   "electricity_EU":2.88, "PV_electricity":0.35}
+                                    # nicht erneuerbarer Primärenergiebedarf von SIA 380 2015, Anhang C Tab.5 und Tab.6
+
+        ## Werte aus Datenbanken auslesen:
+        self.dhw_demand = np.repeat(annual_dhw_demand[self.gebaeudekategorie_sia]/12.0,12)
+        # monthly kWh/energy_reference area --> this way is simplified and needs to be done according to 384/2
+
+
+        ### Bestimmung gesamter gewichteter Energiebedarf
+
+        self.heating_emissions = np.empty(12)
+        self.dhw_emissions = np.empty(12)
+        self.heating_non_renewable_primary_energy = np.empty(12)
+        self.dhw_non_renewable_primary_energy = np.empty(12)
+        monthly_electricity_emissions = np.empty(12)  ## add this later depending on how to look at it.
+        for month in range(12):
+            self.heating_emissions[month] = self.heizwarmebedarf[month]* treibhausgaskoeffizient[self.heating_system]
+            self.dhw_emissions[month] = self.dhw_demand[month] * treibhausgaskoeffizient[self.dhw_heating_system]
+            ## Add electricity here
+            self.heating_non_renewable_primary_energy[month] =  self.heizwarmebedarf[month]* n_e_primarenergiefaktor[self.heating_system]
+            self.dhw_non_renewable_primary_energy[month] = self.dhw_demand[month] * n_e_primarenergiefaktor[self.dhw_heating_system]
+            ## add electricity here
+
+
+        self.emissions = self.heating_emissions + self.dhw_emissions ## always make sure to be clear what these emissions include (see SIA 380)
+        self.non_renewable_primary_energy = self.heating_non_renewable_primary_energy + self.dhw_non_renewable_primary_energy
 
 
 def window_irradiation(windows, g_sh_012, g_ss_013, g_se_014, g_sw_015, g_sn_016):
