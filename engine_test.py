@@ -59,6 +59,28 @@ class TestSia380_1(unittest.TestCase):
         self.assertAlmostEqual(np.sum(Test_building.genutzte_warmeeintrage), 43.4, places=1,
                                msg="Genutzter Wärmeeintrag stimmt nicht mit simpler Berechnung gemäss der SIA380-1 Excel Tabelle überein")
 
+    def test_window_irradiation(self):
+        """
+        Testing the solar irradiation vector calculation based on two hand calculations
+        :return:
+        """
+        windows = np.array([["SW", "NE"] , [None, None], [None, None], [None, None]], dtype=object) # U-values are not important
+        horizontal_irradiance = 100.0
+        north_irradiance = 25.0
+        east_irradiance = 36.0
+        south_irradiance = 81.0
+        west_irradiance = 49.0
+
+        irradiance_vector = se.window_irradiation(windows, horizontal_irradiance, south_irradiance, east_irradiance,
+                              west_irradiance, north_irradiance)
+
+        self.assertAlmostEqual(63.0, irradiance_vector[0], places=5, msg="creating the irradiation vector does not seem to work anymore")
+        self.assertAlmostEqual(30.0, irradiance_vector[1], places=5, msg="creating the irradiation vector does not seem to work anymore")
+        ## There would be a nicer way to do this with numpy testing
+
+
+
+
 
 if __name__ == '__main__':
     unittest.main()
