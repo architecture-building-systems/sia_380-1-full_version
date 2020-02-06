@@ -49,7 +49,8 @@ class Building(object):
         prasenzzeiten = {1:12., 2:12., 3:6., 4:4., 5:4., 6:3., 7:3., 8:16., 9:6., 10:6., 11:6., 12:4.}  # 380-1 Tab11
         elektrizitatsbedarf = {1:28., 2:22., 3:22., 4:11., 5:33., 6:33., 7:17., 8:28., 9:17., 10:6., 11:6., 12:56.}  # 380-1 Tab12
         reduktion_elektrizitat = {1:0.7, 2:0.7, 3:0.9, 4:0.9, 5:0.8, 6:0.7, 7:0.8, 8:0.7, 9:0.9, 10:0.9, 11:0.9, 12:0.7}  # 380-1 Tab13
-        aussenluft_strome = {1:0.7, 2:0.7, 3:0.7, 4:0.7, 5:0.7, 6:1.2, 7:1.0, 8:1.0, 9:0.7, 10:0.3, 11:0.7, 12:0.7}  # 380-1 Tab14
+        # aussenluft_strome = {1:0.7, 2:0.7, 3:0.7, 4:0.7, 5:0.7, 6:1.2, 7:1.0, 8:1.0, 9:0.7, 10:0.3, 11:0.7, 12:0.7}  # 380-1 Tab14
+        aussenluft_strome = {1: 0.84}  # UBA-Vergleichsstudie
 
         ## Klimadaten aus SIA2028 (Zürich-Kloten)
 
@@ -324,15 +325,29 @@ class Building(object):
                             # according to SIA2024 possbily needs to be changed to SIA 385/2
 
 
-        treibhausgaskoeffizient = {"Oil":0.319, "Natural Gas":0.249, "Wood":0.020, "Pellets":0.048,
-                                   "GSHP_CH_mix":0.055, "ASHP_CH_mix":0.076, "GSHP_EU_mix":0.207, "ASHP_EU_mix":0.285,
-                                   "electricity_CH":0.139, "electricity_EU":0.522, "PV_electricity":0.095}
-                                    # kgCO2/kWh von SIA 380 2015, Anhang C Tab.5 und Tab.6,
+        # treibhausgaskoeffizient = {"Oil":0.319, "Natural Gas":0.249, "Wood":0.020, "Pellets":0.048,
+        #                            "GSHP_CH_mix":0.055, "ASHP_CH_mix":0.076, "GSHP_EU_mix":0.207, "ASHP_EU_mix":0.285,
+        #                            "electricity_CH":0.139, "electricity_EU":0.522, "PV_electricity":0.095}
+        # #                             kgCO2/kWh von SIA 380 2015, Anhang C Tab.5 und Tab.6,
 
-        n_e_primarenergiefaktor = {"Oil":1.29, "Natural Gas":1.16, "Wood":0.09, "Pellets":0.26, "GSHP_CH_mix":0.71,
-                                   "ASHP_CH_mix":0.97, "GSHP_EU_mix":2.67, "ASHP_EU_mix":3.64, "electricity_CH":2.69,
-                                   "electricity_EU":2.88, "PV_electricity":0.35}
-                                    # nicht erneuerbarer Primärenergiebedarf von SIA 380 2015, Anhang C Tab.5 und Tab.6
+
+        jaz = 3.5  # Leider ist in der Studie nicht genau angegeben welecher verwendet wird, sondern nur 3.0-4.4
+        treibhausgaskoeffizient = {"Natural Gas":0.247, "Pellets":0.035, "HP":(0.605/jaz),
+                                   "electricity_EU":0.605, "PV_electricity":0.605}
+                                    # Ökobaudat 2015, wird verwendet in UBA132/2019 Bericht. Ja, PV Strom wurde gleich
+                                    # verrechnet wie Netzstrom
+
+
+        # n_e_primarenergiefaktor = {"Oil":1.29, "Natural Gas":1.16, "Wood":0.09, "Pellets":0.26, "GSHP_CH_mix":0.71,
+        #                            "ASHP_CH_mix":0.97, "GSHP_EU_mix":2.67, "ASHP_EU_mix":3.64, "electricity_CH":2.69,
+        #                            "electricity_EU":2.88, "PV_electricity":0.35}
+        #                           # nicht erneuerbarer Primärenergiebedarf von SIA 380 2015, Anhang C Tab.5 und Tab.6
+                                    #kWh/kWH
+
+        n_e_primarenergiefaktor = {"Natural Gas":3.958/3.600, "Pellets":0.412/3.600, "HP":((7.183/jaz)/3.600),
+                                   "electricity_EU":7.183/3.600, "PV_electricity":7.183/3.600} #kWh/kWh
+                                # Ökobaudat 2015, wird verwendet in UBA132/2019 Bericht. Ja, PV Strom wurde gleich
+                                # verrechnet wie Netzstrom
 
         ## Werte aus Datenbanken auslesen:
         self.dhw_demand = np.repeat(annual_dhw_demand[self.gebaeudekategorie_sia]/12.0,12)
