@@ -11,6 +11,7 @@ class Building(object):
                  floor,
                  energy_reference_area,
                  heat_recovery_nutzungsgrad,
+                 infiltration_volume_flow,
                  thermal_storage_capacity_per_floor_area,
                  korrekturfaktor_luftungs_eff_f_v,
                  height_above_sea):
@@ -23,6 +24,7 @@ class Building(object):
         self.floor = floor  # np.array of floowrs with |area|u-value|b-value|
         self.energy_reference_area = energy_reference_area  # One value, float
         self.anlagennutzungsgrad_wrg = heat_recovery_nutzungsgrad  # One value, float
+        self.q_inf = infiltration_volume_flow
         self.warmespeicherfahigkeit_pro_ebf = thermal_storage_capacity_per_floor_area # One value, float
         self.korrekturfaktor_luftungs_eff_f_v = korrekturfaktor_luftungs_eff_f_v
         self.hohe_uber_meer = height_above_sea
@@ -52,10 +54,10 @@ class Building(object):
         # aussenluft_strome = {1:0.7, 2:0.7, 3:0.7, 4:0.7, 5:0.7, 6:1.2, 7:1.0, 8:1.0, 9:0.7, 10:0.3, 11:0.7, 12:0.7}  # 380-1 Tab14
         aussenluft_strome = {1: 0.84}  # UBA-Vergleichsstudie
 
+
         ## Klimadaten aus SIA2028 (Zürich-Kloten)
 
         mj_to_kwh_factor = 1.0/3.6
-
         globalstrahlung_horizontal_monatlich = np.array([102, 167, 313, 425, 546, 583, 603, 525, 355, 209, 106, 80]) * mj_to_kwh_factor  # kWh/m2
         globalstrahlung_ost_monatlich = np.array([67, 109, 190, 244, 303, 321, 335, 297, 194, 107, 60, 48]) * mj_to_kwh_factor # kWh/m2
         globalstrahlung_sud_monatlich = np.array([163, 235, 316, 298, 295, 277, 303, 337, 311, 244, 148, 123]) * mj_to_kwh_factor # kWh/m2
@@ -73,7 +75,12 @@ class Building(object):
         t_p_005 = prasenzzeiten[int(self.gebaeudekategorie_sia)]  # Präsenzzeit pro Tag h/d
         e_f_el_006 = elektrizitatsbedarf[int(self.gebaeudekategorie_sia)]  # Elektrizitätsbedarf pro Jahr kWh/m2
         f_el_007 = reduktion_elektrizitat[int(self.gebaeudekategorie_sia)]  # Reduktionsfaktor Elektrizität [-]
-        q_th_008 = aussenluft_strome[int(self.gebaeudekategorie_sia)]  # thermisch wirksamer Aussenluftvolumenstrom gem 3.5.5 m3/(hm2)
+
+        eta_v_081 = self.anlagennutzungsgrad_wrg  # anlagennutzungsgrad der wärmerückgewinnung [-]
+        f_v_082 = self.korrekturfaktor_luftungs_eff_f_v  # Korrekturfaktor für die Lüftungseffektivität [-]
+
+        q_th_008 = ((aussenluft_strome[int(self.gebaeudekategorie_sia)]-self.q_inf)*(1-eta_v_081)/f_v_082) + self.q_inf
+        # thermisch wirksamer Aussenluftvolumenstrom gem 3.5.5 m3/(hm2)
 
         h_010 = self.hohe_uber_meer  # Höhge über Meer [m]
 
@@ -178,8 +185,7 @@ class Building(object):
             cr_ae_078 = self.warmespeicherfahigkeit_pro_ebf  # Wärmespeicherfähigkeit pro EBF [kWh/(m2K)]
             a_0_079 = 1.0  # numerischer Parameter für Ausnutzungsgrad [-] wird immer als 1 angenommen SIA 380-1 3.5.6.2
             tau_0_080 = 15.0  # Referenzzeitkonstante für Ausnutzungsgrad [h] wird immer als 15 angenommen SIA 380-1 3.5.6.2
-            eta_v_081 = self.anlagennutzungsgrad_wrg  # anlagennutzungsgrad der wärmerückgewinnung [-]
-            f_v_082 = self.korrekturfaktor_luftungs_eff_f_v  # Korrekturfaktor für die Lüftungseffektivität [-]
+
 
 
 
