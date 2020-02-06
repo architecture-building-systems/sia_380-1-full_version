@@ -31,6 +31,7 @@ class TestBuildingInitialization(unittest.TestCase):
         thermal_storage_capacity_per_floor_area = 0.08
         korrekturfaktor_luftungs_eff_f_v = 1.0
         height_above_sea = 435.0
+        infiltration_volume_flow = 0
 
         Test_building = se.Building(gebaeudekategorie_sia,
                                     regelung,
@@ -40,6 +41,7 @@ class TestBuildingInitialization(unittest.TestCase):
                                     floor,
                                     energy_reference_area,
                                     heat_recovery_nutzungsgrad,
+                                    infiltration_volume_flow,
                                     thermal_storage_capacity_per_floor_area,
                                     korrekturfaktor_luftungs_eff_f_v,
                                     height_above_sea)
@@ -86,6 +88,7 @@ class TestSia380_1(unittest.TestCase):
         thermal_storage_capacity_per_floor_area = 0.08
         korrekturfaktor_luftungs_eff_f_v = 1.0
         height_above_sea = 435.0
+        infiltration_volume_flow = 0.0
 
         Test_building = se.Building(gebaeudekategorie_sia,
                  regelung,
@@ -95,6 +98,7 @@ class TestSia380_1(unittest.TestCase):
                  floor,
                  energy_reference_area,
                  heat_recovery_nutzungsgrad,
+                 infiltration_volume_flow,
                  thermal_storage_capacity_per_floor_area,
                  korrekturfaktor_luftungs_eff_f_v,
                  height_above_sea)
