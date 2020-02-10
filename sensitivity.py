@@ -2,6 +2,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 import simulation_engine as se
 
+from SALib.sample import saltelli
+from SALib.analyze import sobol
+
+
+
 ### Erforderliche Nutzereingaben:
 gebaeudekategorie_sia = 1.1
 regelung = "andere"  # oder "Referenzraum" oder "andere"
@@ -14,57 +19,90 @@ infiltration_volume_flow = 0.15  # Gemäss SIA 380-1 2016 3.5.5 soll 0.15m3/(hm2
 
 
 ## Gebäudehülle
-u_windows = 0.74
-u_walls = 0.12
 u_roof = 0.11
 u_floor = 0.13
 b_floor = 0.4
 
 
-## Systeme
-heizsystem = "HP"
-dhw_heizsystem = "HP"
+
+
+### Generate Samples
+problem = {
+    'num_vars':6,
+    'names':['u_walls', 'u_windows', 'g_windows'],
+    'bounds':[[0.12, 0.25],  # u_walls
+              [0.75, 1.3],  # u_windows
+              [0.2, 0.6],  # g_windows
+              [0.08, 0.25],  # u_floor
+              [0.1, 1.0],  # b_floor
+              [0.08, 0.25],  # u_roof
+              ]}
+param_values = saltelli.sample(problem, 10000)
+
+
+### Run Model
+
+Y = np.zeros([param_values.shape[0]])
+for i, X in enumerate(param_values):
+
+    u_walls = X[0]
+    u_windows = X[1]
+    g_windows = X[2]
+    u_floor = X[3]
+    b_floor = X[4]
+    u_roof = X[5]
+
+
+    ## Systeme
+    heizsystem = "HP"
+    dhw_heizsystem = "HP"
+
+
+    ### Bauteile:
+    ## Windows: [[Orientation],[Areas],[U-value],[g-value]]
+    windows = np.array([["N", "E", "S", "W"],
+                        [131.5, 131.5, 131.5, 131.5],
+                        [u_windows, u_windows, u_windows, u_windows],
+                        [g_windows, g_windows, g_windows, g_windows]],
+                       dtype=object)  # dtype=object is necessary because there are different data types
+
+    ## walls: [[Areas], [U-values]]
+    walls = np.array([[412.5, 412.5, 412.5, 412.5],
+                      [u_walls, u_walls, u_walls, u_walls]])
+
+    ## roof: [[Areas], [U-values]]
+    roof = np.array([[506.0], [u_roof]])
+
+    ## floor to ground (for now) [[Areas],[U-values],[b-values]]
+    floor = np.array([[506.0],[u_floor],[b_floor]])
 
 
 
 
-### Bauteile:
-## Windows: [[Orientation],[Areas],[U-value],[g-value]]
-windows = np.array([["N", "E", "S", "W"],
-                    [131.5, 131.5, 131.5, 131.5],
-                    [u_windows, u_windows, u_windows, u_windows],
-                    [0.6, 0.6, 0.6, 0.6]],
-                   dtype=object)  # dtype=object is necessary because there are different data types
-
-## walls: [[Areas], [U-values]]
-walls = np.array([[412.5, 412.5, 412.5, 412.5],
-                  [u_walls, u_walls, u_walls, u_walls]])
-
-## roof: [[Areas], [U-values]]
-roof = np.array([[506.0], [u_roof]])
-
-## floor to ground (for now) [[Areas],[U-values],[b-values]]
-floor = np.array([[506.0],[u_floor],[b_floor]])
 
 
-Gebaeude_1 = se.Building(gebaeudekategorie_sia, regelung, windows, walls, roof, floor, energiebezugsflache,
-                         anlagennutzungsgrad_wrg, infiltration_volume_flow, warmespeicherfahigkeit_pro_EBF,
-                         korrekturfaktor_luftungs_eff_f_v, hohe_uber_meer)
-
-Gebaeude_1.run_SIA_380_1()
-print(Gebaeude_1.heizwarmebedarf.sum())  #kWh/m2a
+    Gebaeude_1 = se.Building(gebaeudekategorie_sia, regelung, windows, walls, roof, floor, energiebezugsflache,
+                             anlagennutzungsgrad_wrg, infiltration_volume_flow, warmespeicherfahigkeit_pro_EBF,
+                             korrekturfaktor_luftungs_eff_f_v, hohe_uber_meer)
 
 
 
-## Gebäudedimensionen
-Gebaeude_1.heating_system = heizsystem
-# Gebaeude_1.electricity_mix =
-Gebaeude_1.dhw_heating_system = dhw_heizsystem  ## Achtung, momentan ist der COP für DHW und für Heizung gleich.
+    Gebaeude_1.run_SIA_380_1()
+
+    Y[i] = Gebaeude_1.heizwarmebedarf.sum()  #kWh/m2a
+
+Si = sobol.analyze(problem, Y)
+
+print(Si['S1'])
+print(Si['S2'])
+
+# print("x1-x2:", Si['S2'][0,1])
+# print("x1-x3:", Si['S2'][0,2])
+# print("x2-x3:", Si['S2'][1,2])
+#
 
 
-Gebaeude_1.run_SIA_380_emissions()
-print(Gebaeude_1.emissions.sum())  # CO2eq/m2a
-print(Gebaeude_1.non_renewable_primary_energy.sum())  # kWh/m2a
+
 
 quit()
 ##### Plots:
