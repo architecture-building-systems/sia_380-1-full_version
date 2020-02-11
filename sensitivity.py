@@ -42,7 +42,7 @@ if __name__=='__main__':
                   [0.05, 0.25],  # infiltration volume flow
                   [0.5, 7.5]]}   # Heating system ## Abklären, ob dies so gemacht werden kann für diskretisierte Variablen.
     # "Natural Gas":0.249, "Wood":0.020, "Pellets":0.048, "GSHP_CH_mix":0.055, "ASHP_CH_mix":0.076, "GSHP_EU_mix":0.207, "ASHP_EU_mix":0.285
-    param_values = saltelli.sample(problem, 50)
+    param_values = saltelli.sample(problem, 300)
 
 
     ### Run Model
@@ -133,5 +133,5 @@ if __name__=='__main__':
     plt.xticks(np.arange(0.5,12.5,1.0), problem['names'])
     plt.yticks(np.arange(0.5,12.5,1.0), problem['names'])
     plt.show()
-    
+
 

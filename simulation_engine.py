@@ -403,3 +403,6 @@ def window_irradiation(windows, g_sh_012, g_ss_013, g_se_014, g_sw_015, g_sn_016
             "zweistellige Richtungen erlaubt sind (N, E, S, W, NE, SE, SW, NW)"
 
     return g_s_windows
+
+if __name__=='__main__':
+    pass
