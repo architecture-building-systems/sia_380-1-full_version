@@ -51,8 +51,8 @@ class Building(object):
         prasenzzeiten = {1:12., 2:12., 3:6., 4:4., 5:4., 6:3., 7:3., 8:16., 9:6., 10:6., 11:6., 12:4.}  # 380-1 Tab11
         elektrizitatsbedarf = {1:28., 2:22., 3:22., 4:11., 5:33., 6:33., 7:17., 8:28., 9:17., 10:6., 11:6., 12:56.}  # 380-1 Tab12
         reduktion_elektrizitat = {1:0.7, 2:0.7, 3:0.9, 4:0.9, 5:0.8, 6:0.7, 7:0.8, 8:0.7, 9:0.9, 10:0.9, 11:0.9, 12:0.7}  # 380-1 Tab13
-        # aussenluft_strome = {1:0.7, 2:0.7, 3:0.7, 4:0.7, 5:0.7, 6:1.2, 7:1.0, 8:1.0, 9:0.7, 10:0.3, 11:0.7, 12:0.7}  # 380-1 Tab14
-        aussenluft_strome = {1: 0.84}  # UBA-Vergleichsstudie
+        aussenluft_strome = {1:0.7, 2:0.7, 3:0.7, 4:0.7, 5:0.7, 6:1.2, 7:1.0, 8:1.0, 9:0.7, 10:0.3, 11:0.7, 12:0.7}  # 380-1 Tab14
+        # aussenluft_strome = {1: 0.84}  # UBA-Vergleichsstudie
 
 
         ## Klimadaten aus SIA2028 (Zürich-Kloten)
