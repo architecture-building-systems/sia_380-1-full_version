@@ -14,16 +14,16 @@ infiltration_volume_flow = 0.15  # Gemäss SIA 380-1 2016 3.5.5 soll 0.15m3/(hm2
 
 
 ## Gebäudehülle
-u_windows = 0.74
-u_walls = 0.12
-u_roof = 0.11
-u_floor = 0.13
+u_windows = 0.6
+u_walls = 0.08
+u_roof = 0.06
+u_floor = 0.09
 b_floor = 0.4
 
 
 ## Systeme
-heizsystem = "HP"
-dhw_heizsystem = "HP"
+heizsystem = "ASHP_CH_mix"
+dhw_heizsystem = heizsystem
 
 
 
@@ -40,6 +40,7 @@ windows = np.array([["N", "E", "S", "W"],
 walls = np.array([[412.5, 412.5, 412.5, 412.5],
                   [u_walls, u_walls, u_walls, u_walls]])
 
+
 ## roof: [[Areas], [U-values]]
 roof = np.array([[506.0], [u_roof]])
 
@@ -52,9 +53,8 @@ Gebaeude_1 = se.Building(gebaeudekategorie_sia, regelung, windows, walls, roof, 
                          korrekturfaktor_luftungs_eff_f_v, hohe_uber_meer)
 
 Gebaeude_1.run_SIA_380_1()
-print(Gebaeude_1.heizwarmebedarf.sum())  #kWh/m2a
-
-
+print(Gebaeude_1.heizwarmebedarf.sum()+19.8)  #kWh/m2a
+print(Gebaeude_1.heizwarmebedarf + 19.8/12)
 
 ## Gebäudedimensionen
 Gebaeude_1.heating_system = heizsystem
@@ -63,23 +63,8 @@ Gebaeude_1.dhw_heating_system = dhw_heizsystem  ## Achtung, momentan ist der COP
 
 
 Gebaeude_1.run_SIA_380_emissions()
-print(Gebaeude_1.emissions.sum())  # CO2eq/m2a
-print(Gebaeude_1.non_renewable_primary_energy.sum())  # kWh/m2a
+print(Gebaeude_1.heating_emissions.sum()+Gebaeude_1.dhw_emissions.sum())  # CO2eq/m2a
+print(Gebaeude_1.heating_emissions+Gebaeude_1.dhw_emissions)
+# print(Gebaeude_1.non_renewable_primary_energy.sum())  # kWh/m2a
 
 quit()
-##### Plots:
-
-# plt.plot(transmissionsverluste, label="Transmissionswärmeverluste")
-# plt.plot(luftungsverluste, label="Lüftungsverlust")
-plt.plot(gesamtwarmeverluste, label="Gesamtwärmeverluste")
-# plt.plot(interne_eintrage, label="Interne Wärmegewinne")
-# plt.plot(solare_eintrage, label="Solare Wärmegewinne")
-plt.plot(totale_warmeeintrage, label="Totale Wärmegewinne")
-# plt.plot(genutzte_warmeeintrage, label="Genutzte Wärmegewinne")
-plt.plot(heizwarmebedarf, label="Heizwärmebedarf")
-plt.legend()
-plt.ylabel("kWh/(m2a)")
-plt.title("SIA 380-1 monatliche Bilanz")
-plt.show()
-
-print("Annual Heizwärmebedarf", sum(heizwarmebedarf))
