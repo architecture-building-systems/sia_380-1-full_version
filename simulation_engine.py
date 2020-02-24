@@ -52,7 +52,7 @@ class Building(object):
         elektrizitatsbedarf = {1:28., 2:22., 3:22., 4:11., 5:33., 6:33., 7:17., 8:28., 9:17., 10:6., 11:6., 12:56.}  # 380-1 Tab12
         reduktion_elektrizitat = {1:0.7, 2:0.7, 3:0.9, 4:0.9, 5:0.8, 6:0.7, 7:0.8, 8:0.7, 9:0.9, 10:0.9, 11:0.9, 12:0.7}  # 380-1 Tab13
         aussenluft_strome = {1:0.7, 2:0.7, 3:0.7, 4:0.7, 5:0.7, 6:1.2, 7:1.0, 8:1.0, 9:0.7, 10:0.3, 11:0.7, 12:0.7}  # 380-1 Tab14
-        # aussenluft_strome = {1: 0.84}  # UBA-Vergleichsstudie
+        # aussenluft_strome = {1: 2.1}  # UBA-Vergleichsstudie
 
 
         ## Klimadaten aus SIA2028 (Zürich-Kloten)
@@ -376,7 +376,7 @@ class Building(object):
             ## add electricity here
 
 
-        self.emissions = self.heating_emissions + self.dhw_emissions ## always make sure to be clear what these emissions include (see SIA 380)
+        self.operational_emissions = self.heating_emissions + self.dhw_emissions ## always make sure to be clear what these emissions include (see SIA 380)
         self.non_renewable_primary_energy = self.heating_non_renewable_primary_energy + self.dhw_non_renewable_primary_energy
 
 
@@ -418,3 +418,6 @@ def window_irradiation(windows, g_sh_012, g_ss_013, g_se_014, g_sw_015, g_sn_016
             "zweistellige Richtungen erlaubt sind (N, E, S, W, NE, SE, SW, NW)"
 
     return g_s_windows
+
+if __name__=='__main__':
+    pass
