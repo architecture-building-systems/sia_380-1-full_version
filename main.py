@@ -84,7 +84,6 @@ if simulation_type == "static":
     print(Gebaeude_1.heating_emissions+Gebaeude_1.dhw_emissions)
     # print(Gebaeude_1.non_renewable_primary_energy.sum())  # kWh/m2a
 
-    quit()
 
 elif simulation_type == "dynamic":
 
@@ -95,16 +94,13 @@ elif simulation_type == "dynamic":
 
     Gebaeude_1.run_rc_simulation(weatherfile_path=weatherfile_path,
                                  occupancy_path=occupancy_path, cooling_setpoint=cooling_setpoint)
-
-    print((Gebaeude_1.heating_demand.sum() + Gebaeude_1.dhw_demand.sum()) / 1000.0 / energiebezugsflache)
-    print(dp.hourly_to_monthly((Gebaeude_1.heating_demand + Gebaeude_1.dhw_demand) / 1000.0 / energiebezugsflache))
-    # print(Gebaeude_1.dhw_demand.sum()/1000.0/energiebezugsflache)
+    # print((Gebaeude_1.heating_demand.sum() + Gebaeude_1.dhw_demand.sum()) / 1000.0 / energiebezugsflache)
+    # print(dp.hourly_to_monthly((Gebaeude_1.heating_demand + Gebaeude_1.dhw_demand) / 1000.0 / energiebezugsflache))
 
     Gebaeude_1.run_dynamic_emissions("SIA_380", "c")
 
-    print((Gebaeude_1.heating_emissions.sum() + Gebaeude_1.dhw_emisions.sum()) / 1000.0 / energiebezugsflache)
-    print(dp.hourly_to_monthly((Gebaeude_1.heating_emissions + Gebaeude_1.dhw_emisions) / 1000.0 / energiebezugsflache))
+    # print((Gebaeude_1.heating_emissions.sum() + Gebaeude_1.dhw_emisions.sum()) / 1000.0 / energiebezugsflache)
+    # print(dp.hourly_to_monthly((Gebaeude_1.heating_emissions + Gebaeude_1.dhw_emisions) / 1000.0 / energiebezugsflache))
 
 else:
-    "print simulation type not correctly specified"
-    quit()
+    print("print simulation type not correctly specified")

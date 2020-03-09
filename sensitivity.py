@@ -4,6 +4,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import plotly.graph_objects as go
 
 import simulation_engine as se
+import simulation_engine_dynamic as sime
 
 from SALib.sample import saltelli
 from SALib.analyze import sobol
@@ -40,7 +41,7 @@ if __name__=='__main__':
                   [0.8, 1.2],  # f_v
                   [0.0, 0.70],  # eta g, heat recovery efficiency
                   [0.05, 0.25],  # infiltration volume flow
-                  [0.5, 7.5]]}   # Heating system ## Abklären, ob dies so gemacht werden kann für diskretisierte Variablen.
+                  [0.5, 5.5]]}   # Heating system ## Abklären, ob dies so gemacht werden kann für diskretisierte Variablen.
     # "Natural Gas":0.249, "Wood":0.020, "Pellets":0.048, "GSHP_CH_mix":0.055, "ASHP_CH_mix":0.076, "GSHP_EU_mix":0.207, "ASHP_EU_mix":0.285
     param_values = saltelli.sample(problem, 300)
 
@@ -65,7 +66,7 @@ if __name__=='__main__':
         infiltration_volume_flow = X[9]
 
         heating_system_number = np.round(X[10], 0)
-        number_to_system = {1:"Natural Gas", 2:"Wood", 3:"Pellets", 4:"GSHP_CH_mix", 5:"ASHP_CH_mix", 6:"GSHP_EU_mix", 7:"ASHP_EU_mix"}
+        number_to_system = {1:"Natural Gas", 2:"Wood", 3:"Pellets", 4:"GSHP", 5:"ASHP"}
         ## Systeme
 
         heizsystem = number_to_system[heating_system_number]
@@ -105,8 +106,8 @@ if __name__=='__main__':
 
 
         Gebaeude_1.run_SIA_380_1()
-
-        Gebaeude_1.run_SIA_380_emissions()
+        Gebaeude_1.run_dhw_demand()
+        Gebaeude_1.run_SIA_380_emissions(emission_factor_type="SIA_380", avg_ashp_cop=2.8)
 
         # Y[i] = Gebaeude_1.heizwarmebedarf.sum()  #kWh/m2a
         Y[i] = Gebaeude_1.heating_emissions.sum()
