@@ -312,8 +312,27 @@ class Building(object):
         return(transmissionsverluste, luftungsverluste, gesamtwarmeverluste, interne_eintrage, solare_eintrage,
                totale_warmeeintrage, genutzte_warmeeintrage, heizwarmebedarf)
 
+    def run_dhw_demand(self):
+        """
+        Add dhw demand to the building.
+        :return:
+        """
+        ### Datenbanken: Werte von SIA 380 2015
 
-    def run_SIA_380_emissions(self):
+        annual_dhw_demand = {1.1: 19.8, 1.2: 13.5, 2.1: 39.5, 2.2: 0., 3.1: 3.6, 3.2: 3.6, 3.3: 0.0, 3.4: 0.0, 4.1: 5.3,
+                             4.2: 0.0,
+                             4.3: 0.0, 4.4: 7.9, 5.1: 2.7, 5.2: 2.7, 5.3: 1.5, 6.1: 108.9, 7.1: 7.3, 7.2: 7.3,
+                             8.1: 67.7,
+                             8.2: 0.0, 8.3: 0.0, 9.1: 2.4, 9.2: 2.4, 9.3: 2.4, 10.1: 0.9, 11.1: 52.9, 11.2: 87.1,
+                             12: None}
+        # according to SIA2024 possbily needs to be changed to SIA 385/2
+        ## Werte aus Datenbanken auslesen:
+        self.dhw_demand = np.repeat(annual_dhw_demand[self.gebaeudekategorie_sia] / 12.0, 12)
+        # monthly kWh/energy_reference area --> this way is simplified and needs to be done according to 384/2
+
+
+
+    def run_SIA_380_emissions(self, emission_factor_type, avg_gshp_cop=3.8, avg_ashp_cop=2.8):
         """
         Beachte: Die SIA Norm kennt keinen flexiblen Strommix. Soll das Stromprodukt ausgewählt werden können,
         müssten hiere noch weitere Anpassungen durchgeführt werden.
@@ -323,17 +342,20 @@ class Building(object):
             print("Before you can calculate the emissions, you first have to run the heating demand simulation")
             quit()
 
-        ### Datenbanken: Werte von SIA 380 2015
 
-        annual_dhw_demand = {1.1:19.8, 1.2:13.5, 2.1:39.5, 2.2:0., 3.1:3.6, 3.2:3.6, 3.3:0.0, 3.4:0.0, 4.1:5.3, 4.2:0.0,
-                             4.3:0.0, 4.4:7.9, 5.1:2.7, 5.2:2.7, 5.3:1.5, 6.1:108.9, 7.1:7.3, 7.2:7.3, 8.1:67.7,
-                             8.2:0.0, 8.3:0.0, 9.1:2.4, 9.2:2.4, 9.3:2.4, 10.1:0.9, 11.1:52.9, 11.2:87.1, 12:None}
-                            # according to SIA2024 possbily needs to be changed to SIA 385/2
+        if emission_factor_type == 'SIA_380':
+            grid_emission_factor = 0.139  # SIA 380
+            grid_primaerenfak = 2.69  # SIA 380
+        elif emission_factor_type == 'EU':
+            grid_emission_factor = 0.522  # Ökobaudat
+            grid_primaerenfak = 2.88  # SIA
+        else:
+            print("you did not specify a valid grid emission type")
 
 
         treibhausgaskoeffizient = {"Oil":0.319, "Natural Gas":0.249, "Wood":0.020, "Pellets":0.048,
-                                   "GSHP_CH_mix":0.055, "ASHP_CH_mix":0.076, "GSHP_EU_mix":0.207, "ASHP_EU_mix":0.285,
-                                   "electricity_CH":0.139, "electricity_EU":0.522, "PV_electricity":0.095}
+                                   "GSHP":grid_emission_factor/avg_gshp_cop, "ASHP":grid_emission_factor/avg_ashp_cop,
+                                   "electricity":grid_emission_factor, "PV_electricity":0.095}
         #                             kgCO2/kWh von SIA 380 2015, Anhang C Tab.5 und Tab.6,
 
 
@@ -344,10 +366,10 @@ class Building(object):
                                     # verrechnet wie Netzstrom
 
 
-        n_e_primarenergiefaktor = {"Oil":1.29, "Natural Gas":1.16, "Wood":0.09, "Pellets":0.26, "GSHP_CH_mix":0.71,
-                                   "ASHP_CH_mix":0.97, "GSHP_EU_mix":2.67, "ASHP_EU_mix":3.64, "electricity_CH":2.69,
-                                   "electricity_EU":2.88, "PV_electricity":0.35}
-                                  # nicht erneuerbarer Primärenergiebedarf von SIA 380 2015, Anhang C Tab.5 und Tab.6
+        n_e_primarenergiefaktor = {"Oil":1.29, "Natural Gas":1.16, "Wood":0.09, "Pellets":0.26,
+                                   "GSHP":grid_primaerenfak/avg_gshp_cop, "ASHP":grid_primaerenfak/avg_ashp_cop,
+                                   "electricity":grid_primaerenfak, "PV_electricity":0.35}
+        #                           nicht erneuerbarer Primärenergiebedarf von SIA 380 2015, Anhang C Tab.5 und Tab.6
                                     #kWh/kWH
 
         # n_e_primarenergiefaktor = {"Natural Gas":3.958/3.600, "Pellets":0.412/3.600, "HP":((7.183/jaz)/3.600),
@@ -355,9 +377,7 @@ class Building(object):
         ##                         Ökobaudat 2015, wird verwendet in UBA132/2019 Bericht. Ja, PV Strom wurde gleich
         ##                        verrechnet wie Netzstrom
 
-        ## Werte aus Datenbanken auslesen:
-        self.dhw_demand = np.repeat(annual_dhw_demand[self.gebaeudekategorie_sia]/12.0,12)
-        # monthly kWh/energy_reference area --> this way is simplified and needs to be done according to 384/2
+
 
 
         ### Bestimmung gesamter gewichteter Energiebedarf

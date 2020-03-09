@@ -22,7 +22,7 @@ b_floor = 0.4
 
 
 ## Systeme
-heizsystem = "ASHP_CH_mix"
+heizsystem = "ASHP"
 dhw_heizsystem = heizsystem
 
 
@@ -58,11 +58,10 @@ print(Gebaeude_1.heizwarmebedarf + 19.8/12)
 
 ## Gebäudedimensionen
 Gebaeude_1.heating_system = heizsystem
-# Gebaeude_1.electricity_mix =
 Gebaeude_1.dhw_heating_system = dhw_heizsystem  ## Achtung, momentan ist der COP für DHW und für Heizung gleich.
 
-
-Gebaeude_1.run_SIA_380_emissions()
+Gebaeude_1.run_dhw_demand()
+Gebaeude_1.run_SIA_380_emissions(emission_factor_type="SIA_380", avg_ashp_cop=2.8)
 print(Gebaeude_1.heating_emissions.sum()+Gebaeude_1.dhw_emissions.sum())  # CO2eq/m2a
 print(Gebaeude_1.heating_emissions+Gebaeude_1.dhw_emissions)
 # print(Gebaeude_1.non_renewable_primary_energy.sum())  # kWh/m2a
