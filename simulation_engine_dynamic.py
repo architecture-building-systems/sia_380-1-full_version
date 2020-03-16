@@ -8,7 +8,7 @@ import supply_system
 import emission_system
 from radiation import Location
 from radiation import Window
-# from radiation import PhotovoltaicSurface
+
 
 
 
