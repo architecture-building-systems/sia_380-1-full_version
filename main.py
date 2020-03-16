@@ -10,7 +10,6 @@ weatherfile_path = r"C:\Users\walkerl\Documents\code\RC_BuildingSimulator\rc_sim
 occupancy_path = r"C:\Users\walkerl\Documents\code\RC_BuildingSimulator\rc_simulator\auxiliary\occupancy_office.csv"
 
 
-
 ### Erforderliche Nutzereingaben:
 gebaeudekategorie_sia = 1.1
 regelung = "andere"  # oder "Referenzraum" oder "andere"
@@ -67,7 +66,7 @@ roof = np.array([[506.0], [u_roof]])
 ## floor to ground (for now) [[Areas],[U-values],[b-values]]
 floor = np.array([[506.0],[u_floor],[b_floor]])
 
-simulation_type = "dynamic"  # Choose between static and dynamic
+simulation_type = "static"  # Choose between static and dynamic
 
 
 ## PV calculation
@@ -88,6 +87,8 @@ for hour in  range(8760):
     pv_yield_hourly[hour] = PvSurface.solar_yield  # in Wh consistent with RC but inconsistent with SIA
 
 
+
+
 ## heating demand and emission calculation
 if simulation_type == "static":
 
@@ -95,18 +96,21 @@ if simulation_type == "static":
                              anlagennutzungsgrad_wrg, infiltration_volume_flow, warmespeicherfahigkeit_pro_EBF,
                              korrekturfaktor_luftungs_eff_f_v, hohe_uber_meer)
 
+    Gebaeude_1.pv_production = pv_yield_hourly
 
     Gebaeude_1.run_SIA_380_1()
-
 
     ## Gebäudedimensionen
     Gebaeude_1.heating_system = heizsystem
     Gebaeude_1.dhw_heating_system = dhw_heizsystem  ## Achtung, momentan ist der COP für DHW und für Heizung gleich.
-
     Gebaeude_1.run_dhw_demand()
+
+    Gebaeude_1.run_SIA_electricity_demand(occupancy_path)
+
     Gebaeude_1.run_SIA_380_emissions(emission_factor_type="SIA_380", avg_ashp_cop=2.8)
-    print(Gebaeude_1.heating_emissions.sum()+Gebaeude_1.dhw_emissions.sum())  # CO2eq/m2a
-    print(Gebaeude_1.heating_emissions+Gebaeude_1.dhw_emissions)
+
+    print(Gebaeude_1.operational_emissions.sum())  # CO2eq/m2a
+
     # print(Gebaeude_1.non_renewable_primary_energy.sum())  # kWh/m2a
 
 elif simulation_type == "dynamic":
@@ -115,6 +119,8 @@ elif simulation_type == "dynamic":
                                    anlagennutzungsgrad_wrg, infiltration_volume_flow, warmespeicherfahigkeit_pro_EBF,
                                    korrekturfaktor_luftungs_eff_f_v, hohe_uber_meer, heizsystem, cooling_system,
                                    dhw_heizsystem)
+
+    Gebaeude_1.pv_production = pv_yield_hourly
 
     Gebaeude_1.run_rc_simulation(weatherfile_path=weatherfile_path,
                                  occupancy_path=occupancy_path, cooling_setpoint=cooling_setpoint)
