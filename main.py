@@ -66,7 +66,7 @@ roof = np.array([[506.0], [u_roof]])
 ## floor to ground (for now) [[Areas],[U-values],[b-values]]
 floor = np.array([[506.0],[u_floor],[b_floor]])
 
-simulation_type = "static"  # Choose between static and dynamic
+simulation_type = "dynamic"  # Choose between static and dynamic
 
 
 ## PV calculation
@@ -105,11 +105,13 @@ if simulation_type == "static":
     Gebaeude_1.dhw_heating_system = dhw_heizsystem  ## Achtung, momentan ist der COP für DHW und für Heizung gleich.
     Gebaeude_1.run_dhw_demand()
 
+    print(Gebaeude_1.heizwarmebedarf.sum() + Gebaeude_1.dhw_demand.sum())
+
     Gebaeude_1.run_SIA_electricity_demand(occupancy_path)
 
     Gebaeude_1.run_SIA_380_emissions(emission_factor_type="SIA_380", avg_ashp_cop=2.8)
 
-    print(Gebaeude_1.operational_emissions.sum())  # CO2eq/m2a
+    # print(Gebaeude_1.operational_emissions.sum())  # CO2eq/m2a
 
     # print(Gebaeude_1.non_renewable_primary_energy.sum())  # kWh/m2a
 
@@ -124,12 +126,14 @@ elif simulation_type == "dynamic":
 
     Gebaeude_1.run_rc_simulation(weatherfile_path=weatherfile_path,
                                  occupancy_path=occupancy_path, cooling_setpoint=cooling_setpoint)
-    # print((Gebaeude_1.heating_demand.sum() + Gebaeude_1.dhw_demand.sum()) / 1000.0 / energiebezugsflache)
+    print((Gebaeude_1.heating_demand.sum() + Gebaeude_1.dhw_demand.sum()) / 1000.0 / energiebezugsflache)
     # print(dp.hourly_to_monthly((Gebaeude_1.heating_demand + Gebaeude_1.dhw_demand) / 1000.0 / energiebezugsflache))
+
+    Gebaeude_1.run_SIA_electricity_demand(occupancy_path)
 
     Gebaeude_1.run_dynamic_emissions("SIA_380", "c")
 
-    # print((Gebaeude_1.heating_emissions.sum() + Gebaeude_1.dhw_emisions.sum()) / 1000.0 / energiebezugsflache)
+    # print(Gebaeude_1.operational_emissions.sum() / 1000.0 / energiebezugsflache)
     # print(dp.hourly_to_monthly((Gebaeude_1.heating_emissions + Gebaeude_1.dhw_emisions) / 1000.0 / energiebezugsflache))
 
 else:

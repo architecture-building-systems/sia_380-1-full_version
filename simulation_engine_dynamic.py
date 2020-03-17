@@ -78,6 +78,7 @@ class Sim_Building(object):
         self.dhw_supply_temperature = 60  # deg C fixed and hard coded
 
         self.dhw_heating_system = dhw_heating_system
+        self.pv_production = None
 
 
     def run_rc_simulation(self, weatherfile_path, occupancy_path, cooling_setpoint):
@@ -224,6 +225,9 @@ class Sim_Building(object):
             # self.total_heat_demand[hour] = Office.heating_demand + Office.dhw_demand  ## add again when dhw is solved
 
 
+    def run_SIA_electricity_demand(self, occupancy_path):
+        self.app_light_other_electricity_monthly_demand = dp.sia_electricity_per_erf_hourly(occupancy_path,
+                                                                                            self.gebaeudekategorie_sia)
 
 
     def run_dynamic_emissions(self, emission_factor_type, grid_export_assumption='c'):
@@ -236,6 +240,8 @@ class Sim_Building(object):
             print(
                 "Before you can calculate the dynamic emissions, you first have to run the dynamic heating simulation")
             quit()
+
+
 
 
         ### Too many ifs. TODO: simplify by adding into a single function or table.
@@ -268,23 +274,30 @@ class Sim_Building(object):
         else:
             fossil_dhw_emission_factors = np.repeat(0,8760)
 
+        # self.app_light_other_electricity_monthly_demand is per energy reference area in kWh
+        # the dynamic model runs in not normalized energy and Wh
+        self.electricity_demand = self.app_light_other_electricity_monthly_demand * self.energy_reference_area * 1000 +\
+                                  self.heating_electricity_demand + self.dhw_electricity_demand +\
+                                  self.cooling_electricity_demand
+
+        net_electricity_demand = self.electricity_demand-self.pv_production
+        net_electricity_demand[net_electricity_demand < 0.0] = 0.0
+        self.net_electricity_demand = net_electricity_demand
 
 
 
-        self.heating_emissions = np.empty(8760)
-        self.cooling_emissions = np.empty(8760)
-        self.dhw_emisions = np.empty(8760)
+        self.fossil_emissions = np.empty(8760)
+        self.electricity_emissions = np.empty(8760)
 
         for hour in range(8760):
-            self.heating_emissions[hour] = self.heating_electricity_demand[hour] * grid_emission_factors[hour] \
-                                + self.heating_fossil_demand[hour] * fossil_heating_emission_factors[hour]
-            self.cooling_emissions[hour] = self.cooling_electricity_demand[hour] * grid_emission_factors[hour] \
-                                + self.cooling_fossil_demand[hour] * fossil_cooling_emission_factors[hour]
-            self.dhw_emisions[hour] = self.dhw_electricity_demand[hour] * grid_emission_factors[hour] \
-                                + self. dhw_fossil_demand[hour] * fossil_dhw_emission_factors[hour]
+            self.fossil_emissions[hour] = (self.heating_fossil_demand[hour] * fossil_heating_emission_factors[hour]) + (
+                        self.cooling_fossil_demand[hour] * fossil_cooling_emission_factors[hour]) + (
+                                                      self.dhw_fossil_demand[hour] * fossil_dhw_emission_factors[hour])
+
+            self.electricity_emissions[hour] = self.net_electricity_demand[hour] * grid_emission_factors[hour]
 
 
-        self.operational_emissions = self.heating_emissions + self.cooling_emissions + self.dhw_emisions
+        self.operational_emissions = self.fossil_emissions + self.electricity_emissions
 
 
 

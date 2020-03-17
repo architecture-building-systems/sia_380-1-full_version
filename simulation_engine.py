@@ -314,8 +314,6 @@ class Building(object):
         self.totale_warmeeintrage = totale_warmeeintrage
         self.genutzte_warmeeintrage = genutzte_warmeeintrage
         self.heizwarmebedarf = heizwarmebedarf
-        return(transmissionsverluste, luftungsverluste, gesamtwarmeverluste, interne_eintrage, solare_eintrage,
-               totale_warmeeintrage, genutzte_warmeeintrage, heizwarmebedarf)
 
     def run_dhw_demand(self):
         """
@@ -459,29 +457,8 @@ class Building(object):
                                             self.grid_electricity_non_renewable_primary_energy
 
     def run_SIA_electricity_demand(self, occupancy_path):
-        """
-        This function distributes the electricity demand of SIA380-1 according tooccupancy schedules of SIA2024
-        It is questionable if this is correct but probably a good first approximation.
-        :param occupancy_path: the same occupancy path used for the RC model according to SIA 2024 where monthly and
-        weekly schedules are combined.
-        :return:
-        """
-
-        # Diese Angaben werden ebenfalls in runSIA380 verwendet und sollten früher oder später nach data_prep oder
-        # in ein file verschoben werden.
-        elektrizitatsbedarf = {1: 28., 2: 22., 3: 22., 4: 11., 5: 33., 6: 33., 7: 17., 8: 28., 9: 17., 10: 6., 11: 6.,
-                               12: 56.}  # 380-1 Tab12
-
-        occupancyProfile = pd.read_csv(occupancy_path)
-        occupancy_factor = np.empty(8760)
-        total = occupancyProfile['People'].sum()
-        for hour in range(8760):
-            occupancy_factor[hour] = occupancyProfile.loc[hour, 'People']/total
-
-        occupancy_monthly = dp.hourly_to_monthly(occupancy_factor)
-
-        self.app_light_other_electricity_monthly_demand = occupancy_monthly * \
-                                                   elektrizitatsbedarf[int(self.gebaeudekategorie_sia)]
+        self.app_light_other_electricity_monthly_demand = dp.hourly_to_monthly(
+            dp.sia_electricity_per_erf_hourly(occupancy_path, self.gebaeudekategorie_sia))
 
 
 def window_irradiation(windows, g_sh_012, g_ss_013, g_se_014, g_sw_015, g_sn_016):
@@ -522,6 +499,7 @@ def window_irradiation(windows, g_sh_012, g_ss_013, g_se_014, g_sw_015, g_sn_016
             "zweistellige Richtungen erlaubt sind (N, E, S, W, NE, SE, SW, NW)"
 
     return g_s_windows
+
 
 
 
