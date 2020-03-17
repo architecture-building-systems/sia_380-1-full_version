@@ -244,3 +244,26 @@ def hourly_to_monthly(hourly_array):
         monthly_values[month] = hourly_array[start_hour:end_hour].sum()
         start_hour = start_hour + hours_per_month[month]
     return monthly_values
+
+
+def sia_electricity_per_erf_hourly(occupancy_path, gebaeudekategorie_sia):
+        """
+        This function distributes the electricity demand of SIA380-1 according tooccupancy schedules of SIA2024
+        It is questionable if this is correct but probably a good first approximation.
+        :param occupancy_path: the same occupancy path used for the RC model according to SIA 2024 where monthly and
+        weekly schedules are combined.
+        :return:
+        """
+
+        # Diese Angaben werden ebenfalls in runSIA380 verwendet und sollten früher oder später nach data_prep oder
+        # in ein file verschoben werden.
+        elektrizitatsbedarf = {1: 28., 2: 22., 3: 22., 4: 11., 5: 33., 6: 33., 7: 17., 8: 28., 9: 17., 10: 6., 11: 6.,
+                               12: 56.}  # 380-1 Tab12
+
+        occupancyProfile = pd.read_csv(occupancy_path)
+        occupancy_factor = np.empty(8760)
+        total = occupancyProfile['People'].sum()
+        for hour in range(8760):
+            occupancy_factor[hour] = occupancyProfile.loc[hour, 'People']/total
+
+        return occupancy_factor * elektrizitatsbedarf[int(gebaeudekategorie_sia)]
