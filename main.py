@@ -7,6 +7,7 @@ import simulation_pv as pv
 
 ### Pfade zu weiteren Daten
 weatherfile_path = r"C:\Users\walkerl\Documents\code\RC_BuildingSimulator\rc_simulator\auxiliary\Zurich-Kloten_2013.epw"
+weather_data_sia = dp.epw_to_sia_irrad(weatherfile_path)
 occupancy_path = r"C:\Users\walkerl\Documents\code\RC_BuildingSimulator\rc_simulator\auxiliary\occupancy_office.csv"
 
 
@@ -66,7 +67,7 @@ roof = np.array([[506.0], [u_roof]])
 ## floor to ground (for now) [[Areas],[U-values],[b-values]]
 floor = np.array([[506.0],[u_floor],[b_floor]])
 
-simulation_type = "dynamic"  # Choose between static and dynamic
+simulation_type = "static"  # Choose between static and dynamic
 
 
 ## PV calculation
@@ -98,7 +99,8 @@ if simulation_type == "static":
 
     Gebaeude_1.pv_production = pv_yield_hourly
 
-    Gebaeude_1.run_SIA_380_1()
+
+    Gebaeude_1.run_SIA_380_1(weather_data_sia)
 
     ## Gebäudedimensionen
     Gebaeude_1.heating_system = heizsystem
@@ -111,7 +113,7 @@ if simulation_type == "static":
 
     Gebaeude_1.run_SIA_380_emissions(emission_factor_type="SIA_380", avg_ashp_cop=2.8)
 
-    # print(Gebaeude_1.operational_emissions.sum())  # CO2eq/m2a
+    print(Gebaeude_1.operational_emissions.sum())  # CO2eq/m2a
 
     # print(Gebaeude_1.non_renewable_primary_energy.sum())  # kWh/m2a
 
@@ -133,7 +135,7 @@ elif simulation_type == "dynamic":
 
     Gebaeude_1.run_dynamic_emissions("SIA_380", "c")
 
-    # print(Gebaeude_1.operational_emissions.sum() / 1000.0 / energiebezugsflache)
+    print(Gebaeude_1.operational_emissions.sum() / 1000.0 / energiebezugsflache)
     # print(dp.hourly_to_monthly((Gebaeude_1.heating_emissions + Gebaeude_1.dhw_emisions) / 1000.0 / energiebezugsflache))
 
 else:

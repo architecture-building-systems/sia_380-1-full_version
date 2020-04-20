@@ -261,6 +261,22 @@ def hourly_to_monthly(hourly_array):
         start_hour = start_hour + hours_per_month[month]
     return monthly_values
 
+def hourly_to_monthly_average(hourly_array):
+    """
+    This function sums up hourly values to monthly values
+    :param hourly_array:
+    :return:
+    """
+    hours_per_month = np.array([31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31])*24
+    monthly_values = np.empty(12)
+    start_hour = 0
+
+    for month in range(12):
+        end_hour = start_hour+hours_per_month[month]
+        monthly_values[month] = hourly_array[start_hour:end_hour].mean()
+        start_hour = start_hour + hours_per_month[month]
+    return monthly_values
+
 def sia_electricity_per_erf_hourly(occupancy_path, gebaeudekategorie_sia):
         """
         This function distributes the electricity demand of SIA380-1 according tooccupancy schedules of SIA2024
@@ -322,6 +338,7 @@ def epw_to_sia_irrad(epw_path):
     global_east_vertical = np.empty(8760)
     global_west_vertical = np.empty(8760)
     global_north_vertical = np.empty(8760)
+    temperature = np.empty(8760)
 
     for hour in range(8760):
         solar_altitude, solar_azimuth = calc_sun_position(latitude, longitude, 2020, hour)
@@ -330,6 +347,7 @@ def epw_to_sia_irrad(epw_path):
         global_horizontal_value = weather_data['glohorrad_Whm2'][hour]
         dni_extra = weather_data['extdirrad_Whm2'][hour]
         relative_air_mass = pvlib.atmosphere.get_relative_airmass(90-solar_altitude)
+        temperature[hour] = weather_data['drybulb_C'][hour]
 
 
         # South (azimuth south convention)
@@ -383,23 +401,13 @@ def epw_to_sia_irrad(epw_path):
     global_east_vertical = hourly_to_monthly(global_east_vertical)/mj_to_kwh_factor
     global_west_vertical = hourly_to_monthly(global_west_vertical)/mj_to_kwh_factor
     global_north_vertical = hourly_to_monthly(global_north_vertical)/mj_to_kwh_factor
+    temperature = hourly_to_monthly_average(temperature)
 
     # The values are returned in MJ as this unit is used by SIA (see SIA2028 2010)
     return {'global_horizontal': global_horizontal, 'global_south':global_south_vertical,
             'global_east':global_east_vertical, 'global_west':global_west_vertical,
-            'global_north':global_north_vertical}
+            'global_north':global_north_vertical, 'temperature':temperature}
 
-
-    # print("horizontal")
-    # print(global_horizontal/mj_to_kwh_factor/1000)
-    # print("south")
-    # print(global_south_vertical/mj_to_kwh_factor/1000)
-    # print("east")
-    # print(global_east_vertical/mj_to_kwh_factor/1000)
-    # print("west")
-    # print(global_west_vertical/mj_to_kwh_factor/1000)
-    # print("north")
-    # print(global_north_vertical/mj_to_kwh_factor/1000)
 
 def calc_sun_position(latitude_deg, longitude_deg, year, hoy):
     """
@@ -464,54 +472,4 @@ def calc_sun_position(latitude_deg, longitude_deg, year, hoy):
         return math.degrees(altitude_rad), math.degrees(azimuth_rad)
     else:
         return math.degrees(altitude_rad), (180 - math.degrees(azimuth_rad))
-
-
-## For now, this part is no longer required
-
-# def calc_direct_solar_factor(sun_altitude, sun_azimuth, plane_tilt, plane_azimuth):
-#     """
-#     Calculates the cosine of the angle of incidence on the window
-#     plane_tilt: horizontal = 0, vertical = 90
-#
-#     """
-#     sun_altitude_rad = math.radians(sun_altitude)
-#     sun_azimuth_rad = math.radians(sun_azimuth)
-#     plane_tilt_rad = math.radians(plane_tilt)
-#     plane_azimuth_rad = math.radians(plane_azimuth)
-#
-#
-#     # Proportion of the radiation incident on the window (cos of the
-#     # incident ray)
-#     direct_factor = math.cos(sun_altitude_rad) * math.sin(plane_tilt_rad) *\
-#                     math.cos(sun_azimuth_rad - plane_azimuth_rad) + math.sin(sun_altitude_rad) *\
-#                     math.cos(plane_tilt_rad)
-#
-#
-#     # If the sun is in front of the window surface
-#     if(math.degrees(math.acos(direct_factor)) > 90):
-#         direct_factor=0
-#
-#     else:
-#         pass
-#
-#     return direct_factor
-#
-# def calc_diffuse_solar_factor(plane_tilt):
-#     """Calculates the proportion of diffuse radiation"""
-#     # Proportion of incident light on the window surface
-#     return (1 + math.cos(plane_tilt)) / 2
-#
-# def calc_diffuse_solar_correction(plane_tilt, solar_altitude):
-#     """
-#     According to PVPerformance modeling collaborative, this empirical value is best. However
-#     to make EPW and SIA comparable, Perez should be implemented.
-#     https://pvpmc.sandia.gov/modeling-steps/1-weather-design-inputs/plane-of-array-poa-irradiance/calculating-poa-irradiance/poa-sky-diffuse/simple-sandia-sky-diffuse-model/
-#     :param plane_tilt:
-#     :param solar_altitude:
-#     :return:
-#     """
-#     # solar altitude in degrees as found in the following publication:
-#     # https://ieeexplore.ieee.org/document/7035020
-#     return (((0.012 * (90.0 - solar_altitude)) - 0.04) * (1.0 - math.cos(math.radians(plane_tilt))))/2.0
-
 
