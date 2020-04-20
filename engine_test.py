@@ -66,6 +66,23 @@ class TestSia380_1(unittest.TestCase):
         to be implemented later.
         :return:
         """
+        globalstrahlung_horizontal_monatlich = np.array(
+            [102, 167, 313, 425, 546, 583, 603, 525, 355, 209, 106, 80])# MJ/m2
+        globalstrahlung_ost_monatlich = np.array(
+            [67, 109, 190, 244, 303, 321, 335, 297, 194, 107, 60, 48]) # MJ/m2
+        globalstrahlung_sud_monatlich = np.array(
+            [163, 235, 316, 298, 295, 277, 303, 337, 311, 244, 148, 123])# MJ/m2
+        globalstrahlung_west_monatlich = np.array(
+            [78, 123, 196, 236, 297, 311, 332, 297, 218, 142, 73, 56])# MJ/m2
+        globalstrahlung_nord_monatlich = np.array(
+            [43, 65, 96, 119, 163, 184, 182, 142, 98, 67, 39, 32]) # MJ/m2
+        temperatur_mittelwert = [0.2, 1.3, 5.4, 8.5, 13.6, 16.5, 18.7, 18.5, 14.0, 9.7, 4.1, 1.7]  # degC
+
+        weather_data_sia = {'global_horizontal': globalstrahlung_horizontal_monatlich,
+                            'global_south': globalstrahlung_sud_monatlich, 'global_east': globalstrahlung_ost_monatlich,
+                            'global_west':globalstrahlung_west_monatlich,
+                            'global_north': globalstrahlung_nord_monatlich, 'temperature': temperatur_mittelwert}
+
         u_windows = 0.6
         u_walls = 0.08
         u_roof = 0.06
@@ -103,7 +120,7 @@ class TestSia380_1(unittest.TestCase):
                  korrekturfaktor_luftungs_eff_f_v,
                  height_above_sea)
 
-        Test_building.run_SIA_380_1()
+        Test_building.run_SIA_380_1(weather_data_sia=weather_data_sia)
 
         self.assertAlmostEqual(np.sum(Test_building.heizwarmebedarf), 5.5, places=1,
                                msg="Heizwärmebedarfsberechnung stimmt nicht mit simpler Berechnung gemäss der SIA380-1 Excel Tabelle überein")

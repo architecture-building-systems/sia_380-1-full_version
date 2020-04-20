@@ -41,12 +41,7 @@ class Building(object):
         self.pv_production = None  # This input is currently implemented as Wh (!)
 
 
-
-
-
-
-
-    def run_SIA_380_1(self):
+    def run_SIA_380_1(self, weather_data_sia):
 
         ### "Datenbanken"
         standard_raumtemperaturen = {1:20., 2:20., 3:20., 4:20., 5:20., 6:20, 7:20, 8:22, 9:18, 10:18, 11:18, 12:28}  #380-1 Tab7
@@ -54,6 +49,8 @@ class Building(object):
         personenflachen = {1:40., 2:60., 3:20., 4:10., 5:10., 6:5, 7:5., 8:30., 9:20., 10:100., 11:20., 12:20.}  # 380-1 Tab9
         warmeabgabe_p_p = {1:70., 2:70., 3:80., 4:70., 5:90., 6:100., 7:80., 8:80., 9:100., 10:100., 11:100., 12:60.}  # 380-1 Tab10
         prasenzzeiten = {1:12., 2:12., 3:6., 4:4., 5:4., 6:3., 7:3., 8:16., 9:6., 10:6., 11:6., 12:4.}  # 380-1 Tab11
+        # this part of elektrizitatsbedarf only goes into thermal calculations. Electricity demand is calculated
+        # independently.
         elektrizitatsbedarf = {1:28., 2:22., 3:22., 4:11., 5:33., 6:33., 7:17., 8:28., 9:17., 10:6., 11:6., 12:56.}  # 380-1 Tab12
         reduktion_elektrizitat = {1:0.7, 2:0.7, 3:0.9, 4:0.9, 5:0.8, 6:0.7, 7:0.8, 8:0.7, 9:0.9, 10:0.9, 11:0.9, 12:0.7}  # 380-1 Tab13
         aussenluft_strome = {1:0.7, 2:0.7, 3:0.7, 4:0.7, 5:0.7, 6:1.2, 7:1.0, 8:1.0, 9:0.7, 10:0.3, 11:0.7, 12:0.7}  # 380-1 Tab14
@@ -63,12 +60,12 @@ class Building(object):
         ## Klimadaten aus SIA2028 (Zürich-Kloten)
 
         mj_to_kwh_factor = 1.0/3.6
-        globalstrahlung_horizontal_monatlich = np.array([102, 167, 313, 425, 546, 583, 603, 525, 355, 209, 106, 80]) * mj_to_kwh_factor  # kWh/m2
-        globalstrahlung_ost_monatlich = np.array([67, 109, 190, 244, 303, 321, 335, 297, 194, 107, 60, 48]) * mj_to_kwh_factor # kWh/m2
-        globalstrahlung_sud_monatlich = np.array([163, 235, 316, 298, 295, 277, 303, 337, 311, 244, 148, 123]) * mj_to_kwh_factor # kWh/m2
-        globalstrahlung_west_monatlich = np.array([78, 123, 196, 236, 297, 311, 332, 297, 218, 142, 73, 56]) * mj_to_kwh_factor # kWh/m2
-        globalstrahlung_nord_monatlich = np.array([43, 65, 96, 119, 163, 184, 182, 142, 98, 67, 39, 32]) * mj_to_kwh_factor # kWh/m2
-        temperatur_mittelwert = [0.2, 1.3, 5.4, 8.5, 13.6, 16.5, 18.7, 18.5, 14.0, 9.7, 4.1, 1.7]  # degC
+        globalstrahlung_horizontal_monatlich = weather_data_sia['global_horizontal'] * mj_to_kwh_factor  # kWh/m2
+        globalstrahlung_ost_monatlich = weather_data_sia['global_east'] * mj_to_kwh_factor  # kWh/m2
+        globalstrahlung_sud_monatlich = weather_data_sia['global_south'] * mj_to_kwh_factor  # kWh/m2
+        globalstrahlung_west_monatlich = weather_data_sia['global_west'] * mj_to_kwh_factor  # kWh/m2
+        globalstrahlung_nord_monatlich = weather_data_sia['global_north'] * mj_to_kwh_factor # kWh/m2
+        temperatur_mittelwert = weather_data_sia['temperature']  # degC
 
         t_c = [31,28,31,30,31,30,31,31,30,31,30,31]  # Tage pro Monat.
 
@@ -317,20 +314,11 @@ class Building(object):
 
     def run_dhw_demand(self):
         """
-        Add dhw demand to the building.
+        Add dhw demand to the building. Retract data from Data prep file
         :return:
         """
-        ### Datenbanken: Werte von SIA 380 2015
-
-        annual_dhw_demand = {1.1: 19.8, 1.2: 13.5, 2.1: 39.5, 2.2: 0., 3.1: 3.6, 3.2: 3.6, 3.3: 0.0, 3.4: 0.0, 4.1: 5.3,
-                             4.2: 0.0,
-                             4.3: 0.0, 4.4: 7.9, 5.1: 2.7, 5.2: 2.7, 5.3: 1.5, 6.1: 108.9, 7.1: 7.3, 7.2: 7.3,
-                             8.1: 67.7,
-                             8.2: 0.0, 8.3: 0.0, 9.1: 2.4, 9.2: 2.4, 9.3: 2.4, 10.1: 0.9, 11.1: 52.9, 11.2: 87.1,
-                             12: None}
-        # according to SIA2024 possbily needs to be changed to SIA 385/2
         ## Werte aus Datenbanken auslesen:
-        self.dhw_demand = np.repeat(annual_dhw_demand[self.gebaeudekategorie_sia] / 12.0, 12)
+        self.dhw_demand = np.repeat(dp.sia_annaul_dhw_demand(self.gebaeudekategorie_sia) / 12.0, 12)
         # monthly kWh/energy_reference area --> this way is simplified and needs to be done according to 384/2
 
     def run_SIA_380_emissions(self, emission_factor_type, avg_gshp_cop=3.8, avg_ashp_cop=2.8):
@@ -346,40 +334,6 @@ class Building(object):
         if not hasattr(self, 'heizwarmebedarf'):
             print("Before you can calculate the emissions, you first have to run the heating demand simulation")
             quit()
-
-
-        if emission_factor_type == 'SIA_380':
-            grid_emission_factor = 0.139  # SIA 380
-            grid_primaerenfak = 2.69  # SIA 380
-        elif emission_factor_type == 'EU':
-            grid_emission_factor = 0.522  # Ökobaudat
-            grid_primaerenfak = 2.88  # SIA
-        else:
-            print("you did not specify a valid grid emission type")
-
-        treibhausgaskoeffizient = {"Oil":0.319, "Natural Gas":0.249, "Wood":0.020, "Pellets":0.048,
-                                   "GSHP":grid_emission_factor/avg_gshp_cop, "ASHP":grid_emission_factor/avg_ashp_cop,
-                                   "electricity":grid_emission_factor, "PV_electricity":0.095}
-        #                             kgCO2/kWh von SIA 380 2015, Anhang C Tab.5 und Tab.6,
-
-
-        # jaz = 3.5  # Leider ist in der Studie nicht genau angegeben welecher verwendet wird, sondern nur 3.0-4.4
-        # treibhausgaskoeffizient = {"Natural Gas":0.247, "Pellets":0.035, "HP":(0.605/jaz),
-        #                            "electricity_EU":0.605, "PV_electricity":0.605}
-                                    # Ökobaudat 2015, wird verwendet in UBA132/2019 Bericht. Ja, PV Strom wurde gleich
-                                    # verrechnet wie Netzstrom
-
-
-        n_e_primarenergiefaktor = {"Oil":1.29, "Natural Gas":1.16, "Wood":0.09, "Pellets":0.26,
-                                   "GSHP":grid_primaerenfak/avg_gshp_cop, "ASHP":grid_primaerenfak/avg_ashp_cop,
-                                   "electricity":grid_primaerenfak, "PV_electricity":0.35}
-        #                           nicht erneuerbarer Primärenergiebedarf von SIA 380 2015, Anhang C Tab.5 und Tab.6
-                                    #kWh/kWH
-
-        # n_e_primarenergiefaktor = {"Natural Gas":3.958/3.600, "Pellets":0.412/3.600, "HP":((7.183/jaz)/3.600),
-        #                            "electricity_EU":7.183/3.600, "PV_electricity":7.183/3.600} #kWh/kWh
-        ##                         Ökobaudat 2015, wird verwendet in UBA132/2019 Bericht. Ja, PV Strom wurde gleich
-        ##                        verrechnet wie Netzstrom
 
         # self.pv_production is total PV production in Wh and has to be normalized and divided by 1000 for the SIA
         # framework
@@ -406,55 +360,34 @@ class Building(object):
         self.net_electricity_demand = self.electricity_demand - pv_prod_month
 
 
-
-
         ## Calculate operational impact:
-
         self.fossil_heating_emissions = np.empty(12)
         self.fossil_dhw_emissions = np.empty(12)
         self.electricity_emissions = np.empty(12)
 
-        self.fossil_heating_non_renewable_primary_energy = np.empty(12)
-        self.fossil_dhw_non_renewable_primary_energy = np.empty(12)
-        self.electricity_non_renewable_primary_energy = np.empty(12)
-
 
         # account for fossil heating emissions
         if self.heating_system in ["Oil", "Natural Gas", "Wood", "Pellets"]:
-            self.fossil_heating_emissions = self.heizwarmebedarf * treibhausgaskoeffizient[self.heating_system]
-            self.fossil_heating_non_renewable_primary_energy = self.heizwarmebedarf *\
-                                                               n_e_primarenergiefaktor[self.heating_system]
+            self.fossil_heating_emissions = self.heizwarmebedarf * dp.fossil_emission_factors(self.heating_system)
 
         else:
             self.fossil_heating_emissions = 0.0
-            self.fossil_heating_non_renewable_primary_energy = 0.0
-
 
         # account for fossil dhw emissions
         if self.dhw_heating_system in ["Oil", "Natural Gas", "Wood", "Pellets"]:
-            self.fossil_dhw_emissions = self.dhw_demand * treibhausgaskoeffizient[self.dhw_heating_system]
-            self.fossil_heating_non_renewable_primary_energy = self.dhw_demand * \
-                                                               n_e_primarenergiefaktor[self.dhw_heating_system]
+            self.fossil_dhw_emissions = self.dhw_demand * dp.fossil_emission_factors(self.dhw_heating_system)
 
         else:
             self.fossil_dhw_emissions = 0.0
-            self.fossil_dhw_non_renewable_primary_energy = 0.0
 
 
         # acount for net grid import emissions
-        self.grid_electricity_emissions = self.net_electricity_demand * treibhausgaskoeffizient["electricity"]
+        self.grid_electricity_emissions = self.net_electricity_demand * dp.build_yearly_emission_factors_sia().mean()
         self.grid_electricity_emissions[self.grid_electricity_emissions < 0.0] = 0.0
-        self.grid_electricity_non_renewable_primary_energy = self.net_electricity_demand *\
-                                                        n_e_primarenergiefaktor["electricity"]
-
-        self.grid_electricity_non_renewable_primary_energy[self.grid_electricity_non_renewable_primary_energy < 00.] = 0.0
-
 
         self.operational_emissions = self.fossil_heating_emissions + self.fossil_dhw_emissions + \
                                      self.grid_electricity_emissions ## always make sure to be clear what these emissions include (see SIA 380)
-        self.non_renewable_primary_energy = self.fossil_heating_non_renewable_primary_energy + \
-                                            self.fossil_dhw_non_renewable_primary_energy + \
-                                            self.grid_electricity_non_renewable_primary_energy
+
 
     def run_SIA_electricity_demand(self, occupancy_path):
         self.app_light_other_electricity_monthly_demand = dp.hourly_to_monthly(
