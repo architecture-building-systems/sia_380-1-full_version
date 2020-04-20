@@ -1,9 +1,13 @@
 import numpy as np
 import pandas as pd
+import math
+import datetime
+import pvlib
 import os
 import sys
 sys.path.insert(1, r"C:\Users\walkerl\Documents\code\RC_BuildingSimulator\rc_simulator")
 import supply_system
+
 
 
 def embodied_emissions_heat_generation_kbob_per_kW(system_type):
@@ -46,8 +50,6 @@ def embodied_emissions_pv_per_kW():
     coeq_pv = 2080 # kg/kWp [KBOB 2016]
     return coeq_pv
 
-
-
 def persons_from_area_sia(energy_reference_area, type=1):
 
     if type ==1:
@@ -58,7 +60,6 @@ def persons_from_area_sia(energy_reference_area, type=1):
 
     occupants = energy_reference_area / personenflache
     return occupants
-
 
 def electric_appliances_sia(energy_reference_area, type=1, value="standard"):
     """
@@ -83,7 +84,6 @@ def electric_appliances_sia(energy_reference_area, type=1, value="standard"):
         print("No demand schedule for electrical appliances has been defined for this case.")
 
     return demand_profile * energy_reference_area #Wh
-
 
 def build_yearly_emission_factors(export_assumption="c"):
 
@@ -172,8 +172,21 @@ def fossil_emission_factors(system_type):
     hourly_emission_factor = np.repeat(treibhausgaskoeffizient[system_type], 8760)  # kgCO2eq/kWh SIA380
     return hourly_emission_factor
 
+def primary_energy_factor():
+    """
+    This function has currently no purpose
+    :return:
+    """
+    n_e_primarenergiefaktor = {"Oil": 1.29, "Natural Gas": 1.16, "Wood": 0.09, "Pellets": 0.26,
+                               "GSHP": grid_primaerenfak / avg_gshp_cop, "ASHP": grid_primaerenfak / avg_ashp_cop,
+                               "electricity": grid_primaerenfak, "PV_electricity": 0.35}
+    #                           nicht erneuerbarer Primärenergiebedarf von SIA 380 2015, Anhang C Tab.5 und Tab.6
+    # kWh/kWH
 
-
+    # n_e_primarenergiefaktor = {"Natural Gas":3.958/3.600, "Pellets":0.412/3.600, "HP":((7.183/jaz)/3.600),
+    #                            "electricity_EU":7.183/3.600, "PV_electricity":7.183/3.600} #kWh/kWh
+    ##                         Ökobaudat 2015, wird verwendet in UBA132/2019 Bericht. Ja, PV Strom wurde gleich
+    ##                        verrechnet wie Netzstrom
 
 def extract_wall_data(filepath, name="Betonwand, Wärmedämmung mit Lattenrost, Verkleidung", area=0,
                                type="GWP[kgCO2eq/m2]", ):
@@ -198,7 +211,6 @@ def extract_wall_data(filepath, name="Betonwand, Wärmedämmung mit Lattenrost, 
         return(data[data["Bezeichnung"] == name][type][:1].values[0]*area)
         ## The zero is here for the moment becaues each element is included with 0.18 and 0.25m insulation.
         ## This way always the 0.18 version is chosen.
-
 
 
 def extract_decarbonization_factor(grid_decarbonization_path, grid_decarbonization_until, grid_decarbonization_type,
@@ -233,8 +245,12 @@ def translate_system_sia_to_rc(system):
                          'electric':supply_system.ElectricHeating}
     return system_dictionary[system]
 
-
 def hourly_to_monthly(hourly_array):
+    """
+    This function sums up hourly values to monthly values
+    :param hourly_array:
+    :return:
+    """
     hours_per_month = np.array([31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31])*24
     monthly_values = np.empty(12)
     start_hour = 0
@@ -244,7 +260,6 @@ def hourly_to_monthly(hourly_array):
         monthly_values[month] = hourly_array[start_hour:end_hour].sum()
         start_hour = start_hour + hours_per_month[month]
     return monthly_values
-
 
 def sia_electricity_per_erf_hourly(occupancy_path, gebaeudekategorie_sia):
         """
@@ -267,3 +282,236 @@ def sia_electricity_per_erf_hourly(occupancy_path, gebaeudekategorie_sia):
             occupancy_factor[hour] = occupancyProfile.loc[hour, 'People']/total
 
         return occupancy_factor * elektrizitatsbedarf[int(gebaeudekategorie_sia)]
+
+def sia_annaul_dhw_demand(gebaeudekategorie_sia):
+
+    ### Datenbanken: Werte von SIA 380 2015
+    annual_dhw_demand = {1.1: 19.8, 1.2: 13.5, 2.1: 39.5, 2.2: 0., 3.1: 3.6, 3.2: 3.6, 3.3: 0.0, 3.4: 0.0, 4.1: 5.3,
+                         4.2: 0.0,
+                         4.3: 0.0, 4.4: 7.9, 5.1: 2.7, 5.2: 2.7, 5.3: 1.5, 6.1: 108.9, 7.1: 7.3, 7.2: 7.3,
+                         8.1: 67.7,
+                         8.2: 0.0, 8.3: 0.0, 9.1: 2.4, 9.2: 2.4, 9.3: 2.4, 10.1: 0.9, 11.1: 52.9, 11.2: 87.1,
+                         12: None}
+
+    return annual_dhw_demand[gebaeudekategorie_sia]
+
+def epw_to_sia_irrad(epw_path):
+    """
+    THIS FUNCTION DOES NOT WORK PROPERLY WHEN COMPARED TO METEONORM SIA DATA.
+    ESPECIALLY THE DIFFUSE MODEL SHOULD BE CHANGED TO PEREZ
+    :param epw_path:
+    :return: dictionary for SIA compatible irradiation data. Dicitonary filled with numpy arrays of floats. Output in
+    MJ as in SIA 2028.
+    """
+    # Set EPW Labels and import epw file
+    epw_labels = ['year', 'month', 'day', 'hour', 'minute', 'datasource', 'drybulb_C', 'dewpoint_C', 'relhum_percent',
+                  'atmos_Pa', 'exthorrad_Whm2', 'extdirrad_Whm2', 'horirsky_Whm2', 'glohorrad_Whm2',
+                  'dirnorrad_Whm2', 'difhorrad_Whm2', 'glohorillum_lux', 'dirnorillum_lux', 'difhorillum_lux',
+                  'zenlum_lux', 'winddir_deg', 'windspd_ms', 'totskycvr_tenths', 'opaqskycvr_tenths', 'visibility_km',
+                  'ceiling_hgt_m', 'presweathobs', 'presweathcodes', 'precip_wtr_mm', 'aerosol_opt_thousandths',
+                  'snowdepth_cm', 'days_last_snow', 'Albedo', 'liq_precip_depth_mm', 'liq_precip_rate_Hour']
+
+    # Import EPW file
+    header_data = pd.read_csv(epw_path, header=None, nrows=1)
+    latitude = header_data.iloc[0,6]
+    longitude = header_data.iloc[0,7]
+    weather_data = pd.read_csv(epw_path, skiprows=8, header=None, names=epw_labels).drop('datasource', axis=1)
+
+    global_horizontal_hourly = weather_data['glohorrad_Whm2'].to_numpy()
+    global_south_vertical = np.empty(8760)
+    global_east_vertical = np.empty(8760)
+    global_west_vertical = np.empty(8760)
+    global_north_vertical = np.empty(8760)
+
+    for hour in range(8760):
+        solar_altitude, solar_azimuth = calc_sun_position(latitude, longitude, 2020, hour)
+        normal_direct_radiation = weather_data['dirnorrad_Whm2'][hour]
+        horizontal_diffuse_radiation = weather_data['difhorrad_Whm2'][hour]
+        global_horizontal_value = weather_data['glohorrad_Whm2'][hour]
+        dni_extra = weather_data['extdirrad_Whm2'][hour]
+        relative_air_mass = pvlib.atmosphere.get_relative_airmass(90-solar_altitude)
+
+
+        # South (azimuth south convention)
+
+        # I use the get_total_irradiance_function of pvlib module. Beware that this function has different
+        # angle conventions than the RC Window Model. Therfore a 180-solar azimuth is required.
+
+        global_south_vertical[hour] = pvlib.irradiance.get_total_irradiance(90, 180, 90-solar_altitude,
+                                                                            180-solar_azimuth, normal_direct_radiation,
+                                                                            global_horizontal_value,
+                                                                            horizontal_diffuse_radiation,
+                                                                            dni_extra=dni_extra,
+                                                                            model='perez',
+                                                                            airmass=relative_air_mass)['poa_global']
+
+
+        global_east_vertical[hour] = pvlib.irradiance.get_total_irradiance(90, 90, 90-solar_altitude,
+                                                                           180-solar_azimuth, normal_direct_radiation,
+                                                                           global_horizontal_value,
+                                                                           horizontal_diffuse_radiation,
+                                                                           dni_extra=dni_extra,
+                                                                           model='perez',
+                                                                           airmass=relative_air_mass)['poa_global']
+
+        global_west_vertical[hour] = pvlib.irradiance.get_total_irradiance(90, 270, 90-solar_altitude,
+                                                                           180-solar_azimuth, normal_direct_radiation,
+                                                                           global_horizontal_value,
+                                                                           horizontal_diffuse_radiation,
+                                                                           dni_extra=dni_extra,
+                                                                           model='perez',
+                                                                           airmass=relative_air_mass)['poa_global']
+
+        global_north_vertical[hour] = pvlib.irradiance.get_total_irradiance(90, 0, 90-solar_altitude,
+                                                                            180-solar_azimuth, normal_direct_radiation,
+                                                                            global_horizontal_value,
+                                                                            horizontal_diffuse_radiation,
+                                                                            dni_extra=dni_extra,
+                                                                            model='perez',
+                                                                            airmass=relative_air_mass)['poa_global']
+
+
+
+    global_south_vertical = np.nan_to_num(global_south_vertical, 0.0)
+    global_east_vertical = np.nan_to_num(global_east_vertical, 0.0)
+    global_west_vertical = np.nan_to_num(global_west_vertical, 0.0)
+    global_north_vertical = np.nan_to_num(global_north_vertical, 0.0)
+    mj_to_kwh_factor = 1.0 / 3.6
+
+    global_horizontal = hourly_to_monthly(global_horizontal_hourly)/mj_to_kwh_factor
+    global_south_vertical = hourly_to_monthly(global_south_vertical)/mj_to_kwh_factor
+    global_east_vertical = hourly_to_monthly(global_east_vertical)/mj_to_kwh_factor
+    global_west_vertical = hourly_to_monthly(global_west_vertical)/mj_to_kwh_factor
+    global_north_vertical = hourly_to_monthly(global_north_vertical)/mj_to_kwh_factor
+
+    # The values are returned in MJ as this unit is used by SIA (see SIA2028 2010)
+    return {'global_horizontal': global_horizontal, 'global_south':global_south_vertical,
+            'global_east':global_east_vertical, 'global_west':global_west_vertical,
+            'global_north':global_north_vertical}
+
+
+    # print("horizontal")
+    # print(global_horizontal/mj_to_kwh_factor/1000)
+    # print("south")
+    # print(global_south_vertical/mj_to_kwh_factor/1000)
+    # print("east")
+    # print(global_east_vertical/mj_to_kwh_factor/1000)
+    # print("west")
+    # print(global_west_vertical/mj_to_kwh_factor/1000)
+    # print("north")
+    # print(global_north_vertical/mj_to_kwh_factor/1000)
+
+def calc_sun_position(latitude_deg, longitude_deg, year, hoy):
+    """
+    Calculates the Sun Position for a specific hour and location
+
+    :param latitude_deg: Geographical Latitude in Degrees
+    :type latitude_deg: float
+    :param longitude_deg: Geographical Longitude in Degrees
+    :type longitude_deg: float
+    :param year: year
+    :type year: int
+    :param hoy: Hour of the year from the start. The first hour of January is 1
+    :type hoy: int
+    :return: altitude, azimuth: Sun position in altitude and azimuth degrees [degrees]
+    :rtype: tuple
+    """
+
+    # Convert to Radians
+    latitude_rad = math.radians(latitude_deg)
+    longitude_rad = math.radians(longitude_deg)
+
+    # Set the date in UTC based off the hour of year and the year itself
+    start_of_year = datetime.datetime(year, 1, 1, 0, 0, 0, 0)
+    utc_datetime = start_of_year + datetime.timedelta(hours=hoy)
+
+    # Angular distance of the sun north or south of the earths equator
+    # Determine the day of the year.
+    day_of_year = utc_datetime.timetuple().tm_yday
+
+    # Calculate the declination angle: The variation due to the earths tilt
+    # http://www.pveducation.org/pvcdrom/properties-of-sunlight/declination-angle
+    declination_rad = math.radians(
+        23.45 * math.sin((2 * math.pi / 365.0) * (day_of_year - 81)))
+
+    # Normalise the day to 2*pi
+    # There is some reason as to why it is 364 and not 365.26
+    angle_of_day = (day_of_year - 81) * (2 * math.pi / 364)
+
+    # The deviation between local standard time and true solar time
+    equation_of_time = (9.87 * math.sin(2 * angle_of_day)) - \
+        (7.53 * math.cos(angle_of_day)) - (1.5 * math.sin(angle_of_day))
+
+    # True Solar Time
+    solar_time = ((utc_datetime.hour * 60) + utc_datetime.minute +
+                  (4 * longitude_deg) + equation_of_time) / 60.0
+
+    # Angle between the local longitude and longitude where the sun is at
+    # higher altitude
+    hour_angle_rad = math.radians(15 * (12 - solar_time))
+
+    # Altitude Position of the Sun in Radians
+    altitude_rad = math.asin(math.cos(latitude_rad) * math.cos(declination_rad) * math.cos(hour_angle_rad) +
+                             math.sin(latitude_rad) * math.sin(declination_rad))
+
+    # Azimuth Position fo the sun in radians
+    azimuth_rad = math.asin(
+        math.cos(declination_rad) * math.sin(hour_angle_rad) / math.cos(altitude_rad))
+
+    # I don't really know what this code does, it has been imported from
+    # PySolar
+    if(math.cos(hour_angle_rad) >= (math.tan(declination_rad) / math.tan(latitude_rad))):
+        return math.degrees(altitude_rad), math.degrees(azimuth_rad)
+    else:
+        return math.degrees(altitude_rad), (180 - math.degrees(azimuth_rad))
+
+
+## For now, this part is no longer required
+
+# def calc_direct_solar_factor(sun_altitude, sun_azimuth, plane_tilt, plane_azimuth):
+#     """
+#     Calculates the cosine of the angle of incidence on the window
+#     plane_tilt: horizontal = 0, vertical = 90
+#
+#     """
+#     sun_altitude_rad = math.radians(sun_altitude)
+#     sun_azimuth_rad = math.radians(sun_azimuth)
+#     plane_tilt_rad = math.radians(plane_tilt)
+#     plane_azimuth_rad = math.radians(plane_azimuth)
+#
+#
+#     # Proportion of the radiation incident on the window (cos of the
+#     # incident ray)
+#     direct_factor = math.cos(sun_altitude_rad) * math.sin(plane_tilt_rad) *\
+#                     math.cos(sun_azimuth_rad - plane_azimuth_rad) + math.sin(sun_altitude_rad) *\
+#                     math.cos(plane_tilt_rad)
+#
+#
+#     # If the sun is in front of the window surface
+#     if(math.degrees(math.acos(direct_factor)) > 90):
+#         direct_factor=0
+#
+#     else:
+#         pass
+#
+#     return direct_factor
+#
+# def calc_diffuse_solar_factor(plane_tilt):
+#     """Calculates the proportion of diffuse radiation"""
+#     # Proportion of incident light on the window surface
+#     return (1 + math.cos(plane_tilt)) / 2
+#
+# def calc_diffuse_solar_correction(plane_tilt, solar_altitude):
+#     """
+#     According to PVPerformance modeling collaborative, this empirical value is best. However
+#     to make EPW and SIA comparable, Perez should be implemented.
+#     https://pvpmc.sandia.gov/modeling-steps/1-weather-design-inputs/plane-of-array-poa-irradiance/calculating-poa-irradiance/poa-sky-diffuse/simple-sandia-sky-diffuse-model/
+#     :param plane_tilt:
+#     :param solar_altitude:
+#     :return:
+#     """
+#     # solar altitude in degrees as found in the following publication:
+#     # https://ieeexplore.ieee.org/document/7035020
+#     return (((0.012 * (90.0 - solar_altitude)) - 0.04) * (1.0 - math.cos(math.radians(plane_tilt))))/2.0
+
+
