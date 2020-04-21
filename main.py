@@ -5,13 +5,19 @@ import simulation_engine_dynamic as sime
 import data_prep as dp
 import simulation_pv as pv
 
-### Pfade zu weiteren Daten
+
+
+"""
+###################################### SYSTEM DEFINITION ###############################################################
+Im this first part of the code, building, its location and all the related systems are defined.
+"""
+
+## Pfade zu weiteren Daten
 weatherfile_path = r"C:\Users\walkerl\Documents\Zürich-2030-B1.epw"
 weather_data_sia = dp.epw_to_sia_irrad(weatherfile_path)
 occupancy_path = r"C:\Users\walkerl\Documents\code\RC_BuildingSimulator\rc_simulator\auxiliary\occupancy_office.csv"
 
-
-### Erforderliche Nutzereingaben:
+## Erforderliche Nutzereingaben:
 gebaeudekategorie_sia = 1.1
 regelung = "andere"  # oder "Referenzraum" oder "andere"
 hohe_uber_meer = 435.0 # Eingabe
@@ -22,14 +28,12 @@ korrekturfaktor_luftungs_eff_f_v = 1.0  # zwischen 0.8 und 1.2 gemäss SIA380-1 
 infiltration_volume_flow = 0.15  # Gemäss SIA 380-1 2016 3.5.5 soll 0.15m3/(hm2) verwendet werden. Korrigenda anschauen
 cooling_setpoint = 28  # degC (?)
 
-
 ## Gebäudehülle
 u_windows = 0.6
 u_walls = 0.08
 u_roof = 0.06
 u_floor = 0.09
 b_floor = 0.4
-
 
 ## Systeme
 """
@@ -39,7 +43,6 @@ Thes ystem choice is translated to a similar system available in the RC Simulato
 heizsystem = "ASHP"
 dhw_heizsystem = heizsystem ## This is currently a limitation of the RC Model. Automatically the same!
 cooling_system = "electric"  # Only affects dynamic calculation. Static does not include cooling
-
 pv_efficiency = 0.18
 pv_performance_ratio = 0.8
 pv_area = 506.0  # m2, can be directly linked with roof size
@@ -47,42 +50,52 @@ pv_tilt = 30  # in degrees
 pv_azimuth = 0  # IMPORTANT: The south convention applies. Sout = 0, North = -180 or + 180
 
 
-
-### Bauteile:
-## Windows: [[Orientation],[Areas],[U-value],[g-value]]
+## Bauteile:
+# Windows: [[Orientation],[Areas],[U-value],[g-value]]
 windows = np.array([["N", "E", "S", "W"],
                     [131.5, 131.5, 131.5, 131.5],
                     [u_windows, u_windows, u_windows, u_windows],
                     [0.6, 0.6, 0.6, 0.6]],
                    dtype=object)  # dtype=object is necessary because there are different data types
 
-## walls: [[Areas], [U-values]]
+# walls: [[Areas], [U-values]]
 walls = np.array([[412.5, 412.5, 412.5, 412.5],
                   [u_walls, u_walls, u_walls, u_walls]])
 
 
-## roof: [[Areas], [U-values]]
+# roof: [[Areas], [U-values]]
 roof = np.array([[506.0], [u_roof]])
 
-## floor to ground (for now) [[Areas],[U-values],[b-values]]
+# floor to ground (for now) [[Areas],[U-values],[b-values]]
 floor = np.array([[506.0],[u_floor],[b_floor]])
 
 simulation_type = "dynamic"  # Choose between static and dynamic
 
 
+"""
+###################################### SYSTEM SIMULATION ###############################################################
+In this part the performance simulation is happening in three steps:
+    1. An hourly time series for PV yield ist calculated
+    2. A demand time series for DHW is calculated
+    3. A demand time series for room heating is calculated
+    4. A demand time series for room cooling is calculated (at the moment only for dynamic model)
+    5. Operational emissions based on final electricity demand and other heat sources is calculated in the respective
+       model time resolution.
+
+These steps are either carried out in the dynamic or in the static model. This is chosen above.       
+"""
+
 ## PV calculation
+
 Loc = pv.Location(epwfile_path=weatherfile_path)
 PvSurface = pv.PhotovoltaicSurface(azimuth_tilt=pv_azimuth, altitude_tilt=pv_tilt, stc_efficiency=pv_efficiency,
                                    performance_ratio=pv_performance_ratio, area=pv_area)
-
 PvSurface.pv_simulation_hourly(Loc)
 pv_yield_hourly = PvSurface.solar_yield  # in Wh consistent with RC but inconsistent with SIA
 
 
-
-
-
 ## heating demand and emission calculation
+
 if simulation_type == "static":
 
     Gebaeude_1 = se.Building(gebaeudekategorie_sia, regelung, windows, walls, roof, floor, energiebezugsflache,
@@ -132,4 +145,11 @@ elif simulation_type == "dynamic":
 
 else:
     print("print simulation type not correctly specified")
+
+
+"""
+###################################### EMBODIED EMISSIONS ##############################################################
+In this part the embodied emissions of a respective system and its components are defined.
+
+"""
 
