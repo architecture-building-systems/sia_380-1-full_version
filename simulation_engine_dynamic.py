@@ -30,8 +30,6 @@ class Sim_Building(object):
                  cooling_system,
                  dhw_heating_system):
 
-        print(heating_system)
-
         ### Similar to SIA some are unecessary.
         self.gebaeudekategorie_sia = gebaeudekategorie_sia
         self.regelung = regelung
@@ -47,6 +45,10 @@ class Sim_Building(object):
         self.hohe_uber_meer = height_above_sea
         self.heating_system = heating_system
         self.cooling_system = cooling_system
+
+        self.longitude = None
+        self.latitude = None
+
 
         ### RC Simulator inputs (derive from other inputs as much as possible)
         ## So far the lighting load is still hard coded because it is not looked at and I don't know the source.
@@ -114,6 +116,7 @@ class Sim_Building(object):
 
         self.t_set_heating = standard_raumtemperaturen[int(self.gebaeudekategorie_sia)]
         Loc = Location(epwfile_path=weatherfile_path)
+        self.longitude, self.latitude = dp.read_location_from_epw(weatherfile_path)
         gain_per_person = warmeabgabe_p_p[int(self.gebaeudekategorie_sia)]  # W/m2
         appliance_gains = elektrizitatsbedarf[int(self.gebaeudekategorie_sia)]/365/24  # W per sqm (constant over the year)
         max_occupancy = self.energy_reference_area / personenflachen[int(self.gebaeudekategorie_sia)]
@@ -151,9 +154,7 @@ class Sim_Building(object):
                              glass_light_transmittance=0.5, area=self.window_area)  # az and alt are hardcoded because
                                 # they are assumed to be vertical south facing windows (IMPROVE!)
 
-        # RoofPV = PhotovoltaicSurface(azimuth_tilt=pv_azimuth, alititude_tilt=pv_tilt, stc_efficiency=pv_efficiency,
-        #                              performance_ratio=0.8, area=pv_area)  # Performance ratio is still hard coded.
-        # Temporarily disabled. Add again later
+
 
         ## Define occupancy
         occupancyProfile = pd.read_csv(occupancy_path)
@@ -174,6 +175,7 @@ class Sim_Building(object):
         self.solar_gains = np.empty(8760)
         self.indoor_temperature = np.empty(8760)
 
+
         for hour in range(8760):
             # Occupancy for the time step
             occupancy = occupancyProfile.loc[hour, 'People'] * max_occupancy
@@ -187,7 +189,8 @@ class Sim_Building(object):
             # Extract the outdoor temperature in Zurich for that hour
             t_out = Loc.weather_data['drybulb_C'][hour]
 
-            Altitude, Azimuth = Loc.calc_sun_position(latitude_deg=47.480, longitude_deg=8.536, year=2015, hoy=hour)
+            Altitude, Azimuth = Loc.calc_sun_position(latitude_deg=self.latitude, longitude_deg=self.longitude,
+                                                      year=2015, hoy=hour)
 
             SouthWindow.calc_solar_gains(sun_altitude=Altitude, sun_azimuth=Azimuth,
                                          normal_direct_radiation=Loc.weather_data['dirnorrad_Whm2'][hour],
