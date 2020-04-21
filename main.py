@@ -6,7 +6,7 @@ import data_prep as dp
 import simulation_pv as pv
 
 ### Pfade zu weiteren Daten
-weatherfile_path = r"C:\Users\walkerl\Documents\code\RC_BuildingSimulator\rc_simulator\auxiliary\Zurich-Kloten_2013.epw"
+weatherfile_path = r"C:\Users\walkerl\Documents\Zürich-2030-B1.epw"
 weather_data_sia = dp.epw_to_sia_irrad(weatherfile_path)
 occupancy_path = r"C:\Users\walkerl\Documents\code\RC_BuildingSimulator\rc_simulator\auxiliary\occupancy_office.csv"
 
@@ -75,7 +75,8 @@ Loc = pv.Location(epwfile_path=weatherfile_path)
 PvSurface = pv.PhotovoltaicSurface(azimuth_tilt=pv_azimuth, altitude_tilt=pv_tilt, stc_efficiency=pv_efficiency,
                                    performance_ratio=pv_performance_ratio, area=pv_area)
 
-pv_yield_hourly = PvSurface.pv_simulation(Loc) # in Wh consistent with RC but inconsistent with SIA
+PvSurface.pv_simulation_hourly(Loc)
+pv_yield_hourly = PvSurface.solar_yield  # in Wh consistent with RC but inconsistent with SIA
 
 
 

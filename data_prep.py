@@ -473,3 +473,8 @@ def calc_sun_position(latitude_deg, longitude_deg, year, hoy):
     else:
         return math.degrees(altitude_rad), (180 - math.degrees(azimuth_rad))
 
+def read_location_from_epw(epw_path):
+    epw_data = pvlib.iotools.read_epw(epw_path, coerce_year=None)
+    longitude = epw_data[1]['longitude']
+    latitude = epw_data[1]['latitude']
+    return longitude, latitude

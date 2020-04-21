@@ -151,9 +151,7 @@ class Sim_Building(object):
                              glass_light_transmittance=0.5, area=self.window_area)  # az and alt are hardcoded because
                                 # they are assumed to be vertical south facing windows (IMPROVE!)
 
-        # RoofPV = PhotovoltaicSurface(azimuth_tilt=pv_azimuth, alititude_tilt=pv_tilt, stc_efficiency=pv_efficiency,
-        #                              performance_ratio=0.8, area=pv_area)  # Performance ratio is still hard coded.
-        # Temporarily disabled. Add again later
+
 
         ## Define occupancy
         occupancyProfile = pd.read_csv(occupancy_path)
