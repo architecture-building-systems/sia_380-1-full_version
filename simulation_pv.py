@@ -8,6 +8,7 @@ in @Jayathissa's RC simulator solar gain calculations.
 import pandas as pd
 import math
 import datetime
+import pvlib
 
 
 __authors__ = ["Linus Walker, Prageeth Jayathissa"]
@@ -37,6 +38,7 @@ class Location(object):
         # Import EPW file
         self.weather_data = pd.read_csv(
             epwfile_path, skiprows=8, header=None, names=epw_labels).drop('datasource', axis=1)
+
 
     def calc_sun_position(self, latitude_deg, longitude_deg, year, hoy):
         """
@@ -117,7 +119,13 @@ class PhotovoltaicSurface(object):
         self.performance_ratio = performance_ratio
         self.area = area
 
-    def calc_solar_yield(self, sun_altitude, sun_azimuth, normal_direct_radiation, horizontal_diffuse_radiation):
+
+    def pv_simulation(self, Loc):
+
+
+
+    def calc_solar_yield(self, sun_altitude, sun_azimuth, normal_direct_radiation, horizontal_diffuse_radiation,
+                         global_horizontal_radiation, extraterestrial_direct_radiation):
         """
         Calculates the Solar yield of a defined PV area.
 
@@ -133,40 +141,21 @@ class PhotovoltaicSurface(object):
         :return: self.solar_gains - Solar gains in building after transmitting through the window
         :rtype: float
         """
-        direct_factor = self.calc_direct_solar_factor(sun_altitude, sun_azimuth,)
-        diffuse_factor = self.calc_diffuse_solar_factor()
-        direct_solar = direct_factor * normal_direct_radiation
-        diffuse_solar = horizontal_diffuse_radiation * diffuse_factor
-        self.incident_solar = (direct_solar + diffuse_solar) * self.area
-
-        self.solar_yield = self.incident_solar * self.efficiency*self.performance_ratio
-
-    def calc_direct_solar_factor(self, sun_altitude, sun_azimuth):
-        """
-        Calculates the cosine of the angle of incidence on the window
-        """
-        sun_altitude_rad = math.radians(sun_altitude)
-        sun_azimuth_rad = math.radians(sun_azimuth)
-
-        # Proportion of the radiation incident on the window (cos of the
-        # incident ray)
-        direct_factor = math.cos(sun_altitude_rad) * math.sin(self.altitude_tilt_rad) * math.cos(sun_azimuth_rad - self.azimuth_tilt_rad) + \
-            math.sin(sun_altitude_rad) * math.cos(self.altitude_tilt_rad)
 
 
-        # If the sun is in front of the window surface
-        if(math.degrees(math.acos(direct_factor)) > 90):
-            direct_factor=0
+        relative_air_mass = pvlib.atmosphere.get_relative_airmass(90 - sun_altitude)
+        solar_incident = pvlib.irradiance.get_total_irradiance(self.altitude_tilt, 180 - self.azimuth_tilt,
+                                                               90 - sun_altitude,
+                                                               180 - sun_azimuth, normal_direct_radiation,
+                                                               global_horizontal_radiation,
+                                                               horizontal_diffuse_radiation,
+                                                               dni_extra=extraterestrial_direct_radiation,
+                                                               model='perez',
+                                                               airmass=relative_air_mass)['poa_global']
 
-        else:
-            pass
 
-        return direct_factor
+        self.solar_yield = self.incident_solar * self.efficiency * self.performance_ratio
 
-    def calc_diffuse_solar_factor(self):
-        """Calculates the proportion of diffuse radiation"""
-        # Proportion of incident light on the window surface
-        return (1 + math.cos(self.altitude_tilt_rad)) / 2
 
 
 if __name__ == '__main__':

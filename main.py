@@ -67,7 +67,7 @@ roof = np.array([[506.0], [u_roof]])
 ## floor to ground (for now) [[Areas],[U-values],[b-values]]
 floor = np.array([[506.0],[u_floor],[b_floor]])
 
-simulation_type = "static"  # Choose between static and dynamic
+simulation_type = "dynamic"  # Choose between static and dynamic
 
 
 ## PV calculation
@@ -75,17 +75,8 @@ Loc = pv.Location(epwfile_path=weatherfile_path)
 PvSurface = pv.PhotovoltaicSurface(azimuth_tilt=pv_azimuth, altitude_tilt=pv_tilt, stc_efficiency=pv_efficiency,
                                    performance_ratio=pv_performance_ratio, area=pv_area)
 
-pv_yield_hourly = np.empty(8760)
-for hour in  range(8760):
-    altitude, azimuth = Loc.calc_sun_position(latitude_deg=47.480, longitude_deg=8.536, year=2015, hoy=hour)
+pv_yield_hourly = PvSurface.pv_simulation(Loc) # in Wh consistent with RC but inconsistent with SIA
 
-    ## --> momentan sind die Koordinaten manuell einzugeben. Dies muss angepasst werden, so dass sie direkt aus dem
-    ##     epw file gelesen werden können. Dasselbe muss in simulation_engine_dynamic für die solar gains angepasst
-    #      werden.
-    PvSurface.calc_solar_yield(altitude, azimuth, Loc.weather_data['dirnorrad_Whm2'][hour],
-                               Loc.weather_data['difhorrad_Whm2'][hour])
-
-    pv_yield_hourly[hour] = PvSurface.solar_yield  # in Wh consistent with RC but inconsistent with SIA
 
 
 
