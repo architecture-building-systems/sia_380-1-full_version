@@ -312,6 +312,192 @@ class Building(object):
         self.genutzte_warmeeintrage = genutzte_warmeeintrage
         self.heizwarmebedarf = heizwarmebedarf
 
+    def run_ISO_52016_monthly(self):
+
+        """
+        Dies ist der Teil für Heizung. Wurde in der Schweiz in SIA380/1 umgesetzt
+
+        # Jährlicher Energiebedarf für Heizung. Ich rechne hier ohne Monate mit Leerstand
+        q_h_nd_ztc_an = np.empty(12)
+
+
+        # 6.6.10.2
+        gamma_h_ztc_m =
+
+        # 6.6.4.4
+        q_h_ht_ztc_m =
+
+        q_h_gn_ztc_m =
+
+        # 6.6.10.2
+        eta_h_gn_ztc_m =
+
+
+        # Monatlicher Energiebedarf für Heizung 6.6.4.2
+
+        if gamma_h_ztc_m <= 0 and q_h_gn_ztc_m >0:
+            q_h_nd_ztc_m = 0
+
+        else:
+             q_h_nd_ztc_m = q_h_ht_ztc_m - eta_h_gn_ztc_m * q_h_gn_ztc_m
+
+        """
+
+        standard_raumtemperaturen = {1: 20., 2: 20., 3: 20., 4: 20., 5: 20., 6: 20, 7: 20, 8: 22, 9: 18, 10: 18, 11: 18,
+                                     12: 28}  # 380-1 Tab7
+        regelzuschlaege = {"Einzelraum": 0., "Referenzraum": 1., "andere": 2.}  # 380-1 Tab8
+        personenflachen = {1: 40., 2: 60., 3: 20., 4: 10., 5: 10., 6: 5, 7: 5., 8: 30., 9: 20., 10: 100., 11: 20.,
+                           12: 20.}  # 380-1 Tab9
+        warmeabgabe_p_p = {1: 70., 2: 70., 3: 80., 4: 70., 5: 90., 6: 100., 7: 80., 8: 80., 9: 100., 10: 100., 11: 100.,
+                           12: 60.}  # 380-1 Tab10
+        prasenzzeiten = {1: 12., 2: 12., 3: 6., 4: 4., 5: 4., 6: 3., 7: 3., 8: 16., 9: 6., 10: 6., 11: 6.,
+                         12: 4.}  # 380-1 Tab11
+        # this part of elektrizitatsbedarf only goes into thermal calculations. Electricity demand is calculated
+        # independently.
+        elektrizitatsbedarf = {1: 28., 2: 22., 3: 22., 4: 11., 5: 33., 6: 33., 7: 17., 8: 28., 9: 17., 10: 6., 11: 6.,
+                               12: 56.}  # 380-1 Tab12
+        reduktion_elektrizitat = {1: 0.7, 2: 0.7, 3: 0.9, 4: 0.9, 5: 0.8, 6: 0.7, 7: 0.8, 8: 0.7, 9: 0.9, 10: 0.9,
+                                  11: 0.9, 12: 0.7}  # 380-1 Tab13
+        aussenluft_strome = {1: 0.7, 2: 0.7, 3: 0.7, 4: 0.7, 5: 0.7, 6: 1.2, 7: 1.0, 8: 1.0, 9: 0.7, 10: 0.3, 11: 0.7,
+                             12: 0.7}  # 380-1 Tab14
+        # aussenluft_strome = {1: 2.1}  # UBA-Vergleichsstudie
+
+        # Energiebedarf für Kühlung: Wenn nichts anderes angemerkt, wird in kWh gerechnet.
+
+        ## Daten vorerst im hard code:
+        u_windows = 0.6
+        u_walls = 0.08
+        u_roof = 0.06
+        u_floor = 0.09
+        b_floor = 0.4
+
+        gebaeudekategorie_sia = 1
+        regelung = "andere"
+        windows = np.array([["N", "E", "S", "W"],
+                            [131.5, 131.5, 131.5, 131.5],
+                            [u_windows, u_windows, u_windows, u_windows],
+                            [0.6, 0.6, 0.6, 0.6]],
+                           dtype=object)  # dtype=object is necessary because there are different data types
+        walls = np.array([[412.5, 412.5, 412.5, 412.5],
+                          [u_walls, u_walls, u_walls, u_walls]])
+        roof = np.array([[506], [u_roof]])
+        floor = np.array([[506.0], [u_floor], [b_floor]])
+        energy_reference_area = 2275
+        heat_recovery_nutzungsgrad = 0.0
+        thermal_storage_capacity_per_floor_area = 0.08
+        korrekturfaktor_luftungs_eff_f_v = 1.0
+        height_above_sea = 435.0
+        infiltration_volume_flow = 0.0
+
+
+
+        # Gesamtwärmeübergangskoeffizient für Elemente, die mit der äusseren Umgebung verbunden sind. Dieser Wert wird
+        # zeitlich konstant angenommen. [W/K]
+        h_hc_el = np.sum(self.roof[0] * self.roof[1]) + np.sum(self.walls[0] * self.walls[1]) +\
+        np.sum(self.windows[1] * self.windows[2])
+
+        # Gesamtwärmeübergangskoeffizient für Wärmebrücken in der thermisch konditionierten Zone (6.6.5.3)[W/K]
+        # Für den Moment nehme ich an, dass es keine Wärmebrücken gibt
+        h_tr_tb_ztc = 0
+
+        # 6.6.5.2 Gesamtwärmeübergangskoeffizient durch Transmission für die Kühlung für alle Gebäudeelemente
+        # ausser mit dem Erdreich verbunden in [W/K]
+        h_c_tr_excl_gf_m_ztc_m = h_hc_el + h_tr_tb_ztc
+
+        # 6.6.11 Berechnungstemperatur der Zone für die Kühlung in [degC]
+        theta_int_calc_c_ztc_m = 26
+
+        # mittlere monatliche Temperaturen der Aussenluft gemäss relevanten Normen [degC]
+        theta_e_a_m = np.array([0.2, 1.3, 5.4, 8.5, 13.6, 16.5, 18.7, 18.5, 14.0, 9.7, 4.1, 1.7])
+
+        # ISO 13789 Wärmeübergangskoeffizient des Erdreichs in [W/K] (evtl auch aus SIA380?)
+        # Für den Moment so wie bei SIA380/1 gelöst. Noch genauer anschauen, ob dies so gemeint ist.
+        h_gr_an_ztc_m =np.sum(self.floor[2] * self.floor[1] * self.floor[0])
+
+        # mittlere Jahresaussentemperatur in [decC] gemäss relevanten Normen
+        theta_e_a_an = theta_e_a_m.mean()
+
+        # Dauer des Monats in Stunden
+        delta_t_m = np.array([31,28,31,30,31,30,31,31,30,31,30,31])*24.0
+        print("delta_m" + delta_t_m)
+
+        # 6.6.5 Gesamtwärmeübertragung durch Transmission für die Kühlung
+        q_c_tr_ztc_m = (h_c_tr_excl_gf_m_ztc_m * (theta_int_calc_c_ztc_m - theta_e_a_m) + h_gr_an_ztc_m *(theta_int_calc_c_ztc_m - theta_e_a_an)) * 0.001 * delta_t_m
+
+        # 6.3.6 in [J/m3K] Aus Konsistenzgründen habe ich hier vorerst die Berechnungsvariante gemäss SIA380
+        # verwendet. Überprüfen
+        rho_a_c_a = (1220 - 0.14 * self.hohe_uber_meer)
+
+        # 6.6.6.2 Dieser Faktor ist gleich 1 unter der Annahme, dass mit Aussenlufttemperatur gelüftet wird
+        # Überprüfen, inwiefern dies mit SIA380 kompatibel ist bzw. WRG/KRG möglich wäre.
+        b_ve_c_m = 1
+
+        # 6.6.6.2 gemittelter Luftvolumenstrom in [m3/s] nach relevanten Normen
+        # das Objekt hat aussenluft strome in m3 pro stunde und EBF angegeben, deshalb hier die Korrekturen
+        q_v_hc_m = aussenluft_strome[self.gebaeudekategorie_sia] * self.energy_reference_area /3600
+
+        # 6.6.6.2 Dieser Wert kann als 1.0 angenommen werden, sofern nicht anders definiert
+        # Diese Annahme überprüfen. In Tabelle A.28 und B.28
+        f_ve_dyn_m = 1.0
+
+
+        # 6.6.6.2 Gesamtwärmeübergangskoeffizient durch Lüftung für Heizung/Kühlung [W/K]
+        # Ich gehe nur von einer Lüftung aus, deshalb fehlen die indices k
+        h_hc_ve_ztc_m = rho_a_c_a * b_ve_c_m * q_v_hc_m * f_ve_dyn_m
+
+
+
+        # 6.6.6.1 Gesamtwärmeübertragung durch Lüftung für die Kühlung. Es scheint, dass in Gleichung (113) q statt
+        # theta steht
+        q_c_ve_ztc_m = h_hc_ve_ztc_m * (theta_int_calc_c_ztc_m - theta_e_a_m) * delta_t_m
+        #Allenfalls wie bei Heizwärme nach SIA sieh unten:
+        #q_th_008 = ((aussenluft_strome[int(self.gebaeudekategorie_sia)]-self.q_inf)*(1-eta_v_081)/f_v_082) + self.q_inf
+
+
+        # 6.6.7.2 interne Wärmegewinne für die Zone in [kWh]
+        # Diese werden hier der Konsistenz wegen wie in SIA 380/1 berechnet
+        # !!!!! EINHEITEN KORRIGIEREN UND MONATLICH RESAMPLEN!!!!
+        q_elektrische_anlagen = elektrizitatsbedarf[int(self.gebaeudekategorie_sia)] * reduktion_elektrizitat[int(self.gebaeudekategorie_sia)] * delta_t_m / 8760
+        q_personen = warmeabgabe_p_p[int(self.gebaeudekategorie_sia)] * prasenzzeiten[int(self.gebaeudekategorie_sia)] * delta_t_m / (personenflachen[int(self.gebaeudekategorie_sia)])
+
+        q_hc_int_dir_ztc_m = q_elektrische_anlagen + q_personen
+
+        # 6.6.7 Summe interner Wärmegewinne: Hier gilt folgende Gleichung, weil ich nur von einer
+        # Zone ausgehe:
+        q_c_int_ztc_m = q_hc_int_dir_ztc_m
+
+
+        # Solare Wärmegewinne durch Fenster:
+
+
+        # 6.6.8 Summe der solaren Wärmegewinne für die Kühlung
+        q_c_sol_ztc_m = q_hc_sol_wi + q_hc_sol_op
+
+
+        # Addition von transmissions und Lüftungsverluste 6.6.4.4
+        q_c_ht_ztc_m = q_c_tr_ztc_m + q_c_ve_ztc_m
+
+        # Addition interner und solarer Gewinne 6.6.4.4
+        q_c_gn_ztc_m = q_c_int_ztc_m + q_c_sol_ztc_m
+
+
+        # 6.6.10.3
+        eta_c_ht_ztc_m =
+
+        # 6.6.11.4
+        a_c_red_ztc_m =
+
+
+
+        if 1.0/gamma_c_ztc_m >2.0:
+            q_c_nd_ztc_m = 0
+
+        else:
+            q_c_nd_ztc_m = a_c_red * (q_c_gn_ztc_m - eta_ht_ztc_m * q_ht_ztc_m)
+
+
+
+
     def run_dhw_demand(self):
         """
         Add dhw demand to the building. Retract data from Data prep file
