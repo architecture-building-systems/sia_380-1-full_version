@@ -176,7 +176,7 @@ class Building(object):
             ## Dies muss insbesondere angeschaut werden, da die Fenster ansonsten pro Himmelsrichtung getrennt sind. Dies sollte
             ## bei zusätzlicher Vektorisierung aufgehoben werden.
             ## Gleiches gilt für die unten angegebenen Verschattungsfaktoren!
-            f_f_072 = 0.95# Abminderungsfaktor für Fensterrahmen [-]
+            f_f_072 = 0.95# Abminderungsfaktor für Fensterrahmen [-] Ebenfalls im Hardcode bei cooling nach ISO52016-1
             f_sh_073 = 1.0  # Verschattungsfaktor horizontal [-]
             f_ss_074 = 1.0  # Verschattungsfaktor Süd [-]
             f_se_075 = 1.0  # Verschattungsfaktor ost [-]
@@ -312,7 +312,7 @@ class Building(object):
         self.genutzte_warmeeintrage = genutzte_warmeeintrage
         self.heizwarmebedarf = heizwarmebedarf
 
-    def run_ISO_52016_monthly(self):
+    def run_ISO_52016_monthly(self, weather_data_sia):
 
         """
         Dies ist der Teil für Heizung. Wurde in der Schweiz in SIA380/1 umgesetzt
@@ -360,34 +360,6 @@ class Building(object):
                                   11: 0.9, 12: 0.7}  # 380-1 Tab13
         aussenluft_strome = {1: 0.7, 2: 0.7, 3: 0.7, 4: 0.7, 5: 0.7, 6: 1.2, 7: 1.0, 8: 1.0, 9: 0.7, 10: 0.3, 11: 0.7,
                              12: 0.7}  # 380-1 Tab14
-        # aussenluft_strome = {1: 2.1}  # UBA-Vergleichsstudie
-
-        # Energiebedarf für Kühlung: Wenn nichts anderes angemerkt, wird in kWh gerechnet.
-
-        ## Daten vorerst im hard code:
-        u_windows = 0.6
-        u_walls = 0.08
-        u_roof = 0.06
-        u_floor = 0.09
-        b_floor = 0.4
-
-        gebaeudekategorie_sia = 1
-        regelung = "andere"
-        windows = np.array([["N", "E", "S", "W"],
-                            [131.5, 131.5, 131.5, 131.5],
-                            [u_windows, u_windows, u_windows, u_windows],
-                            [0.6, 0.6, 0.6, 0.6]],
-                           dtype=object)  # dtype=object is necessary because there are different data types
-        walls = np.array([[412.5, 412.5, 412.5, 412.5],
-                          [u_walls, u_walls, u_walls, u_walls]])
-        roof = np.array([[506], [u_roof]])
-        floor = np.array([[506.0], [u_floor], [b_floor]])
-        energy_reference_area = 2275
-        heat_recovery_nutzungsgrad = 0.0
-        thermal_storage_capacity_per_floor_area = 0.08
-        korrekturfaktor_luftungs_eff_f_v = 1.0
-        height_above_sea = 435.0
-        infiltration_volume_flow = 0.0
 
 
 
@@ -467,8 +439,38 @@ class Building(object):
         q_c_int_ztc_m = q_hc_int_dir_ztc_m
 
 
-        # Solare Wärmegewinne durch Fenster:
+        # Solare Wärmegewinne durch Fenster: Hier greife ich auf die Implementierung gemäss SIA 380/1 zurück
+        # damit es konsistent mit dem heating demand ist.
 
+        mj_to_kwh_factor = 1.0 / 3.6
+        globalstrahlung_horizontal_monatlich = weather_data_sia['global_horizontal'] * mj_to_kwh_factor  # kWh/m2
+        globalstrahlung_ost_monatlich = weather_data_sia['global_east'] * mj_to_kwh_factor  # kWh/m2
+        globalstrahlung_sud_monatlich = weather_data_sia['global_south'] * mj_to_kwh_factor  # kWh/m2
+        globalstrahlung_west_monatlich = weather_data_sia['global_west'] * mj_to_kwh_factor  # kWh/m2
+        globalstrahlung_nord_monatlich = weather_data_sia['global_north'] * mj_to_kwh_factor  # kWh/m2
+        temperatur_mittelwert = weather_data_sia['temperature']  # degC
+
+        q_hc_sol_wi = np.empty(12)
+        f_glass_rahmen = 0.95  # zu verwendender Wert gemäss SIA 380/1
+        f_shading = 1  # anpassen, falls Verschattung diskutiert werden soll. Im Moment in SIA heating demand gleich.
+        for month in range(12):
+
+            g_sh_012 = globalstrahlung_horizontal_monatlich[month]  # globale Sonnenstrahlung horizontal [kWh/m2]
+            g_ss_013 = globalstrahlung_sud_monatlich[month]  # hemisphärische Sonnenstrahlung Süd [kWh/m2]
+            g_se_014 = globalstrahlung_ost_monatlich[month]  # hemisphärische Sonnenstrahlung Ost [kWh/m2]
+            g_sw_015 = globalstrahlung_west_monatlich[month]  # hemisphärische Sonnenstrahlung West [kWh/m2]
+            g_sn_016 = globalstrahlung_nord_monatlich[month]  # hemisphärische Sonnenstrahlung Nord [kWh/m2]
+
+            g_s_windows = window_irradiation(self.windows, g_sh_012, g_ss_013, g_se_014, g_sw_015, g_sn_016)
+
+            q_hc_sol_wi[month] = np.sum(g_s_windows * self.windows[1] * self.windows[3] * 0.9 *
+                                        f_glass_rahmen * f_shading)
+
+
+        # Solare Wärmegewinne durch opake Wände:
+        # !!!!! ACHTUNG anschauen, ob dies nicht noch implementiert werden sollte. Vielleicht beim cooling
+        # noch wichtig.
+        q_hc_sol_op = np.repeat(0.0, 12)
 
         # 6.6.8 Summe der solaren Wärmegewinne für die Kühlung
         q_c_sol_ztc_m = q_hc_sol_wi + q_hc_sol_op
@@ -479,23 +481,59 @@ class Building(object):
 
         # Addition interner und solarer Gewinne 6.6.4.4
         q_c_gn_ztc_m = q_c_int_ztc_m + q_c_sol_ztc_m
-
-
-        # 6.6.10.3
-        eta_c_ht_ztc_m =
-
-        # 6.6.11.4
-        a_c_red_ztc_m =
+        gamma_c_ztc_m = q_c_gn_ztc_m/q_c_ht_ztc_m
 
 
 
-        if 1.0/gamma_c_ztc_m >2.0:
-            q_c_nd_ztc_m = 0
-
-        else:
-            q_c_nd_ztc_m = a_c_red * (q_c_gn_ztc_m - eta_ht_ztc_m * q_ht_ztc_m)
+        # 6.6.9 die effektive interne Wärmekapiztät in J/K Tab 21
+        c_m_eff_ztc = 110000 * self.energy_reference_area  # This value changes. Check out how this is
+        # compatible wiht SIA 380-1
 
 
+        # !!!! Achtung, dies ist nicht bestätigt!!!! Muss mit ISO13789 oder SIA380 angepasst weren
+        h_c_gr_adj_ztc = 0.0
+
+        # 6.6.10.4 Zeitkonstante: 3600 is divided because c_m_eff_ztc is given in J/K
+        tau_c_ztc_m = c_m_eff_ztc / 3600 / (h_c_tr_excl_gf_m_ztc_m + h_c_gr_adj_ztc + h_hc_ve_ztc_m)
+
+
+        # Tabelle B.35 (informative Standardwerte)
+        tau_c_0 = 15. # h
+        a_c_0 =1.0 # no dimension
+
+
+        # Where does this equation come from?
+        a_c_ztc_m = a_c_0 + tau_c_ztc_m/tau_c_0
+
+        # 6.6.11.4 This value is assumed. Should be changed for intermittent cooling.
+        a_c_red_ztc_m = 1.0
+
+        # 6.6.10.2
+        eta_c_ht_ztc_m = np.empty(12)
+
+        for month in range(12):
+            if gamma_c_ztc_m[month] == 1.0:
+                eta_c_ht_ztc_m[month] = (a_c_ztc_m[month])/(a_c_ztc_m[month]+1)
+
+            elif gamma_c_ztc_m[month] <= 0:
+                eta_c_ht_ztc_m[month] = 1.0
+
+            else:
+                eta_c_ht_ztc_m[month] = (1-(gamma_c_ztc_m[month])**-a_c_ztc_m[month])/(1-(gamma_c_ztc_m[month])**-(a_c_ztc_m[month]+1))
+
+
+
+        # Monthly cooling demand summation
+        q_c_nd_ztc_m = np.empty(12)
+        for month in range(12):
+            if 1.0/gamma_c_ztc_m >2.0:
+                q_c_nd_ztc_m[month] = 0
+
+            else:
+                q_c_nd_ztc_m[month] = a_c_red_ztc_m * (q_c_gn_ztc_m[month] - eta_c_ht_ztc_m[month] * q_c_ht_ztc_m[month])
+
+
+        self.monthly_cooling_demand = q_c_nd_ztc_m
 
 
     def run_dhw_demand(self):
