@@ -35,6 +35,7 @@ class Building(object):
 
         # Further optional attributes:
         self.heating_system = None
+        self.cooling_system = None
         self.electricity_demand = None
         self.electricity_mix = None
         self.dhw_demand = None  # np.array of monthly values per energy reference area [kWh/(m2*month)]
@@ -569,11 +570,28 @@ class Building(object):
             self.heating_elec = self.heizwarmebedarf/avg_ashp_cop
             self.dhw_elec = self.dhw_demand / avg_ashp_cop
 
+        elif self.heating_system == "electric":
+            self.heating_elec = self.heizwarmebedarf
+
         else:
             self.heating_elec = 0.0
 
+        # same for cooling
+        if self.cooling_system == "GSHP":
+            # The COP cooling is generally one lower than for heating.
+            self.cooling_elec = self.monthly_cooling_demand/(avg_gshp_cop-1.0)
 
-        self.electricity_demand += (self.heating_elec + self.dhw_elec)
+        elif self.cooling_system == "ASHP":
+            self.cooling_elec = self.monthly_cooling_demand/(avg_ashp_cop-1.0)
+
+        elif self.cooling_system == "electric":
+            print("Pure electric cooling is not a possible choice, simulation terminated")
+            quit()
+
+        else:
+            self.cooling_elec = 0.0
+
+        self.electricity_demand += (self.heating_elec + self.dhw_elec + self.cooling_elec)
 
         # This way of net metering is a very agregated and propably not suitable way to do it.
         self.net_electricity_demand = self.electricity_demand - pv_prod_month
