@@ -106,6 +106,10 @@ if simulation_type == "static":
 
 
     Gebaeude_1.run_SIA_380_1(weather_data_sia)
+    Gebaeude_1.run_ISO_52016_monthly(weather_data_sia)
+
+    plt.plot(Gebaeude_1.monthly_cooling_demand/energiebezugsflache)
+    plt.show()
 
     ## Gebäudedimensionen
     Gebaeude_1.heating_system = heizsystem
@@ -113,12 +117,15 @@ if simulation_type == "static":
     Gebaeude_1.run_dhw_demand()
 
     print(Gebaeude_1.heizwarmebedarf.sum() + Gebaeude_1.dhw_demand.sum())
+    print(Gebaeude_1.monthly_cooling_demand.sum())
+    plt.plot(Gebaeude_1.monthly_cooling_demand)
+    plt.show()
 
     Gebaeude_1.run_SIA_electricity_demand(occupancy_path)
 
     Gebaeude_1.run_SIA_380_emissions(emission_factor_type="SIA_380", avg_ashp_cop=2.8)
 
-    print(Gebaeude_1.operational_emissions.sum())  # CO2eq/m2a
+    # print(Gebaeude_1.operational_emissions.sum())  # CO2eq/m2a
 
     # print(Gebaeude_1.non_renewable_primary_energy.sum())  # kWh/m2a
 
@@ -133,18 +140,23 @@ elif simulation_type == "dynamic":
 
     Gebaeude_1.run_rc_simulation(weatherfile_path=weatherfile_path,
                                  occupancy_path=occupancy_path, cooling_setpoint=cooling_setpoint)
+
+    plt.plot(dp.hourly_to_monthly(Gebaeude_1.cooling_demand)/1000.0/energiebezugsflache)
+
+    plt.show()
+
     print((Gebaeude_1.heating_demand.sum() + Gebaeude_1.dhw_demand.sum()) / 1000.0 / energiebezugsflache)
-    # print(dp.hourly_to_monthly((Gebaeude_1.heating_demand + Gebaeude_1.dhw_demand) / 1000.0 / energiebezugsflache))
+    print(dp.hourly_to_monthly((Gebaeude_1.cooling_demand)/ 1000.0 / energiebezugsflache).sum())
 
     Gebaeude_1.run_SIA_electricity_demand(occupancy_path)
 
     Gebaeude_1.run_dynamic_emissions("SIA_380", "c")
 
-    print(Gebaeude_1.operational_emissions.sum() / 1000.0 / energiebezugsflache)
+    # print(Gebaeude_1.operational_emissions.sum() / 1000.0 / energiebezugsflache)
     # print(dp.hourly_to_monthly((Gebaeude_1.heating_emissions + Gebaeude_1.dhw_emisions) / 1000.0 / energiebezugsflache))
 
 else:
-    print("print simulation type not correctly specified")
+    print("simulation type not correctly specified")
 
 
 """
