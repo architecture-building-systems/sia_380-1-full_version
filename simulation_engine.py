@@ -324,7 +324,6 @@ class Building(object):
 
         standard_raumtemperaturen = {1: 20., 2: 20., 3: 20., 4: 20., 5: 20., 6: 20, 7: 20, 8: 22, 9: 18, 10: 18, 11: 18,
                                      12: 28}  # 380-1 Tab7
-        regelzuschlaege = {"Einzelraum": 0., "Referenzraum": 1., "andere": 2.}  # 380-1 Tab8
         personenflachen = {1: 40., 2: 60., 3: 20., 4: 10., 5: 10., 6: 5, 7: 5., 8: 30., 9: 20., 10: 100., 11: 20.,
                            12: 20.}  # 380-1 Tab9
         warmeabgabe_p_p = {1: 70., 2: 70., 3: 80., 4: 70., 5: 90., 6: 100., 7: 80., 8: 80., 9: 100., 10: 100., 11: 100.,
@@ -460,8 +459,6 @@ class Building(object):
         # Solare Wärmegewinne durch opake Wände:
         # !!!!! ACHTUNG anschauen, ob dies nicht noch implementiert werden sollte. Vielleicht beim cooling
         # noch wichtig.
-
-
         q_hc_sol_op = np.repeat(0.0, 12)
 
         # 6.6.8 Summe der solaren Wärmegewinne für die Kühlung
@@ -477,17 +474,18 @@ class Building(object):
 
 
         # 6.6.9 die effektive interne Wärmekapiztät in J/K Tab 21
-        c_m_eff_ztc = 110000 * self.energy_reference_area  # This value changes. Check out how this is compatible wiht SIA 380-1
+        ## self. warmespeicherfahigkeit_pro_ebf ist aber in kWh/m2K (compatible with SIA380-1)
+        c_m_eff_ztc = self.warmespeicherfahigkeit_pro_ebf * self.energy_reference_area
 
 
         # !!!! Achtung, dies ist nicht bestätigt!!!! Muss mit ISO13789 oder SIA380 angepasst weren
         h_c_gr_adj_ztc = 0.0
 
-        # 6.6.10.4 Zeitkonstante: 3600 is divided because c_m_eff_ztc is given in J/K
-        tau_c_ztc_m = c_m_eff_ztc / 3600 / (h_c_tr_excl_gf_m_ztc_m + h_c_gr_adj_ztc + h_hc_ve_ztc_m)
+        # 6.6.10.4 Zeitkonstante: Factor of 1000 because c_m_eff_ztc comes in kWh/K while h is in W/K
+        tau_c_ztc_m = c_m_eff_ztc * 1000 / (h_c_tr_excl_gf_m_ztc_m + h_c_gr_adj_ztc + h_hc_ve_ztc_m)
 
 
-        # Tabelle B.35 (informative Standardwerte)
+        # Tabelle B.35 (informative Standardwerte) ebenfalls so in SIA380-1 zu finden
         tau_c_0 = 15. # h
         a_c_0 =1.0 # no dimension
 
