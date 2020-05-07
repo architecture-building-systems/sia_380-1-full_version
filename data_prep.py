@@ -172,21 +172,6 @@ def fossil_emission_factors(system_type):
     hourly_emission_factor = np.repeat(treibhausgaskoeffizient[system_type], 8760)  # kgCO2eq/kWh SIA380
     return hourly_emission_factor
 
-def primary_energy_factor():
-    """
-    This function has currently no purpose
-    :return:
-    """
-    n_e_primarenergiefaktor = {"Oil": 1.29, "Natural Gas": 1.16, "Wood": 0.09, "Pellets": 0.26,
-                               "GSHP": grid_primaerenfak / avg_gshp_cop, "ASHP": grid_primaerenfak / avg_ashp_cop,
-                               "electricity": grid_primaerenfak, "PV_electricity": 0.35}
-    #                           nicht erneuerbarer Primärenergiebedarf von SIA 380 2015, Anhang C Tab.5 und Tab.6
-    # kWh/kWH
-
-    # n_e_primarenergiefaktor = {"Natural Gas":3.958/3.600, "Pellets":0.412/3.600, "HP":((7.183/jaz)/3.600),
-    #                            "electricity_EU":7.183/3.600, "PV_electricity":7.183/3.600} #kWh/kWh
-    ##                         Ökobaudat 2015, wird verwendet in UBA132/2019 Bericht. Ja, PV Strom wurde gleich
-    ##                        verrechnet wie Netzstrom
 
 def extract_wall_data(filepath, name="Betonwand, Wärmedämmung mit Lattenrost, Verkleidung", area=0,
                                type="GWP[kgCO2eq/m2]", ):
@@ -394,13 +379,13 @@ def epw_to_sia_irrad(epw_path):
     global_east_vertical = np.nan_to_num(global_east_vertical, 0.0)
     global_west_vertical = np.nan_to_num(global_west_vertical, 0.0)
     global_north_vertical = np.nan_to_num(global_north_vertical, 0.0)
-    mj_to_kwh_factor = 1.0 / 3.6
+    mj_to_wh_factor = 1000.0 / 3.6
 
-    global_horizontal = hourly_to_monthly(global_horizontal_hourly)/mj_to_kwh_factor
-    global_south_vertical = hourly_to_monthly(global_south_vertical)/mj_to_kwh_factor
-    global_east_vertical = hourly_to_monthly(global_east_vertical)/mj_to_kwh_factor
-    global_west_vertical = hourly_to_monthly(global_west_vertical)/mj_to_kwh_factor
-    global_north_vertical = hourly_to_monthly(global_north_vertical)/mj_to_kwh_factor
+    global_horizontal = hourly_to_monthly(global_horizontal_hourly)/mj_to_wh_factor
+    global_south_vertical = hourly_to_monthly(global_south_vertical)/mj_to_wh_factor
+    global_east_vertical = hourly_to_monthly(global_east_vertical)/mj_to_wh_factor
+    global_west_vertical = hourly_to_monthly(global_west_vertical)/mj_to_wh_factor
+    global_north_vertical = hourly_to_monthly(global_north_vertical)/mj_to_wh_factor
     temperature = hourly_to_monthly_average(temperature)
 
     # The values are returned in MJ as this unit is used by SIA (see SIA2028 2010)
