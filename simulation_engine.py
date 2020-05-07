@@ -46,16 +46,16 @@ class Building(object):
     def run_SIA_380_1(self, weather_data_sia):
 
         ### "Datenbanken"
-        standard_raumtemperaturen = {1:20., 2:20., 3:20., 4:20., 5:20., 6:20, 7:20, 8:22, 9:18, 10:18, 11:18, 12:28}  #380-1 Tab7
-        regelzuschlaege = {"Einzelraum":0., "Referenzraum":1., "andere":2.}  #380-1 Tab8
-        personenflachen = {1:40., 2:60., 3:20., 4:10., 5:10., 6:5, 7:5., 8:30., 9:20., 10:100., 11:20., 12:20.}  # 380-1 Tab9
-        warmeabgabe_p_p = {1:70., 2:70., 3:80., 4:70., 5:90., 6:100., 7:80., 8:80., 9:100., 10:100., 11:100., 12:60.}  # 380-1 Tab10
-        prasenzzeiten = {1:12., 2:12., 3:6., 4:4., 5:4., 6:3., 7:3., 8:16., 9:6., 10:6., 11:6., 12:4.}  # 380-1 Tab11
+        standard_raumtemperaturen = dp.sia_standardnutzungsdaten('room_temperature_heating')
+        regelzuschlaege = dp.sia_standardnutzungsdaten('regelzuschaege')
+        personenflachen = dp.sia_standardnutzungsdaten('area_per_person')
+        warmeabgabe_p_p = dp.sia_standardnutzungsdaten('gain_per_person')
+        prasenzzeiten = dp.sia_standardnutzungsdaten('presence_time')
         # this part of elektrizitatsbedarf only goes into thermal calculations. Electricity demand is calculated
         # independently.
-        elektrizitatsbedarf = {1:28., 2:22., 3:22., 4:11., 5:33., 6:33., 7:17., 8:28., 9:17., 10:6., 11:6., 12:56.}  # 380-1 Tab12
-        reduktion_elektrizitat = {1:0.7, 2:0.7, 3:0.9, 4:0.9, 5:0.8, 6:0.7, 7:0.8, 8:0.7, 9:0.9, 10:0.9, 11:0.9, 12:0.7}  # 380-1 Tab13
-        aussenluft_strome = {1:0.7, 2:0.7, 3:0.7, 4:0.7, 5:0.7, 6:1.2, 7:1.0, 8:1.0, 9:0.7, 10:0.3, 11:0.7, 12:0.7}  # 380-1 Tab14
+        elektrizitatsbedarf = dp.sia_standardnutzungsdaten('gains_from_electrical_appliances')
+        reduktion_elektrizitat = dp.sia_standardnutzungsdaten('reduction_factor_for_electricity')
+        aussenluft_strome = dp.sia_standardnutzungsdaten('effective_air_flow')
         # aussenluft_strome = {1: 2.1}  # UBA-Vergleichsstudie
 
 
@@ -323,23 +323,16 @@ class Building(object):
         this function is positive for cooling demand.
         """
 
-        standard_raumtemperaturen = {1: 20., 2: 20., 3: 20., 4: 20., 5: 20., 6: 20, 7: 20, 8: 22, 9: 18, 10: 18, 11: 18,
-                                     12: 28}  # 380-1 Tab7
-        personenflachen = {1: 40., 2: 60., 3: 20., 4: 10., 5: 10., 6: 5, 7: 5., 8: 30., 9: 20., 10: 100., 11: 20.,
-                           12: 20.}  # 380-1 Tab9
-        warmeabgabe_p_p = {1: 70., 2: 70., 3: 80., 4: 70., 5: 90., 6: 100., 7: 80., 8: 80., 9: 100., 10: 100., 11: 100.,
-                           12: 60.}  # 380-1 Tab10
-        prasenzzeiten = {1: 12., 2: 12., 3: 6., 4: 4., 5: 4., 6: 3., 7: 3., 8: 16., 9: 6., 10: 6., 11: 6.,
-                         12: 4.}  # 380-1 Tab11
+        cooling_temperature = dp.sia_standardnutzungsdaten('room_temperature_cooling')
+        personenflachen = dp.sia_standardnutzungsdaten('area_per_person')
+        warmeabgabe_p_p = dp.sia_standardnutzungsdaten('gain_per_person')
+        prasenzzeiten = dp.sia_standardnutzungsdaten('presence_time')
         # this part of elektrizitatsbedarf only goes into thermal calculations. Electricity demand is calculated
         # independently.
-        elektrizitatsbedarf = {1: 28., 2: 22., 3: 22., 4: 11., 5: 33., 6: 33., 7: 17., 8: 28., 9: 17., 10: 6., 11: 6.,
-                               12: 56.}  # 380-1 Tab12
-        reduktion_elektrizitat = {1: 0.7, 2: 0.7, 3: 0.9, 4: 0.9, 5: 0.8, 6: 0.7, 7: 0.8, 8: 0.7, 9: 0.9, 10: 0.9,
-                                  11: 0.9, 12: 0.7}  # 380-1 Tab13
-        aussenluft_strome = {1: 0.7, 2: 0.7, 3: 0.7, 4: 0.7, 5: 0.7, 6: 1.2, 7: 1.0, 8: 1.0, 9: 0.7, 10: 0.3, 11: 0.7,
-                             12: 0.7}  # 380-1 Tab14
-
+        elektrizitatsbedarf = dp.sia_standardnutzungsdaten('gains_from_electrical_appliances')
+        reduktion_elektrizitat = dp.sia_standardnutzungsdaten('reduction_factor_for_electricity')
+        aussenluft_strome = dp.sia_standardnutzungsdaten('effective_air_flow')
+        # aussenluft_strome = {1: 2.1}  # UBA-Vergleichsstudie
 
 
         # Gesamtwärmeübergangskoeffizient für Elemente, die mit der äusseren Umgebung verbunden sind. Dieser Wert wird
@@ -356,10 +349,10 @@ class Building(object):
         h_c_tr_excl_gf_m_ztc_m = h_hc_el + h_tr_tb_ztc
 
         # 6.6.11 Berechnungstemperatur der Zone für die Kühlung in [degC]
-        theta_int_calc_c_ztc_m = 28.0
+        theta_int_calc_c_ztc_m = cooling_temperature
 
         # mittlere monatliche Temperaturen der Aussenluft gemäss relevanten Normen [degC]
-        theta_e_a_m = np.array([0.2, 1.3, 5.4, 8.5, 13.6, 16.5, 18.7, 18.5, 14.0, 9.7, 4.1, 1.7])
+        theta_e_a_m = np.array(weather_data_sia['temperature'])
 
         # ISO 13789 Wärmeübergangskoeffizient des Erdreichs in [W/K] (evtl auch aus SIA380?)
         # Für den Moment so wie bei SIA380/1 gelöst. Noch genauer anschauen, ob dies so gemeint ist.
@@ -415,7 +408,6 @@ class Building(object):
 
         # 6.6.7.2 interne Wärmegewinne für die Zone in [kWh]
         # Diese werden hier der Konsistenz wegen wie in SIA 380/1 berechnet
-        # !!!!! EINHEITEN KORRIGIEREN UND MONATLICH RESAMPLEN!!!!
         q_elektrische_anlagen = elektrizitatsbedarf[int(self.gebaeudekategorie_sia)] * self.energy_reference_area * reduktion_elektrizitat[int(self.gebaeudekategorie_sia)] * delta_t_m / 8760
 
         q_personen = warmeabgabe_p_p[int(self.gebaeudekategorie_sia)] / 1000.0 * prasenzzeiten[int(self.gebaeudekategorie_sia)] * (delta_t_m/24.0) / (personenflachen[int(self.gebaeudekategorie_sia)]) * self.energy_reference_area

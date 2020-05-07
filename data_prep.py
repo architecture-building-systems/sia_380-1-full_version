@@ -50,6 +50,49 @@ def embodied_emissions_pv_per_kW():
     coeq_pv = 2080 # kg/kWp [KBOB 2016]
     return coeq_pv
 
+def sia_standardnutzungsdaten(category):
+
+
+    if category == 'room_temperature_heating':
+        return {1: 20., 2: 20., 3: 20., 4: 20., 5: 20., 6: 20, 7: 20, 8: 22, 9: 18, 10: 18, 11: 18,
+                                 12: 28}  # 380-1 Tab7
+    if category == 'room_temperature_cooling':
+        return 26.0
+        # Only a very limited number of subcases does not have 26 as the cooling temperature value.
+            #{1: 26., 2: 26., 3: 26., 4: 26., 5: 26., 6: 26., 7: 26, 8: 26, ...}  # SIA 2024
+
+    elif category == 'regelzuschaege':
+        return {"Einzelraum": 0., "Referenzraum": 1., "andere": 2.}  # 380-1 Tab8
+
+    elif category == 'area_per_person':
+        return {1: 40., 2: 60., 3: 20., 4: 10., 5: 10., 6: 5, 7: 5., 8: 30., 9: 20., 10: 100., 11: 20.,
+                       12: 20.}  # 380-1 Tab9
+    elif category == 'gain_per_person':
+        return {1: 70., 2: 70., 3: 80., 4: 70., 5: 90., 6: 100., 7: 80., 8: 80., 9: 100., 10: 100., 11: 100.,
+                       12: 60.}  # 380-1 Tab10
+
+    elif category == 'presence_time':
+        return {1: 12., 2: 12., 3: 6., 4: 4., 5: 4., 6: 3., 7: 3., 8: 16., 9: 6., 10: 6., 11: 6.,
+                     12: 4.}  # 380-1 Tab11
+
+    elif category == 'gains_from_electrical_appliances':
+    # this part of elektrizitatsbedarf only goes into thermal calculations. Electricity demand is calculated
+    # independently.
+        return {1: 28., 2: 22., 3: 22., 4: 11., 5: 33., 6: 33., 7: 17., 8: 28., 9: 17., 10: 6., 11: 6.,
+                           12: 56.}  # 380-1 Tab12
+
+    elif category == 'reduction_factor_for_electricity':
+        return {1: 0.7, 2: 0.7, 3: 0.9, 4: 0.9, 5: 0.8, 6: 0.7, 7: 0.8, 8: 0.7, 9: 0.9, 10: 0.9, 11: 0.9,
+                              12: 0.7}  # 380-1 Tab13
+
+    elif category == 'effective_air_flow':
+        return {1: 0.7, 2: 0.7, 3: 0.7, 4: 0.7, 5: 0.7, 6: 1.2, 7: 1.0, 8: 1.0, 9: 0.7, 10: 0.3, 11: 0.7,
+                         12: 0.7}  # 380-1 Tab14
+    # aussenluft_strome = {1: 2.1}  # UBA-Vergleichsstudie
+    else:
+        print('You are trying to look up data from SIA that are not implemented')
+
+
 def persons_from_area_sia(energy_reference_area, type=1):
 
     if type ==1:
