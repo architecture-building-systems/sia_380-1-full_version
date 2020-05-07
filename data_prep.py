@@ -93,16 +93,16 @@ def sia_standardnutzungsdaten(category):
         print('You are trying to look up data from SIA that are not implemented')
 
 
-def persons_from_area_sia(energy_reference_area, type=1):
-
-    if type ==1:
-        personenflache = 50.  # m2/p
-
-    elif type == 3:
-        personenflache = 14.
-
-    occupants = energy_reference_area / personenflache
-    return occupants
+# def persons_from_area_sia(energy_reference_area, type=1):
+#
+#     if type ==1:
+#         personenflache = 50.  # m2/p
+#
+#     elif type == 3:
+#         personenflache = 14.
+#
+#     occupants = energy_reference_area / personenflache
+#     return occupants
 
 def electric_appliances_sia(energy_reference_area, type=1, value="standard"):
     """
