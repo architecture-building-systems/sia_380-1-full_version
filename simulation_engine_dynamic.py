@@ -69,8 +69,7 @@ class Sim_Building(object):
         self.lighting_utilisation_factor = lighting_utilisation_factor
         self.lighting_maintenance_factor = lighting_maintenance_factor
         self.u_walls = (self.walls[0]*self.walls[1]).sum() /self.walls[0].sum()  # weighted average of walls u-values
-        self.u_windows = (self.windows[1]*self.windows[2]).sum() /self.windows[1].sum() # weighted average of window u-values
-        self.g_windows = (self.windows[1]*self.windows[3]).sum() /self.windows[1].sum() # weighted average of window g-values
+        self.u_windows = (self.windows[1]*self.windows[2]).sum() /self.windows[1].sum() # weighted average of window u-values for thermal calculation
         self.ach_vent = None
         self.ach_infl = self.q_inf / self.room_height  # Umrechnung von m3/(h*m2) in 1/h
         self.ventilation_efficiency = self.anlagennutzungsgrad_wrg
@@ -147,9 +146,18 @@ class Sim_Building(object):
                           cooling_emission_system=emission_system.AirConditioning,  # define this!
                           dhw_supply_temperature=self.dhw_supply_temperature, )
 
-        SouthWindow = Window(azimuth_tilt=0., alititude_tilt=90.0, glass_solar_transmittance=self.g_windows,
-                             glass_light_transmittance=0.5, area=self.window_area)  # az and alt are hardcoded because
-                                # they are assumed to be vertical south facing windows (IMPROVE!)
+        windows = []
+        for window_nr in range(len(self.windows[0])):
+
+            azimuth_tilt = dp.string_orientation_to_angle_RC(self.windows[0,window_nr])
+            Window_Component = Window(azimuth_tilt=azimuth_tilt, alititude_tilt=90.0,
+                                      glass_solar_transmittance=self.windows[3,window_nr],
+                                      glass_light_transmittance=0.5, area=self.windows[1,window_nr])
+
+            windows.append(Window_Component)
+            # SouthWindow = Window(azimuth_tilt=0., alititude_tilt=90.0, glass_solar_transmittance=self.g_windows,
+            #                  glass_light_transmittance=0.5, area=self.window_area)  # az and alt are hardcoded because
+            #                     they are assumed to be vertical south facing windows (IMPROVE!)
 
 
 
@@ -189,19 +197,26 @@ class Sim_Building(object):
             Altitude, Azimuth = Loc.calc_sun_position(latitude_deg=self.latitude, longitude_deg=self.longitude,
                                                       year=2015, hoy=hour)
 
-            SouthWindow.calc_solar_gains(sun_altitude=Altitude, sun_azimuth=Azimuth,
+            solar_gains=0
+            transmitted_illuminance=0
+            for Window_object in windows:
+                Window_object.calc_solar_gains(sun_altitude=Altitude, sun_azimuth=Azimuth,
                                          normal_direct_radiation=Loc.weather_data['dirnorrad_Whm2'][hour],
                                          horizontal_diffuse_radiation=Loc.weather_data['difhorrad_Whm2'][hour])
+                solar_gains += Window_object.solar_gains
 
-            # SouthWindow.calc_illuminance(sun_altitude=Altitude, sun_azimuth=Azimuth,
-            #                              normal_direct_illuminance=Loc.weather_data['dirnorillum_lux'][hour],
-            #                              horizontal_diffuse_illuminance=Loc.weather_data['difhorillum_lux'][hour])
 
-            Office.solve_building_energy(internal_gains=internal_gains, solar_gains=SouthWindow.solar_gains,
+                Window_object.calc_illuminance(sun_altitude=Altitude, sun_azimuth=Azimuth,
+                                         normal_direct_illuminance=Loc.weather_data['dirnorillum_lux'][hour],
+                                         horizontal_diffuse_illuminance=Loc.weather_data['difhorillum_lux'][hour])
+                transmitted_illuminance += Window_object.transmitted_illuminance
+
+
+            Office.solve_building_energy(internal_gains=internal_gains, solar_gains=solar_gains,
                                          t_out=t_out,
                                          t_m_prev=t_m_prev, dhw_demand=dhw_demand)
 
-            Office.solve_building_lighting(illuminance=SouthWindow.transmitted_illuminance, occupancy=occupancy)
+            Office.solve_building_lighting(illuminance=transmitted_illuminance, occupancy=occupancy)
 
             # Set the previous temperature for the next time step
 
@@ -212,7 +227,7 @@ class Sim_Building(object):
             self.heating_fossil_demand[hour] = Office.heating_sys_fossils
             self.cooling_electricity_demand[hour] = Office.cooling_sys_electricity  # unit?
             self.cooling_fossil_demand[hour] = Office.cooling_sys_fossils
-            self.solar_gains[hour] = SouthWindow.solar_gains
+            self.solar_gains[hour] = solar_gains
             self.electricity_demand[
                 hour] = Office.heating_sys_electricity + Office.dhw_sys_electricity + Office.cooling_sys_electricity  # in Wh
             self.heating_demand[hour] = Office.heating_demand  # this is the actual heat emitted, unit?

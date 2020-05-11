@@ -507,3 +507,12 @@ def read_location_from_epw(epw_path):
     longitude = epw_data[1]['longitude']
     latitude = epw_data[1]['latitude']
     return longitude, latitude
+
+def string_orientation_to_angle_RC(string_orientation):
+    """
+    This function follows the convention of the RC model. 0 is south
+    :param string_orientation:
+    :return:
+    """
+    translation = {"N":180., 'NE':135., 'E':90., 'SE':45.0, 'S':0., 'SW':-45.0, 'W':-90, 'NW':-135.0}
+    return translation[string_orientation]
