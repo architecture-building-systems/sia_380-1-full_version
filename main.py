@@ -4,6 +4,7 @@ import simulation_engine as se
 import simulation_engine_dynamic as sime
 import data_prep as dp
 import simulation_pv as pv
+import pandas as pd
 
 
 
@@ -13,7 +14,7 @@ Im this first part of the code, building, its location and all the related syste
 """
 
 ## Pfade zu weiteren Daten
-weatherfile_path = r"C:\Users\walkerl\Documents\Zürich-2030-B1.epw"
+weatherfile_path = r"C:\Users\walkerl\Documents\Zuerich-Kloten-hour.epw"
 weather_data_sia = dp.epw_to_sia_irrad(weatherfile_path)
 occupancy_path = r"C:\Users\walkerl\Documents\code\RC_BuildingSimulator\rc_simulator\auxiliary\occupancy_office.csv"
 
@@ -26,13 +27,14 @@ anlagennutzungsgrad_wrg = 0.0 ## SIA 380-1 Tab 23
 warmespeicherfahigkeit_pro_EBF = 0.08 ## Wert noch nicht klar, bestimmen gemäss SN EN ISO 13786 oder Tab25
 korrekturfaktor_luftungs_eff_f_v = 1.0  # zwischen 0.8 und 1.2 gemäss SIA380-1 Tab 24
 infiltration_volume_flow = 0.15  # Gemäss SIA 380-1 2016 3.5.5 soll 0.15m3/(hm2) verwendet werden. Korrigenda anschauen
-cooling_setpoint = 28  # degC (?)
+ventilation_volume_flow = 2.1 # give a number in m3/(hm2) or select "SIA" to follow SIA380-1 code
+cooling_setpoint = 26  # degC (?)
 
 ## Gebäudehülle
-u_windows = 0.6
-u_walls = 0.08
-u_roof = 0.06
-u_floor = 0.09
+u_windows = 1.3
+u_walls = 0.25
+u_roof = 0.19
+u_floor = 0.23
 b_floor = 0.4
 
 ## Systeme
@@ -58,8 +60,8 @@ windows = np.array([["N", "E", "S", "W"],
                     [0.6, 0.6, 0.6, 0.6]],
                    dtype=object)  # dtype=object is necessary because there are different data types
 
-# walls: [[Areas], [U-values]]
-walls = np.array([[412.5, 412.5, 412.5, 412.5],
+# walls: [[Areas], [U-values]] zuvor waren es 4 x 412.5
+walls = np.array([[281., 281., 281., 281.],
                   [u_walls, u_walls, u_walls, u_walls]])
 
 
@@ -96,62 +98,89 @@ pv_yield_hourly = PvSurface.solar_yield  # in Wh consistent with RC but inconsis
 
 ## heating demand and emission calculation
 
-if simulation_type == "static":
+# if simulation_type == "static":
 
-    Gebaeude_1 = se.Building(gebaeudekategorie_sia, regelung, windows, walls, roof, floor, energiebezugsflache,
-                             anlagennutzungsgrad_wrg, infiltration_volume_flow, warmespeicherfahigkeit_pro_EBF,
-                             korrekturfaktor_luftungs_eff_f_v, hohe_uber_meer)
+Gebaeude_static = se.Building(gebaeudekategorie_sia, regelung, windows, walls, roof, floor, energiebezugsflache,
+                         anlagennutzungsgrad_wrg, infiltration_volume_flow, ventilation_volume_flow,
+                         warmespeicherfahigkeit_pro_EBF, korrekturfaktor_luftungs_eff_f_v, hohe_uber_meer)
 
-    Gebaeude_1.pv_production = pv_yield_hourly
-
-
-    Gebaeude_1.run_SIA_380_1(weather_data_sia)
-    Gebaeude_1.run_ISO_52016_monthly(weather_data_sia)
+Gebaeude_static.pv_production = pv_yield_hourly
 
 
-    ## Gebäudedimensionen
-    Gebaeude_1.heating_system = heizsystem
-    Gebaeude_1.dhw_heating_system = dhw_heizsystem  ## Achtung, momentan ist der COP für DHW und für Heizung gleich.
-    Gebaeude_1.cooling_system = cooling_system  # Diese Definitionens sollten verschoben werden zur definition des Objekts
-    Gebaeude_1.run_dhw_demand()
-
-    print(Gebaeude_1.heizwarmebedarf.sum() + Gebaeude_1.dhw_demand.sum())
-    print(Gebaeude_1.monthly_cooling_demand.sum())
-
-    Gebaeude_1.run_SIA_electricity_demand(occupancy_path)
-
-    Gebaeude_1.run_SIA_380_emissions(emission_factor_type="SIA_380", avg_ashp_cop=2.8)
-
-    print(Gebaeude_1.operational_emissions.sum())  # CO2eq/m2a
-
-    # print(Gebaeude_1.non_renewable_primary_energy.sum())  # kWh/m2a
-
-elif simulation_type == "dynamic":
-
-    Gebaeude_1 = sime.Sim_Building(gebaeudekategorie_sia, regelung, windows, walls, roof, floor, energiebezugsflache,
-                                   anlagennutzungsgrad_wrg, infiltration_volume_flow, warmespeicherfahigkeit_pro_EBF,
-                                   korrekturfaktor_luftungs_eff_f_v, hohe_uber_meer, heizsystem, cooling_system,
-                                   dhw_heizsystem)
-
-    Gebaeude_1.pv_production = pv_yield_hourly
-
-    Gebaeude_1.run_rc_simulation(weatherfile_path=weatherfile_path,
-                                 occupancy_path=occupancy_path, cooling_setpoint=cooling_setpoint)
+Gebaeude_static.run_SIA_380_1(weather_data_sia)
+Gebaeude_static.run_ISO_52016_monthly(weather_data_sia)
 
 
-    print((Gebaeude_1.heating_demand.sum() + Gebaeude_1.dhw_demand.sum()) / 1000.0 / energiebezugsflache)
-    print(dp.hourly_to_monthly((Gebaeude_1.cooling_demand)/ 1000.0 / energiebezugsflache).sum())
+## Gebäudedimensionen
+Gebaeude_static.heating_system = heizsystem
+Gebaeude_static.dhw_heating_system = dhw_heizsystem  ## Achtung, momentan ist der COP für DHW und für Heizung gleich.
+Gebaeude_static.cooling_system = cooling_system  # Diese Definitionens sollten verschoben werden zur definition des Objekts
+Gebaeude_static.run_dhw_demand()
 
-    Gebaeude_1.run_SIA_electricity_demand(occupancy_path)
-    Gebaeude_1.run_dynamic_emissions("SIA_380", "c")
+print("heating")
+print(Gebaeude_static.heizwarmebedarf)
+print("dhw")
+print(Gebaeude_static.dhw_demand)
+print("cooling")
+print(Gebaeude_static.monthly_cooling_demand)
 
-    print(Gebaeude_1.operational_emissions.sum() / 1000.0 / energiebezugsflache)
-    # print(dp.hourly_to_monthly((Gebaeude_1.heating_emissions + Gebaeude_1.dhw_emisions) / 1000.0 / energiebezugsflache))
+Gebaeude_static.run_SIA_electricity_demand(occupancy_path)
 
-else:
-    print("simulation type not correctly specified")
+Gebaeude_static.run_SIA_380_emissions(emission_factor_type="SIA_380", avg_ashp_cop=2.8)
+
+print(Gebaeude_static.operational_emissions.sum())  # CO2eq/m2a
+
+# print(Gebaeude_1.non_renewable_primary_energy.sum())  # kWh/m2a
+
+# elif simulation_type == "dynamic":
+
+Gebaeude_dyn = sime.Sim_Building(gebaeudekategorie_sia, regelung, windows, walls, roof, floor, energiebezugsflache,
+                               anlagennutzungsgrad_wrg, infiltration_volume_flow, ventilation_volume_flow,
+                               warmespeicherfahigkeit_pro_EBF,
+                               korrekturfaktor_luftungs_eff_f_v, hohe_uber_meer, heizsystem, cooling_system,
+                               dhw_heizsystem)
+
+Gebaeude_dyn.pv_production = pv_yield_hourly
+
+Gebaeude_dyn.run_rc_simulation(weatherfile_path=weatherfile_path,
+                             occupancy_path=occupancy_path, cooling_setpoint=cooling_setpoint)
 
 
+# print("Heating")
+# print(dp.hourly_to_monthly(Gebaeude_dyn.heating_demand) / 1000.0 / energiebezugsflache)
+# print("DHW")
+# print(dp.hourly_to_monthly(Gebaeude_dyn.dhw_demand)/1000.0 / energiebezugsflache)
+# print("cooling")
+# print(dp.hourly_to_monthly((Gebaeude_dyn.cooling_demand)/ 1000.0 / energiebezugsflache))
+
+Gebaeude_dyn.run_SIA_electricity_demand(occupancy_path)
+Gebaeude_dyn.run_dynamic_emissions("SIA_380", "c")
+
+print(Gebaeude_dyn.operational_emissions.sum() / 1000.0 / energiebezugsflache)
+# print(dp.hourly_to_monthly((Gebaeude_1.heating_emissions + Gebaeude_1.dhw_emisions) / 1000.0 / energiebezugsflache))
+
+# else:
+#     print("simulation type not correctly specified")
+
+"""####################################
+"""
+print(type(Gebaeude_static.heizwarmebedarf))
+
+
+ajajaj = zip(dp.hourly_to_monthly(Gebaeude_dyn.heating_demand) / 1000.0 / energiebezugsflache,
+              dp.hourly_to_monthly(Gebaeude_dyn.dhw_demand)/1000.0 / energiebezugsflache,
+              dp.hourly_to_monthly(Gebaeude_dyn.cooling_demand)/ 1000.0 / energiebezugsflache,
+              Gebaeude_static.heizwarmebedarf,
+              Gebaeude_static.dhw_demand,
+              -Gebaeude_static.monthly_cooling_demand)
+
+results = pd.DataFrame(ajajaj, columns=["RC heating", "RC DHW", "RC cooling", "380 heating", "380 DHW", "ISO cooling"])
+results["ISO2RC"] = results['ISO cooling']/results['RC cooling']
+results.plot(kind='bar')
+plt.show()
+
+results["ISO2RC"].plot()
+plt.show()
 """
 ###################################### EMBODIED EMISSIONS ##############################################################
 In this part the embodied emissions of a respective system and its components are defined.

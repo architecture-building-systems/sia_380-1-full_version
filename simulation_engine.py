@@ -15,6 +15,7 @@ class Building(object):
                  energy_reference_area,
                  heat_recovery_nutzungsgrad,
                  infiltration_volume_flow,
+                 ventilation_volume_flow,
                  thermal_storage_capacity_per_floor_area,
                  korrekturfaktor_luftungs_eff_f_v,
                  height_above_sea):
@@ -28,9 +29,12 @@ class Building(object):
         self.energy_reference_area = energy_reference_area  # One value, float
         self.anlagennutzungsgrad_wrg = heat_recovery_nutzungsgrad  # One value, float
         self.q_inf = infiltration_volume_flow
+        self.ventilation_volume_flow = ventilation_volume_flow
         self.warmespeicherfahigkeit_pro_ebf = thermal_storage_capacity_per_floor_area # One value, float
         self.korrekturfaktor_luftungs_eff_f_v = korrekturfaktor_luftungs_eff_f_v
         self.hohe_uber_meer = height_above_sea
+
+
 
 
         # Further optional attributes:
@@ -55,7 +59,13 @@ class Building(object):
         # independently.
         elektrizitatsbedarf = dp.sia_standardnutzungsdaten('gains_from_electrical_appliances')
         reduktion_elektrizitat = dp.sia_standardnutzungsdaten('reduction_factor_for_electricity')
-        aussenluft_strome = dp.sia_standardnutzungsdaten('effective_air_flow')
+
+        if self.ventilation_volume_flow == "SIA":
+            aussenluft_strome = dp.sia_standardnutzungsdaten('effective_air_flow')
+
+        else:
+            aussenluft_strome = {int(self.gebaeudekategorie_sia):self.ventilation_volume_flow}
+
         # aussenluft_strome = {1: 2.1}  # UBA-Vergleichsstudie
 
 

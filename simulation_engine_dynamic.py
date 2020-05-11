@@ -23,6 +23,7 @@ class Sim_Building(object):
                  energy_reference_area,
                  heat_recovery_nutzungsgrad,
                  infiltration_volume_flow,
+                 ventilation_volume_flow,
                  thermal_storage_capacity_per_floor_area,
                  korrekturfaktor_luftungs_eff_f_v,
                  height_above_sea,
@@ -40,6 +41,7 @@ class Sim_Building(object):
         self.energy_reference_area = energy_reference_area  # One value, float
         self.anlagennutzungsgrad_wrg = heat_recovery_nutzungsgrad  # One value, float
         self.q_inf = infiltration_volume_flow
+        self.ventilation_volume_flow = ventilation_volume_flow
         self.warmespeicherfahigkeit_pro_ebf = thermal_storage_capacity_per_floor_area
         self.korrekturfaktor_luftungs_eff_f_v = korrekturfaktor_luftungs_eff_f_v
         self.hohe_uber_meer = height_above_sea
@@ -90,27 +92,16 @@ class Sim_Building(object):
         :param occupancy_path:
         :return:
         """
-        standard_raumtemperaturen = {1: 20., 2: 20., 3: 20., 4: 20., 5: 20., 6: 20, 7: 20, 8: 22, 9: 18, 10: 18, 11: 18,
-                                     12: 28}  # 380-1 Tab7
-        warmeabgabe_p_p = {1: 70., 2: 70., 3: 80., 4: 70., 5: 90., 6: 100., 7: 80., 8: 80., 9: 100., 10: 100., 11: 100.,
-                           12: 60.}  # 380-1 Tab10 (W)
+        standard_raumtemperaturen = dp.sia_standardnutzungsdaten("room_temperature_heating")  # 380-1 Tab7
+        warmeabgabe_p_p = dp.sia_standardnutzungsdaten("gain_per_person") # 380-1 Tab10 (W)
 
-        elektrizitatsbedarf = {1: 28., 2: 22., 3: 22., 4: 11., 5: 33., 6: 33., 7: 17., 8: 28., 9: 17., 10: 6., 11: 6.,
-                               12: 56.}  # 380-1 Tab12 (kWh/m2a)
+        elektrizitatsbedarf = dp.sia_standardnutzungsdaten("gains_from_electrical_appliances") # 380-1 Tab12 (kWh/m2a)
 
-        personenflachen = {1: 40., 2: 60., 3: 20., 4: 10., 5: 10., 6: 5, 7: 5., 8: 30., 9: 20., 10: 100., 11: 20.,
-                           12: 20.}  # 380-1 Tab9
+        personenflachen = dp.sia_standardnutzungsdaten("area_per_person")  # 380-1 Tab9
 
-        aussenluft_strome = {1: 0.7, 2: 0.7, 3: 0.7, 4: 0.7, 5: 0.7, 6: 1.2, 7: 1.0, 8: 1.0, 9: 0.7, 10: 0.3, 11: 0.7,
-                             12: 0.7}  # 380-1 Tab14
+        aussenluft_strome = dp.sia_standardnutzungsdaten("effective_air_flow") # 380-1 Tab14
         # aussenluft_strome = {1:2.1}
 
-        annual_dhw_demand = {1.1: 19.8, 1.2: 13.5, 2.1: 39.5, 2.2: 0., 3.1: 3.6, 3.2: 3.6, 3.3: 0.0, 3.4: 0.0, 4.1: 5.3,
-                             4.2: 0.0,
-                             4.3: 0.0, 4.4: 7.9, 5.1: 2.7, 5.2: 2.7, 5.3: 1.5, 6.1: 108.9, 7.1: 7.3, 7.2: 7.3,
-                             8.1: 67.7,
-                             8.2: 0.0, 8.3: 0.0, 9.1: 2.4, 9.2: 2.4, 9.3: 2.4, 10.1: 0.9, 11.1: 52.9, 11.2: 87.1,
-                             12: None}
         # in kWh/m2a according to SIA2024 possbily needs to be changed to SIA 385/2
 
 
@@ -120,10 +111,16 @@ class Sim_Building(object):
         gain_per_person = warmeabgabe_p_p[int(self.gebaeudekategorie_sia)]  # W/m2
         appliance_gains = elektrizitatsbedarf[int(self.gebaeudekategorie_sia)]/365/24  # W per sqm (constant over the year)
         max_occupancy = self.energy_reference_area / personenflachen[int(self.gebaeudekategorie_sia)]
-        self.ach_vent = aussenluft_strome[int(self.gebaeudekategorie_sia)]/self.room_height  # here we switch from SIA m3/hm2 to air change rate /h
+
+        if self.ventilation_volume_flow == "SIA":
+            self.ach_vent = aussenluft_strome[int(self.gebaeudekategorie_sia)]/self.room_height  # here we switch from SIA m3/hm2 to air change rate /h
+
+        else:
+            self.ach_vent = self.ventilation_volume_flow/self.room_height  # m3/hm2 to air change rate
+
         heating_supply_system = dp.translate_system_sia_to_rc(self.heating_system)
         cooling_supply_system = dp.translate_system_sia_to_rc(self.cooling_system)
-        self.annual_dhw_demand = annual_dhw_demand[self.gebaeudekategorie_sia] * 1000  # Sia calculates in kWh, RC Simulator in Wh
+        self.annual_dhw_demand = dp.sia_annaul_dhw_demand(self.gebaeudekategorie_sia) * 1000  # Sia calculates in kWh, RC Simulator in Wh
 
         Office = Building(window_area=self.window_area,
                           external_envelope_area=self.external_envelope_area,
@@ -196,9 +193,9 @@ class Sim_Building(object):
                                          normal_direct_radiation=Loc.weather_data['dirnorrad_Whm2'][hour],
                                          horizontal_diffuse_radiation=Loc.weather_data['difhorrad_Whm2'][hour])
 
-            SouthWindow.calc_illuminance(sun_altitude=Altitude, sun_azimuth=Azimuth,
-                                         normal_direct_illuminance=Loc.weather_data['dirnorillum_lux'][hour],
-                                         horizontal_diffuse_illuminance=Loc.weather_data['difhorillum_lux'][hour])
+            # SouthWindow.calc_illuminance(sun_altitude=Altitude, sun_azimuth=Azimuth,
+            #                              normal_direct_illuminance=Loc.weather_data['dirnorillum_lux'][hour],
+            #                              horizontal_diffuse_illuminance=Loc.weather_data['difhorillum_lux'][hour])
 
             Office.solve_building_energy(internal_gains=internal_gains, solar_gains=SouthWindow.solar_gains,
                                          t_out=t_out,
