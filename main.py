@@ -24,7 +24,7 @@ regelung = "andere"  # oder "Referenzraum" oder "andere"
 hohe_uber_meer = 435.0 # Eingabe
 energiebezugsflache = 2275.0  # m2
 anlagennutzungsgrad_wrg = 0.0 ## SIA 380-1 Tab 23
-warmespeicherfahigkeit_pro_EBF = 0.08 ## Wert noch nicht klar, bestimmen gemäss SN EN ISO 13786 oder Tab25
+warmespeicherfahigkeit_pro_EBF = 2.2 ## Wert noch nicht klar, bestimmen gemäss SN EN ISO 13786 oder Tab25 Einheiten?
 korrekturfaktor_luftungs_eff_f_v = 1.0  # zwischen 0.8 und 1.2 gemäss SIA380-1 Tab 24
 infiltration_volume_flow = 0.15  # Gemäss SIA 380-1 2016 3.5.5 soll 0.15m3/(hm2) verwendet werden. Korrigenda anschauen
 ventilation_volume_flow = 2.1 # give a number in m3/(hm2) or select "SIA" to follow SIA380-1 code
@@ -191,7 +191,11 @@ results["internal_gains_ISO"] = Gebaeude_static.iso_internal_gains
 results[["RC_solar_gains", "ISO_solar_gains", "SIA_solar_gains"]].plot(kind='bar')
 plt.show()
 
+
 results[["internal_gains_RC", "internal_gains_SIA", "internal_gains_ISO"]].plot(kind='bar')
+plt.show()
+
+plt.plot(Gebaeude_dyn.cooling_demand)
 plt.show()
 
 results[["transmission_losses_ISO", "transmission_losses_SIA"]].plot(kind='bar')
