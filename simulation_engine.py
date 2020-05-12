@@ -531,6 +531,9 @@ class Building(object):
         # plt.legend()
         # plt.show()
 
+        self.iso_transmission_losses = q_c_tr_ztc_m/self.energy_reference_area
+        self.iso_solar_gains = q_hc_sol_wi/self.energy_reference_area
+        self.iso_internal_gains =  q_hc_int_dir_ztc_m / self.energy_reference_area
         self.monthly_cooling_demand = q_c_nd_ztc_m/self.energy_reference_area
 
 

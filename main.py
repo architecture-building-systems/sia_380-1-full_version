@@ -117,18 +117,18 @@ Gebaeude_static.dhw_heating_system = dhw_heizsystem  ## Achtung, momentan ist de
 Gebaeude_static.cooling_system = cooling_system  # Diese Definitionens sollten verschoben werden zur definition des Objekts
 Gebaeude_static.run_dhw_demand()
 
-print("heating")
-print(Gebaeude_static.heizwarmebedarf)
-print("dhw")
-print(Gebaeude_static.dhw_demand)
+# print("heating")
+# print(Gebaeude_static.heizwarmebedarf)
+# print("dhw")
+# print(Gebaeude_static.dhw_demand)
 print("cooling")
-print(Gebaeude_static.monthly_cooling_demand)
+print(Gebaeude_static.monthly_cooling_demand.sum())
 
 Gebaeude_static.run_SIA_electricity_demand(occupancy_path)
 
 Gebaeude_static.run_SIA_380_emissions(emission_factor_type="SIA_380", avg_ashp_cop=2.8)
 
-print(Gebaeude_static.operational_emissions.sum())  # CO2eq/m2a
+# print(Gebaeude_static.operational_emissions.sum())  # CO2eq/m2a
 
 # print(Gebaeude_1.non_renewable_primary_energy.sum())  # kWh/m2a
 
@@ -150,13 +150,13 @@ Gebaeude_dyn.run_rc_simulation(weatherfile_path=weatherfile_path,
 # print(dp.hourly_to_monthly(Gebaeude_dyn.heating_demand) / 1000.0 / energiebezugsflache)
 # print("DHW")
 # print(dp.hourly_to_monthly(Gebaeude_dyn.dhw_demand)/1000.0 / energiebezugsflache)
-# print("cooling")
-# print(dp.hourly_to_monthly((Gebaeude_dyn.cooling_demand)/ 1000.0 / energiebezugsflache))
+print("cooling")
+print(dp.hourly_to_monthly((Gebaeude_dyn.cooling_demand)/ 1000.0 / energiebezugsflache).sum())
 
 Gebaeude_dyn.run_SIA_electricity_demand(occupancy_path)
 Gebaeude_dyn.run_dynamic_emissions("SIA_380", "c")
 
-print(Gebaeude_dyn.operational_emissions.sum() / 1000.0 / energiebezugsflache)
+# print(Gebaeude_dyn.operational_emissions.sum() / 1000.0 / energiebezugsflache)
 # print(dp.hourly_to_monthly((Gebaeude_1.heating_emissions + Gebaeude_1.dhw_emisions) / 1000.0 / energiebezugsflache))
 
 # else:
@@ -164,7 +164,7 @@ print(Gebaeude_dyn.operational_emissions.sum() / 1000.0 / energiebezugsflache)
 
 """####################################
 """
-print(type(Gebaeude_static.heizwarmebedarf))
+
 
 
 ajajaj = zip(dp.hourly_to_monthly(Gebaeude_dyn.heating_demand) / 1000.0 / energiebezugsflache,
@@ -174,13 +174,32 @@ ajajaj = zip(dp.hourly_to_monthly(Gebaeude_dyn.heating_demand) / 1000.0 / energi
               Gebaeude_static.dhw_demand,
               -Gebaeude_static.monthly_cooling_demand)
 
+
 results = pd.DataFrame(ajajaj, columns=["RC heating", "RC DHW", "RC cooling", "380 heating", "380 DHW", "ISO cooling"])
-results["ISO2RC"] = results['ISO cooling']/results['RC cooling']
-results.plot(kind='bar')
+# results["ISO2RC"] = results['ISO cooling']/results['RC cooling']
+results["RC_solar_gains"] = dp.hourly_to_monthly(Gebaeude_dyn.solar_gains)/1000.0 / energiebezugsflache
+results["ISO_solar_gains"] = Gebaeude_static.iso_solar_gains
+results["SIA_solar_gains"] = Gebaeude_static.solare_eintrage
+
+results["transmission_losses_ISO"] = Gebaeude_static.iso_transmission_losses
+results["transmission_losses_SIA"] = Gebaeude_static.transmissionsverluste
+
+results["internal_gains_RC"] = dp.hourly_to_monthly(Gebaeude_dyn.internal_gains)/1000.0 /energiebezugsflache
+results["internal_gains_SIA"] = Gebaeude_static.interne_eintrage
+results["internal_gains_ISO"] = Gebaeude_static.iso_internal_gains
+
+results[["RC_solar_gains", "ISO_solar_gains", "SIA_solar_gains"]].plot(kind='bar')
 plt.show()
 
-results["ISO2RC"].plot()
+results[["internal_gains_RC", "internal_gains_SIA", "internal_gains_ISO"]].plot(kind='bar')
 plt.show()
+
+results[["transmission_losses_ISO", "transmission_losses_SIA"]].plot(kind='bar')
+plt.show()
+
+results[["RC heating", "RC DHW", "RC cooling", "380 heating", "380 DHW", "ISO cooling"]].plot(kind="bar")
+plt.show()
+
 """
 ###################################### EMBODIED EMISSIONS ##############################################################
 In this part the embodied emissions of a respective system and its components are defined.
