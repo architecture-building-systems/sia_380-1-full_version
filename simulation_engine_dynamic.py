@@ -60,7 +60,7 @@ class Sim_Building(object):
         lighting_maintenance_factor = 0.9
 
         self.window_area = self.windows[1].sum()  # sums up all window area
-        self.external_envelope_area = self.walls[0].sum() + self.windows[1].sum()  # so far includes vertical envelope
+        self.external_envelope_area = self.walls[0].sum() + self.windows[1].sum() + self.roof[0].sum() + self.floor[0].sum()  # so far includes vertical envelope
         self.room_depth = np.sqrt(self.energy_reference_area)  # assumption: quadratic foot print, one story
         self.room_width = np.sqrt(self.energy_reference_area)  # assumption: quadratic foot print, one story
         self.room_height = 3 #m (for now a fixed value)
@@ -68,7 +68,7 @@ class Sim_Building(object):
         self.lighting_control = lighting_control
         self.lighting_utilisation_factor = lighting_utilisation_factor
         self.lighting_maintenance_factor = lighting_maintenance_factor
-        self.u_walls = (self.walls[0]*self.walls[1]).sum() /self.walls[0].sum()  # weighted average of walls u-values
+        self.u_opaque = ((self.walls[0]*self.walls[1]).sum() + (self.roof[0]*self.roof[1]).sum() + (self.floor[0]*self.floor[1]).sum()) / (self.walls[0].sum() + self.roof[0].sum() + self.floor[0].sum())  # weighted average of walls u-values
         self.u_windows = (self.windows[1]*self.windows[2]).sum() /self.windows[1].sum() # weighted average of window u-values for thermal calculation
         self.ach_vent = None
         self.ach_infl = self.q_inf / self.room_height  # Umrechnung von m3/(h*m2) in 1/h
@@ -125,7 +125,7 @@ class Sim_Building(object):
         self.annual_dhw_demand = dp.sia_annaul_dhw_demand(self.gebaeudekategorie_sia) * 1000  # Sia calculates in kWh, RC Simulator in Wh
 
         Office = Building(window_area=self.window_area,
-                          external_envelope_area=self.external_envelope_area,
+                          external_envelope_area=self.external_envelope_area,  # opaque and glazed surfaces
                           room_depth=self.room_depth,
                           room_width=self.room_width,
                           room_height=self.room_height,
@@ -133,7 +133,7 @@ class Sim_Building(object):
                           lighting_control=self.lighting_control,
                           lighting_utilisation_factor=self.lighting_utilisation_factor,
                           lighting_maintenance_factor=self.lighting_maintenance_factor,
-                          u_walls=self.u_walls,
+                          u_walls=self.u_opaque,  # average u_value of opaque surfaces that make up external_envelope_area
                           u_windows=self.u_windows,
                           ach_vent=self.ach_vent,
                           ach_infl=self.ach_infl,
@@ -166,7 +166,6 @@ class Sim_Building(object):
 
         ## Define occupancy
         occupancyProfile = pd.read_csv(occupancy_path)
-        print(occupancyProfile.sum())
 
         t_m_prev = 20.0  # This is only for the very first step in therefore is hard coded.
 
