@@ -15,7 +15,8 @@ Im this first part of the code, building, its location and all the related syste
 
 ## Pfade zu weiteren Daten
 
-weatherfile_path = r"C:\Users\walkerl\polybox\phd\Validation\ASHRAE140\140-2017-AccompanyingFiles\drycold_2.epw"
+weatherfile_path = r"C:\Users\walkerl\polybox\phd\Validation\ASHRAE140\140-2017-AccompanyingFiles\DRYCOLD.epw"
+
 weather_data_sia = dp.epw_to_sia_irrad(weatherfile_path)
 occupancy_path = r"C:\Users\walkerl\Documents\code\RC_BuildingSimulator\rc_simulator\auxiliary\occupancy_office.csv"
 
@@ -73,7 +74,7 @@ roof = np.array([[48.0], [u_roof]])
 # floor to ground (for now) [[Areas],[U-values],[b-values]]
 floor = np.array([[48],[u_floor],[b_floor]])
 
-simulation_type = "dynamic"  # Choose between static and dynamic
+simulation_type = "static"  # Choose between static and dynamic
 
 
 """
@@ -99,6 +100,7 @@ These steps are either carried out in the dynamic or in the static model. This i
 
 
 ## heating demand and emission calculation
+
 
 # if simulation_type == "static":
 
