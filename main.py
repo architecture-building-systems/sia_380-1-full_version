@@ -71,7 +71,7 @@ roof = np.array([[506.0], [u_roof]])
 # floor to ground (for now) [[Areas],[U-values],[b-values]]
 floor = np.array([[506.0],[u_floor],[b_floor]])
 
-simulation_type = "dynamic"  # Choose between static and dynamic
+simulation_type = "static"  # Choose between static and dynamic
 
 
 """
@@ -97,6 +97,7 @@ These steps are either carried out in the dynamic or in the static model. This i
 
 
 ## heating demand and emission calculation
+
 
 # if simulation_type == "static":
 
