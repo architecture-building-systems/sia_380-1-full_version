@@ -432,6 +432,7 @@ def epw_to_sia_irrad(epw_path, model="isotropic"):
     temperature = hourly_to_monthly_average(temperature)
 
     # The values are returned in MJ as this unit is used by SIA (see SIA2028 2010)
+    print(temperature)
 
     return {'global_horizontal': global_horizontal, 'global_south':global_south_vertical,
             'global_east':global_east_vertical, 'global_west':global_west_vertical,

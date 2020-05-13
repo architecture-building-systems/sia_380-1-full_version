@@ -14,7 +14,7 @@ Im this first part of the code, building, its location and all the related syste
 """
 
 ## Pfade zu weiteren Daten
-weatherfile_path = r"C:\Users\walkerl\Documents\Zuerich-Kloten-hour.epw"
+weatherfile_path = r"C:\Users\walkerl\polybox\phd\Validation\ASHRAE140\140-2017-AccompanyingFiles\drycold_2.epw"
 weather_data_sia = dp.epw_to_sia_irrad(weatherfile_path)
 occupancy_path = r"C:\Users\walkerl\Documents\code\RC_BuildingSimulator\rc_simulator\auxiliary\occupancy_office.csv"
 
@@ -89,11 +89,11 @@ These steps are either carried out in the dynamic or in the static model. This i
 
 ## PV calculation
 
-Loc = pv.Location(epwfile_path=weatherfile_path)
-PvSurface = pv.PhotovoltaicSurface(azimuth_tilt=pv_azimuth, altitude_tilt=pv_tilt, stc_efficiency=pv_efficiency,
-                                   performance_ratio=pv_performance_ratio, area=pv_area)
-PvSurface.pv_simulation_hourly(Loc)
-pv_yield_hourly = PvSurface.solar_yield  # in Wh consistent with RC but inconsistent with SIA
+# Loc = pv.Location(epwfile_path=weatherfile_path)
+# PvSurface = pv.PhotovoltaicSurface(azimuth_tilt=pv_azimuth, altitude_tilt=pv_tilt, stc_efficiency=pv_efficiency,
+#                                    performance_ratio=pv_performance_ratio, area=pv_area)
+# PvSurface.pv_simulation_hourly(Loc)
+# pv_yield_hourly = PvSurface.solar_yield  # in Wh consistent with RC but inconsistent with SIA
 
 
 ## heating demand and emission calculation
@@ -104,7 +104,7 @@ Gebaeude_static = se.Building(gebaeudekategorie_sia, regelung, windows, walls, r
                          anlagennutzungsgrad_wrg, infiltration_volume_flow, ventilation_volume_flow,
                          warmespeicherfahigkeit_pro_EBF, korrekturfaktor_luftungs_eff_f_v, hohe_uber_meer)
 
-Gebaeude_static.pv_production = pv_yield_hourly
+# Gebaeude_static.pv_production = pv_yield_hourly
 
 
 Gebaeude_static.run_SIA_380_1(weather_data_sia)
@@ -124,9 +124,9 @@ Gebaeude_static.run_dhw_demand()
 print("cooling")
 print(Gebaeude_static.monthly_cooling_demand.sum())
 
-Gebaeude_static.run_SIA_electricity_demand(occupancy_path)
+# Gebaeude_static.run_SIA_electricity_demand(occupancy_path)
 
-Gebaeude_static.run_SIA_380_emissions(emission_factor_type="SIA_380", avg_ashp_cop=2.8)
+# Gebaeude_static.run_SIA_380_emissions(emission_factor_type="SIA_380", avg_ashp_cop=2.8)
 
 # print(Gebaeude_static.operational_emissions.sum())  # CO2eq/m2a
 
@@ -140,7 +140,7 @@ Gebaeude_dyn = sime.Sim_Building(gebaeudekategorie_sia, regelung, windows, walls
                                korrekturfaktor_luftungs_eff_f_v, hohe_uber_meer, heizsystem, cooling_system,
                                dhw_heizsystem)
 
-Gebaeude_dyn.pv_production = pv_yield_hourly
+# Gebaeude_dyn.pv_production = pv_yield_hourly
 
 Gebaeude_dyn.run_rc_simulation(weatherfile_path=weatherfile_path,
                              occupancy_path=occupancy_path, cooling_setpoint=cooling_setpoint)
@@ -153,8 +153,8 @@ Gebaeude_dyn.run_rc_simulation(weatherfile_path=weatherfile_path,
 print("cooling")
 print(dp.hourly_to_monthly((Gebaeude_dyn.cooling_demand)/ 1000.0 / energiebezugsflache).sum())
 
-Gebaeude_dyn.run_SIA_electricity_demand(occupancy_path)
-Gebaeude_dyn.run_dynamic_emissions("SIA_380", "c")
+# Gebaeude_dyn.run_SIA_electricity_demand(occupancy_path)
+# Gebaeude_dyn.run_dynamic_emissions("SIA_380", "c")
 
 # print(Gebaeude_dyn.operational_emissions.sum() / 1000.0 / energiebezugsflache)
 # print(dp.hourly_to_monthly((Gebaeude_1.heating_emissions + Gebaeude_1.dhw_emisions) / 1000.0 / energiebezugsflache))
