@@ -69,7 +69,7 @@ roof = np.array([[506.0], [u_roof]])
 # floor to ground (for now) [[Areas],[U-values],[b-values]]
 floor = np.array([[506.0],[u_floor],[b_floor]])
 
-simulation_type = "dynamic"  # Choose between static and dynamic
+simulation_type = "static"  # Choose between static and dynamic
 
 
 """
@@ -96,7 +96,7 @@ pv_yield_hourly = PvSurface.solar_yield  # in Wh consistent with RC but inconsis
 
 ## heating demand and emission calculation
 
-if simulation_type == "static":
+if simulation_type == "dynamic":
 
     Gebaeude_1 = se.Building(gebaeudekategorie_sia, regelung, windows, walls, roof, floor, energiebezugsflache,
                              anlagennutzungsgrad_wrg, infiltration_volume_flow, warmespeicherfahigkeit_pro_EBF,
