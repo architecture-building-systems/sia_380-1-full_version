@@ -339,7 +339,7 @@ def sia_annaul_dhw_demand(gebaeudekategorie_sia):
 
     return annual_dhw_demand[gebaeudekategorie_sia]
 
-def epw_to_sia_irrad(epw_path, model="perez"):
+def epw_to_sia_irrad(epw_path, model="isotropic"):
     """
     THIS FUNCTION DOES NOT WORK PROPERLY WHEN COMPARED TO METEONORM SIA DATA.
     ESPECIALLY THE DIFFUSE MODEL SHOULD BE CHANGED TO PEREZ
