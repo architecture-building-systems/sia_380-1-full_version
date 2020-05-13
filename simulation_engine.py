@@ -298,7 +298,7 @@ class Building(object):
                 eta_g_126 = (1-gamma_123**a_125)/(1-gamma_123**(a_125 + 1))  # Hier weicht die Formel unter 3.5.6.2 von der Zusammenstellung im Anhang D ab
 
             q_ug_127 = q_g_122 * eta_g_126
-            f_ug_128 = q_ug_127 / q_tot_111
+            # f_ug_128 = q_ug_127 / q_tot_111
 
             ### Heizwärmebedarf:
             q_h_129 = q_tot_111 - q_ug_127
