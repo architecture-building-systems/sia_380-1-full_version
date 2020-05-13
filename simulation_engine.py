@@ -278,15 +278,21 @@ class Building(object):
 
 
             q_g_122 = q_i_115 + q_s_121  # Interne Wärmegewinne
-            gamma_123 = q_g_122/q_tot_111
+            if q_tot_111 == 0:  # This is not part of SIA380 but needs to be specified for months with no heating demand
+                gamma_123 = None
+            else:
+                gamma_123 = q_g_122/q_tot_111
+
             tau_124 = cr_ae_078 * a_e_017 * 1000/h_112
             a_125 = a_0_079 + (tau_124/tau_0_080)
 
             # print(q_g_122)
             # print(tau_124)
 
+            if gamma_123 == None:
+                eta_g_126 = 0  # This is not part of SIA380-1 but needs to be specified for months with no heating demand
 
-            if gamma_123 ==1:
+            elif gamma_123 ==1:
                 eta_g_126 = a_125/(a_125+1)
             else:
                 eta_g_126 = (1-gamma_123**a_125)/(1-gamma_123**(a_125 + 1))  # Hier weicht die Formel unter 3.5.6.2 von der Zusammenstellung im Anhang D ab
