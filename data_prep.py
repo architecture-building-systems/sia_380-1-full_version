@@ -339,7 +339,7 @@ def sia_annaul_dhw_demand(gebaeudekategorie_sia):
 
     return annual_dhw_demand[gebaeudekategorie_sia]
 
-def epw_to_sia_irrad(epw_path):
+def epw_to_sia_irrad(epw_path, model="perez"):
     """
     THIS FUNCTION DOES NOT WORK PROPERLY WHEN COMPARED TO METEONORM SIA DATA.
     ESPECIALLY THE DIFFUSE MODEL SHOULD BE CHANGED TO PEREZ
@@ -388,7 +388,7 @@ def epw_to_sia_irrad(epw_path):
                                                                             global_horizontal_value,
                                                                             horizontal_diffuse_radiation,
                                                                             dni_extra=dni_extra,
-                                                                            model='perez',
+                                                                            model=model,
                                                                             airmass=relative_air_mass)['poa_global']
 
 
@@ -397,7 +397,7 @@ def epw_to_sia_irrad(epw_path):
                                                                            global_horizontal_value,
                                                                            horizontal_diffuse_radiation,
                                                                            dni_extra=dni_extra,
-                                                                           model='perez',
+                                                                           model=model,
                                                                            airmass=relative_air_mass)['poa_global']
 
         global_west_vertical[hour] = pvlib.irradiance.get_total_irradiance(90, 270, 90-solar_altitude,
@@ -405,7 +405,7 @@ def epw_to_sia_irrad(epw_path):
                                                                            global_horizontal_value,
                                                                            horizontal_diffuse_radiation,
                                                                            dni_extra=dni_extra,
-                                                                           model='perez',
+                                                                           model=model,
                                                                            airmass=relative_air_mass)['poa_global']
 
         global_north_vertical[hour] = pvlib.irradiance.get_total_irradiance(90, 0, 90-solar_altitude,
@@ -413,7 +413,7 @@ def epw_to_sia_irrad(epw_path):
                                                                             global_horizontal_value,
                                                                             horizontal_diffuse_radiation,
                                                                             dni_extra=dni_extra,
-                                                                            model='perez',
+                                                                            model=model,
                                                                             airmass=relative_air_mass)['poa_global']
 
 
