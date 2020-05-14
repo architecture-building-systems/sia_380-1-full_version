@@ -24,13 +24,13 @@ occupancy_path = r"C:\Users\walkerl\Documents\code\RC_BuildingSimulator\rc_simul
 gebaeudekategorie_sia = 1.1
 regelung = "andere"  # oder "Referenzraum" oder "andere"
 hohe_uber_meer = 435.0 # Eingabe
-energiebezugsflache = 2275.0  # m2
+energiebezugsflache = 48.0  # m2
 anlagennutzungsgrad_wrg = 0.0 ## SIA 380-1 Tab 23
 warmespeicherfahigkeit_pro_EBF = 0.08 ## Wert noch nicht klar, bestimmen gemäss SN EN ISO 13786 oder Tab25 Einheiten?
 korrekturfaktor_luftungs_eff_f_v = 1.0  # zwischen 0.8 und 1.2 gemäss SIA380-1 Tab 24
 infiltration_volume_flow = 1.35  # Gemäss SIA 380-1 2016 3.5.5 soll 0.15m3/(hm2) verwendet werden. Korrigenda anschauen
 ventilation_volume_flow = 0.0 # give a number in m3/(hm2) or select "SIA" to follow SIA380-1 code
-cooling_setpoint = 27.0  # degC (?)
+cooling_setpoint = 20.0  # degC (?)
 
 
 ## Gebäudehülle
@@ -192,20 +192,27 @@ results["internal_gains_RC"] = dp.hourly_to_monthly(Gebaeude_dyn.internal_gains)
 results["internal_gains_SIA"] = Gebaeude_static.interne_eintrage
 results["internal_gains_ISO"] = Gebaeude_static.iso_internal_gains
 
-results[["RC_solar_gains", "ISO_solar_gains", "SIA_solar_gains"]].plot(kind='bar')
+results[["RC_solar_gains", "ISO_solar_gains", "SIA_solar_gains"]].plot(kind='bar', title="Monthly Solar Gains")
+plt.ylabel("Solar Gains [kWh/m2M]")
 plt.show()
 
 
-results[["internal_gains_RC", "internal_gains_SIA", "internal_gains_ISO"]].plot(kind='bar')
+results[["internal_gains_RC", "internal_gains_SIA", "internal_gains_ISO"]].plot(kind='bar', title="Internal Gains")
+plt.ylabel("Internal Gains [kWh/m2M]")
 plt.show()
 
-plt.plot(Gebaeude_dyn.cooling_demand)
+plt.plot(Gebaeude_dyn.cooling_demand/1000.0/energiebezugsflache, label="Cooling")
+plt.plot(Gebaeude_dyn.heating_demand/1000.0/energiebezugsflache, label="Heating")
+plt.ylabel("Energy / Power [kWh/m2h]")
+plt.legend()
 plt.show()
 
-results[["transmission_losses_ISO", "transmission_losses_SIA"]].plot(kind='bar')
+results[["transmission_losses_ISO", "transmission_losses_SIA"]].plot(kind='bar', title="Transmission Losses")
+plt.ylabel("Monthly Transmission Losses [kWh/m2M]")
 plt.show()
 
-results[["RC heating", "RC DHW", "RC cooling", "380 heating", "380 DHW", "ISO cooling"]].plot(kind="bar")
+results[["RC heating", "RC DHW", "RC cooling", "380 heating", "380 DHW", "ISO cooling"]].plot(kind="bar", title="Energy Demand")
+plt.ylabel("Energy demand for heating, cooling and DHW [kWh/m2M]")
 plt.show()
 
 """
