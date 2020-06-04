@@ -197,8 +197,8 @@ class Sim_Building(object):
             global_horizontal_value = Loc.weather_data['glohorrad_Whm2'][hour]
             dni_extra = Loc.weather_data['extdirrad_Whm2'][hour]
 
-            solar_altitude, solar_azimuth = dp.calc_sun_position(self.latitude, self.longitude, 2020, hour)
-            relative_air_mass = pvlib.atmosphere.get_relative_airmass(solar_altitude)
+            solar_zenith_deg, solar_azimuth_deg = dp.calc_sun_position_II(self.latitude, self.longitude, 2020, hour)
+            relative_air_mass = pvlib.atmosphere.get_relative_airmass(90-solar_zenith_deg)
 
             solar_gains = 0
             for window in range(len(self.windows[0])):
@@ -207,8 +207,8 @@ class Sim_Building(object):
 
                 solar_gains += pvlib.irradiance.get_total_irradiance(window_tilt,
                                                   window_azimuth,
-                                                  180-solar_altitude,
-                                                  90-solar_azimuth,
+                                                  solar_zenith_deg,
+                                                  solar_azimuth_deg,
                                                   normal_direct_radiation,
                                                   global_horizontal_value,
                                                   horizontal_diffuse_radiation,
