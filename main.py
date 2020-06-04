@@ -14,7 +14,9 @@ Im this first part of the code, building, its location and all the related syste
 """
 
 ## Pfade zu weiteren Daten
+
 weatherfile_path = r"C:\Users\walkerl\polybox\phd\Validation\ASHRAE140\140-2017-AccompanyingFiles\DRYCOLD.epw"
+
 weather_data_sia = dp.epw_to_sia_irrad(weatherfile_path)
 occupancy_path = r"C:\Users\walkerl\Documents\code\RC_BuildingSimulator\rc_simulator\auxiliary\occupancy_office.csv"
 
@@ -22,19 +24,20 @@ occupancy_path = r"C:\Users\walkerl\Documents\code\RC_BuildingSimulator\rc_simul
 gebaeudekategorie_sia = 1.1
 regelung = "andere"  # oder "Referenzraum" oder "andere"
 hohe_uber_meer = 435.0 # Eingabe
-energiebezugsflache = 2275.0  # m2
+energiebezugsflache = 48.0  # m2
 anlagennutzungsgrad_wrg = 0.0 ## SIA 380-1 Tab 23
-warmespeicherfahigkeit_pro_EBF = 2.2 ## Wert noch nicht klar, bestimmen gemäss SN EN ISO 13786 oder Tab25 Einheiten?
+warmespeicherfahigkeit_pro_EBF = 0.08 ## Wert noch nicht klar, bestimmen gemäss SN EN ISO 13786 oder Tab25 Einheiten?
 korrekturfaktor_luftungs_eff_f_v = 1.0  # zwischen 0.8 und 1.2 gemäss SIA380-1 Tab 24
-infiltration_volume_flow = 0.15  # Gemäss SIA 380-1 2016 3.5.5 soll 0.15m3/(hm2) verwendet werden. Korrigenda anschauen
-ventilation_volume_flow = 2.1 # give a number in m3/(hm2) or select "SIA" to follow SIA380-1 code
-cooling_setpoint = 26  # degC (?)
+infiltration_volume_flow = 1.35  # Gemäss SIA 380-1 2016 3.5.5 soll 0.15m3/(hm2) verwendet werden. Korrigenda anschauen
+ventilation_volume_flow = 0.0 # give a number in m3/(hm2) or select "SIA" to follow SIA380-1 code
+cooling_setpoint = 20.0  # degC (?)
+
 
 ## Gebäudehülle
-u_windows = 1.3
-u_walls = 0.25
-u_roof = 0.19
-u_floor = 0.23
+u_windows = 3.0
+u_walls = 0.514
+u_roof = 0.318
+u_floor = 0.039
 b_floor = 0.4
 
 ## Systeme
@@ -54,22 +57,22 @@ pv_azimuth = 0  # IMPORTANT: The south convention applies. Sout = 0, North = -18
 
 ## Bauteile:
 # Windows: [[Orientation],[Areas],[U-value],[g-value]]
-windows = np.array([["N", "E", "S", "W"],
-                    [131.5, 131.5, 131.5, 131.5],
-                    [u_windows, u_windows, u_windows, u_windows],
-                    [0.6, 0.6, 0.6, 0.6]],
+windows = np.array([["S"],
+                    [12.0],
+                    [u_windows],
+                    [0.789]],
                    dtype=object)  # dtype=object is necessary because there are different data types
 
 # walls: [[Areas], [U-values]] zuvor waren es 4 x 412.5
-walls = np.array([[281., 281., 281., 281.],
+walls = np.array([[21.6, 21.6, 16.2, 16.2],
                   [u_walls, u_walls, u_walls, u_walls]])
 
 
 # roof: [[Areas], [U-values]]
-roof = np.array([[506.0], [u_roof]])
+roof = np.array([[48.0], [u_roof]])
 
 # floor to ground (for now) [[Areas],[U-values],[b-values]]
-floor = np.array([[506.0],[u_floor],[b_floor]])
+floor = np.array([[48],[u_floor],[b_floor]])
 
 simulation_type = "static"  # Choose between static and dynamic
 
@@ -118,8 +121,8 @@ Gebaeude_static.dhw_heating_system = dhw_heizsystem  ## Achtung, momentan ist de
 Gebaeude_static.cooling_system = cooling_system  # Diese Definitionens sollten verschoben werden zur definition des Objekts
 Gebaeude_static.run_dhw_demand()
 
-# print("heating")
-# print(Gebaeude_static.heizwarmebedarf)
+print("heating")
+print(Gebaeude_static.heizwarmebedarf.sum())
 # print("dhw")
 # print(Gebaeude_static.dhw_demand)
 print("cooling")
@@ -147,8 +150,8 @@ Gebaeude_dyn.run_rc_simulation(weatherfile_path=weatherfile_path,
                              occupancy_path=occupancy_path, cooling_setpoint=cooling_setpoint)
 
 
-# print("Heating")
-# print(dp.hourly_to_monthly(Gebaeude_dyn.heating_demand) / 1000.0 / energiebezugsflache)
+print("Heating")
+print((dp.hourly_to_monthly(Gebaeude_dyn.heating_demand) / 1000.0 / energiebezugsflache).sum())
 # print("DHW")
 # print(dp.hourly_to_monthly(Gebaeude_dyn.dhw_demand)/1000.0 / energiebezugsflache)
 print("cooling")
@@ -189,20 +192,27 @@ results["internal_gains_RC"] = dp.hourly_to_monthly(Gebaeude_dyn.internal_gains)
 results["internal_gains_SIA"] = Gebaeude_static.interne_eintrage
 results["internal_gains_ISO"] = Gebaeude_static.iso_internal_gains
 
-results[["RC_solar_gains", "ISO_solar_gains", "SIA_solar_gains"]].plot(kind='bar')
+results[["RC_solar_gains", "ISO_solar_gains", "SIA_solar_gains"]].plot(kind='bar', title="Monthly Solar Gains")
+plt.ylabel("Solar Gains [kWh/m2M]")
 plt.show()
 
 
-results[["internal_gains_RC", "internal_gains_SIA", "internal_gains_ISO"]].plot(kind='bar')
+results[["internal_gains_RC", "internal_gains_SIA", "internal_gains_ISO"]].plot(kind='bar', title="Internal Gains")
+plt.ylabel("Internal Gains [kWh/m2M]")
 plt.show()
 
-plt.plot(Gebaeude_dyn.cooling_demand)
+plt.plot(Gebaeude_dyn.cooling_demand/1000.0/energiebezugsflache, label="Cooling")
+plt.plot(Gebaeude_dyn.heating_demand/1000.0/energiebezugsflache, label="Heating")
+plt.ylabel("Energy / Power [kWh/m2h]")
+plt.legend()
 plt.show()
 
-results[["transmission_losses_ISO", "transmission_losses_SIA"]].plot(kind='bar')
+results[["transmission_losses_ISO", "transmission_losses_SIA"]].plot(kind='bar', title="Transmission Losses")
+plt.ylabel("Monthly Transmission Losses [kWh/m2M]")
 plt.show()
 
-results[["RC heating", "RC DHW", "RC cooling", "380 heating", "380 DHW", "ISO cooling"]].plot(kind="bar")
+results[["RC heating", "RC DHW", "RC cooling", "380 heating", "380 DHW", "ISO cooling"]].plot(kind="bar", title="Energy Demand")
+plt.ylabel("Energy demand for heating, cooling and DHW [kWh/m2M]")
 plt.show()
 
 """
