@@ -500,5 +500,5 @@ def string_orientation_to_angle(string_orientation):
     :param string_orientation:
     :return:
     """
-    translation = {"N":0., 'NE':45., 'E':90., 'SE':135.0, 'S':180., 'SW':225.0, 'W':-270, 'NW':315.0}
+    translation = {"N":0., 'NE':45., 'E':90., 'SE':135.0, 'S':180., 'SW':225.0, 'W':270, 'NW':315.0}
     return translation[string_orientation]
