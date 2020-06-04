@@ -441,7 +441,7 @@ def epw_to_sia_irrad(epw_path, model="isotropic"):
 def calc_sun_position(latitude_deg, longitude_deg, year, hoy):
     """
     Calculates the Sun Position for a specific hour and location
-
+    Function from PJ
     :param latitude_deg: Geographical Latitude in Degrees
     :type latitude_deg: float
     :param longitude_deg: Geographical Longitude in Degrees
@@ -508,11 +508,11 @@ def read_location_from_epw(epw_path):
     latitude = epw_data[1]['latitude']
     return longitude, latitude
 
-def string_orientation_to_angle_RC(string_orientation):
+def string_orientation_to_angle(string_orientation):
     """
-    This function follows the convention of the RC model. 0 is south
+    This function follows the good convention. N=0°, S = 180°, E = 90°
     :param string_orientation:
     :return:
     """
-    translation = {"N":180., 'NE':135., 'E':90., 'SE':45.0, 'S':0., 'SW':-45.0, 'W':-90, 'NW':-135.0}
+    translation = {"N":0., 'NE':45., 'E':90., 'SE':135.0, 'S':180., 'SW':225.0, 'W':-270, 'NW':315.0}
     return translation[string_orientation]
