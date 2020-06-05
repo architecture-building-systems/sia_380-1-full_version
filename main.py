@@ -30,7 +30,7 @@ warmespeicherfahigkeit_pro_EBF = 0.08 ## Wert noch nicht klar, bestimmen gemäss
 korrekturfaktor_luftungs_eff_f_v = 1.0  # zwischen 0.8 und 1.2 gemäss SIA380-1 Tab 24
 infiltration_volume_flow = 1.35  # Gemäss SIA 380-1 2016 3.5.5 soll 0.15m3/(hm2) verwendet werden. Korrigenda anschauen
 ventilation_volume_flow = 0.0 # give a number in m3/(hm2) or select "SIA" to follow SIA380-1 code
-cooling_setpoint = 20.0  # degC (?)
+cooling_setpoint = 26.0  # degC (?)
 
 
 ## Gebäudehülle
@@ -112,7 +112,7 @@ Gebaeude_static = se.Building(gebaeudekategorie_sia, regelung, windows, walls, r
 
 
 Gebaeude_static.run_SIA_380_1(weather_data_sia)
-Gebaeude_static.run_ISO_52016_monthly(weather_data_sia)
+Gebaeude_static.run_ISO_52016_monthly(weather_data_sia, cooling_setpoint)
 
 
 ## Gebäudedimensionen
