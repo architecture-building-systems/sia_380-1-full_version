@@ -56,8 +56,10 @@ def sia_standardnutzungsdaten(category):
     if category == 'room_temperature_heating':
         return {1: 20., 2: 20., 3: 20., 4: 20., 5: 20., 6: 20, 7: 20, 8: 22, 9: 18, 10: 18, 11: 18,
                                  12: 28}  # 380-1 Tab7
-    if category == 'room_temperature_cooling':
-        return 26.0
+
+    # This is currently not used to have a flexible cooling setpoint
+    # if category == 'room_temperature_cooling':
+    #     return 26.0
         # Only a very limited number of subcases does not have 26 as the cooling temperature value.
             #{1: 26., 2: 26., 3: 26., 4: 26., 5: 26., 6: 26., 7: 26, 8: 26, ...}  # SIA 2024
 
