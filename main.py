@@ -23,7 +23,7 @@ occupancy_path = r"C:\Users\walkerl\Documents\code\RC_BuildingSimulator\rc_simul
 ## Erforderliche Nutzereingaben:
 gebaeudekategorie_sia = 1.1
 regelung = "andere"  # oder "Referenzraum" oder "andere"
-hohe_uber_meer = 435.0 # Eingabe
+hohe_uber_meer = 1609 # Eingabe
 energiebezugsflache = 48.0  # m2
 anlagennutzungsgrad_wrg = 0.0 ## SIA 380-1 Tab 23
 warmespeicherfahigkeit_pro_EBF = 0.08 ## Wert noch nicht klar, bestimmen gemäss SN EN ISO 13786 oder Tab25 Einheiten?
