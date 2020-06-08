@@ -463,7 +463,7 @@ def calc_sun_position_II(latitude_deg, longitude_deg, year, hoy):
 
     # True Solar Time
     solar_time = ((utc_datetime.hour * 60) + utc_datetime.minute +
-                  (4 * longitude_deg - lstm) + equation_of_time) / 60.0
+                  (4 * (longitude_deg - lstm)) + equation_of_time) / 60.0
 
     # Angle between the local longitude and longitude where the sun is at
     # higher altitude
