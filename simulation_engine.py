@@ -188,7 +188,7 @@ class Building(object):
             ## Dies muss insbesondere angeschaut werden, da die Fenster ansonsten pro Himmelsrichtung getrennt sind. Dies sollte
             ## bei zusätzlicher Vektorisierung aufgehoben werden.
             ## Gleiches gilt für die unten angegebenen Verschattungsfaktoren!
-            f_f_072 = 0.95# Abminderungsfaktor für Fensterrahmen [-] Ebenfalls im Hardcode bei cooling nach ISO52016-1
+            f_f_072 = 1.0# Abminderungsfaktor für Fensterrahmen [-] Ebenfalls im Hardcode bei cooling nach ISO52016-1 für BESTEST Validierung =1.0
             f_sh_073 = 1.0  # Verschattungsfaktor horizontal [-]
             f_ss_074 = 1.0  # Verschattungsfaktor Süd [-]
             f_se_075 = 1.0  # Verschattungsfaktor ost [-]
@@ -450,7 +450,7 @@ class Building(object):
         temperatur_mittelwert = weather_data_sia['temperature']  # degC
 
         q_hc_sol_wi = np.empty(12)
-        f_glass_rahmen = 0.95  # zu verwendender Wert gemäss SIA 380/1
+        f_glass_rahmen = 1.0  # zu verwendender Wert gemäss SIA 380/1  Für BESTEST Validierung 1.0
         f_shading = 1  # anpassen, falls Verschattung diskutiert werden soll. Im Moment in SIA heating demand gleich.
         for month in range(12):
 
