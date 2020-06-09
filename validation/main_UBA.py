@@ -15,7 +15,7 @@ Im this first part of the code, building, its location and all the related syste
 
 ## Pfade zu weiteren Daten
 
-weatherfile_path = r"C:\Users\walkerl\polybox\phd\Validation\ASHRAE140\140-2017-AccompanyingFiles\DRYCOLD.epw"
+weatherfile_path = r"C:\Users\walkerl\Documents\Zürich-hour_historic.epw"
 
 weather_data_sia = dp.epw_to_sia_irrad(weatherfile_path)
 occupancy_path = r"C:\Users\walkerl\Documents\code\RC_BuildingSimulator\rc_simulator\auxiliary\occupancy_office.csv"
@@ -23,19 +23,19 @@ occupancy_path = r"C:\Users\walkerl\Documents\code\RC_BuildingSimulator\rc_simul
 ## Erforderliche Nutzereingaben:
 gebaeudekategorie_sia = 1.1
 regelung = "andere"  # oder "Referenzraum" oder "andere"
-hohe_uber_meer = 1609 # Eingabe
-energiebezugsflache = 48.0  # m2
+hohe_uber_meer = 435 # Eingabe
+energiebezugsflache = 2275  # m2
 anlagennutzungsgrad_wrg = 0.0 ## SIA 380-1 Tab 23
-warmespeicherfahigkeit_pro_EBF = 0.09 ## Wert noch nicht klar, bestimmen gemäss SN EN ISO 13786 oder Tab25 Einheiten?
+warmespeicherfahigkeit_pro_EBF = 0.08 ## Wert noch nicht klar, bestimmen gemäss SN EN ISO 13786 oder Tab25 Einheiten?
 korrekturfaktor_luftungs_eff_f_v = 1.0  # zwischen 0.8 und 1.2 gemäss SIA380-1 Tab 24
-infiltration_volume_flow = 1.35  # Gemäss SIA 380-1 2016 3.5.5 soll 0.15m3/(hm2) verwendet werden. Korrigenda anschauen
+infiltration_volume_flow = 0.15  # Gemäss SIA 380-1 2016 3.5.5 soll 0.15m3/(hm2) verwendet werden. Korrigenda anschauen
 ventilation_volume_flow = 0.0 # give a number in m3/(hm2) or select "SIA" to follow SIA380-1 code
-cooling_setpoint = 27.0  # degC (?)
+cooling_setpoint = 26.0  # degC (?)
 
 
 ## Gebäudehülle
 u_windows = 3.0
-u_walls = 0.512
+u_walls = 0.514
 u_roof = 0.318
 u_floor = 0.039
 b_floor = 0.4
@@ -57,23 +57,22 @@ pv_azimuth = 0  # IMPORTANT: The south convention applies. Sout = 0, North = -18
 
 ## Bauteile:
 # Windows: [[Orientation],[Areas],[U-value],[g-value]]
-windows = np.array([["E", "W"],
-                    [6.0, 6.0],
-                    [u_windows, u_windows],
-                    [0.789, 0.789]],
+windows = np.array([["N", "E", "S", "W"],
+                    [131.5, 131.5, 131.5, 131.5],
+                    [u_windows, u_windows, u_windows, u_windows],
+                    [0.9, 0.9, 0.9, 0.9]],
                    dtype=object)  # dtype=object is necessary because there are different data types
 
 # walls: [[Areas], [U-values]] zuvor waren es 4 x 412.5
-walls = np.array([[21.6, 21.6, 10.2, 10.2],  # zweimal eine Wand um 6m2 reduziert wo Fensterfläche hinkommt. (10.2)
+walls = np.array([[281.0, 281.0, 281.0, 281.0],
                   [u_walls, u_walls, u_walls, u_walls]])
 
+
 # roof: [[Areas], [U-values]]
-roof = np.array([[48.0], [u_roof]])
+roof = np.array([[506.0], [u_roof]])
 
 # floor to ground (for now) [[Areas],[U-values],[b-values]]
-floor = np.array([[48],[u_floor],[b_floor]])
-
-simulation_type = "static"  # Choose between static and dynamic
+floor = np.array([[506.0],[u_floor],[b_floor]])
 
 
 """
@@ -120,11 +119,11 @@ Gebaeude_static.dhw_heating_system = dhw_heizsystem  ## Achtung, momentan ist de
 Gebaeude_static.cooling_system = cooling_system  # Diese Definitionens sollten verschoben werden zur definition des Objekts
 Gebaeude_static.run_dhw_demand()
 
-print("heating SIA")
+print("heating")
 print(Gebaeude_static.heizwarmebedarf.sum())
 # print("dhw")
 # print(Gebaeude_static.dhw_demand)
-print("cooling SIA")
+print("cooling")
 print(Gebaeude_static.monthly_cooling_demand.sum())
 
 # Gebaeude_static.run_SIA_electricity_demand(occupancy_path)
@@ -149,11 +148,11 @@ Gebaeude_dyn.run_rc_simulation(weatherfile_path=weatherfile_path,
                              occupancy_path=occupancy_path, cooling_setpoint=cooling_setpoint)
 
 
-print("Heating RC")
+print("Heating")
 print((dp.hourly_to_monthly(Gebaeude_dyn.heating_demand) / 1000.0 / energiebezugsflache).sum())
 # print("DHW")
 # print(dp.hourly_to_monthly(Gebaeude_dyn.dhw_demand)/1000.0 / energiebezugsflache)
-print("cooling RC")
+print("cooling")
 print(dp.hourly_to_monthly((Gebaeude_dyn.cooling_demand)/ 1000.0 / energiebezugsflache).sum())
 
 # Gebaeude_dyn.run_SIA_electricity_demand(occupancy_path)
