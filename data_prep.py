@@ -56,8 +56,10 @@ def sia_standardnutzungsdaten(category):
     if category == 'room_temperature_heating':
         return {1: 20., 2: 20., 3: 20., 4: 20., 5: 20., 6: 20, 7: 20, 8: 22, 9: 18, 10: 18, 11: 18,
                                  12: 28}  # 380-1 Tab7
-    if category == 'room_temperature_cooling':
-        return 26.0
+
+    # This is currently not used to have a flexible cooling setpoint
+    # if category == 'room_temperature_cooling':
+    #     return 26.0
         # Only a very limited number of subcases does not have 26 as the cooling temperature value.
             #{1: 26., 2: 26., 3: 26., 4: 26., 5: 26., 6: 26., 7: 26, 8: 26, ...}  # SIA 2024
 
@@ -339,7 +341,7 @@ def sia_annaul_dhw_demand(gebaeudekategorie_sia):
 
     return annual_dhw_demand[gebaeudekategorie_sia]
 
-def epw_to_sia_irrad(epw_path):
+def epw_to_sia_irrad(epw_path, model="isotropic"):
     """
     THIS FUNCTION DOES NOT WORK PROPERLY WHEN COMPARED TO METEONORM SIA DATA.
     ESPECIALLY THE DIFFUSE MODEL SHOULD BE CHANGED TO PEREZ
@@ -369,12 +371,12 @@ def epw_to_sia_irrad(epw_path):
     temperature = np.empty(8760)
 
     for hour in range(8760):
-        solar_altitude, solar_azimuth = calc_sun_position(latitude, longitude, 2020, hour)
+        solar_zenith_deg, solar_azimuth_deg = calc_sun_position_II(latitude, longitude, 2020, hour)
         normal_direct_radiation = weather_data['dirnorrad_Whm2'][hour]
         horizontal_diffuse_radiation = weather_data['difhorrad_Whm2'][hour]
         global_horizontal_value = weather_data['glohorrad_Whm2'][hour]
         dni_extra = weather_data['extdirrad_Whm2'][hour]
-        relative_air_mass = pvlib.atmosphere.get_relative_airmass(90-solar_altitude)
+        relative_air_mass = pvlib.atmosphere.get_relative_airmass(zenith=solar_zenith_deg)
         temperature[hour] = weather_data['drybulb_C'][hour]
 
 
@@ -383,37 +385,37 @@ def epw_to_sia_irrad(epw_path):
         # I use the get_total_irradiance_function of pvlib module. Beware that this function has different
         # angle conventions than the RC Window Model. Therfore a 180-solar azimuth is required.
 
-        global_south_vertical[hour] = pvlib.irradiance.get_total_irradiance(90, 180, 90-solar_altitude,
-                                                                            180-solar_azimuth, normal_direct_radiation,
+        global_south_vertical[hour] = pvlib.irradiance.get_total_irradiance(90, 180, solar_zenith_deg,
+                                                                            solar_azimuth_deg, normal_direct_radiation,
                                                                             global_horizontal_value,
                                                                             horizontal_diffuse_radiation,
                                                                             dni_extra=dni_extra,
-                                                                            model='perez',
+                                                                            model=model,
                                                                             airmass=relative_air_mass)['poa_global']
 
 
-        global_east_vertical[hour] = pvlib.irradiance.get_total_irradiance(90, 90, 90-solar_altitude,
-                                                                           180-solar_azimuth, normal_direct_radiation,
+        global_east_vertical[hour] = pvlib.irradiance.get_total_irradiance(90, 90, solar_zenith_deg,
+                                                                           solar_azimuth_deg, normal_direct_radiation,
                                                                            global_horizontal_value,
                                                                            horizontal_diffuse_radiation,
                                                                            dni_extra=dni_extra,
-                                                                           model='perez',
+                                                                           model=model,
                                                                            airmass=relative_air_mass)['poa_global']
 
-        global_west_vertical[hour] = pvlib.irradiance.get_total_irradiance(90, 270, 90-solar_altitude,
-                                                                           180-solar_azimuth, normal_direct_radiation,
+        global_west_vertical[hour] = pvlib.irradiance.get_total_irradiance(90, 270, solar_zenith_deg,
+                                                                           solar_azimuth_deg, normal_direct_radiation,
                                                                            global_horizontal_value,
                                                                            horizontal_diffuse_radiation,
                                                                            dni_extra=dni_extra,
-                                                                           model='perez',
+                                                                           model=model,
                                                                            airmass=relative_air_mass)['poa_global']
 
-        global_north_vertical[hour] = pvlib.irradiance.get_total_irradiance(90, 0, 90-solar_altitude,
-                                                                            180-solar_azimuth, normal_direct_radiation,
+        global_north_vertical[hour] = pvlib.irradiance.get_total_irradiance(90, 0, solar_zenith_deg,
+                                                                            solar_azimuth_deg, normal_direct_radiation,
                                                                             global_horizontal_value,
                                                                             horizontal_diffuse_radiation,
                                                                             dni_extra=dni_extra,
-                                                                            model='perez',
+                                                                            model=model,
                                                                             airmass=relative_air_mass)['poa_global']
 
 
@@ -432,43 +434,24 @@ def epw_to_sia_irrad(epw_path):
     temperature = hourly_to_monthly_average(temperature)
 
     # The values are returned in MJ as this unit is used by SIA (see SIA2028 2010)
+
     return {'global_horizontal': global_horizontal, 'global_south':global_south_vertical,
             'global_east':global_east_vertical, 'global_west':global_west_vertical,
             'global_north':global_north_vertical, 'temperature':temperature}
 
 
-def calc_sun_position(latitude_deg, longitude_deg, year, hoy):
-    """
-    Calculates the Sun Position for a specific hour and location
-
-    :param latitude_deg: Geographical Latitude in Degrees
-    :type latitude_deg: float
-    :param longitude_deg: Geographical Longitude in Degrees
-    :type longitude_deg: float
-    :param year: year
-    :type year: int
-    :param hoy: Hour of the year from the start. The first hour of January is 1
-    :type hoy: int
-    :return: altitude, azimuth: Sun position in altitude and azimuth degrees [degrees]
-    :rtype: tuple
-    """
-
-    # Convert to Radians
-    latitude_rad = math.radians(latitude_deg)
-    longitude_rad = math.radians(longitude_deg)
-
+def calc_sun_position_II(latitude_deg, longitude_deg, year, hoy):
     # Set the date in UTC based off the hour of year and the year itself
     start_of_year = datetime.datetime(year, 1, 1, 0, 0, 0, 0)
     utc_datetime = start_of_year + datetime.timedelta(hours=hoy)
+    day_of_year = int(hoy/24)+1
 
-    # Angular distance of the sun north or south of the earths equator
-    # Determine the day of the year.
-    day_of_year = utc_datetime.timetuple().tm_yday
+    ## declination in radians
+    declination = pvlib.solarposition.declination_cooper69(day_of_year) #in radians!!
 
-    # Calculate the declination angle: The variation due to the earths tilt
-    # http://www.pveducation.org/pvcdrom/properties-of-sunlight/declination-angle
-    declination_rad = math.radians(
-        23.45 * math.sin((2 * math.pi / 365.0) * (day_of_year - 81)))
+    equation_of_time = pvlib.solarposition.equation_of_time_pvcdrom(day_of_year)
+
+    lstm = 15 * round(longitude_deg/15, 0)
 
     # Normalise the day to 2*pi
     # There is some reason as to why it is 364 and not 365.26
@@ -480,26 +463,32 @@ def calc_sun_position(latitude_deg, longitude_deg, year, hoy):
 
     # True Solar Time
     solar_time = ((utc_datetime.hour * 60) + utc_datetime.minute +
-                  (4 * longitude_deg) + equation_of_time) / 60.0
+                  (4 * (longitude_deg - lstm)) + equation_of_time) / 60.0
 
     # Angle between the local longitude and longitude where the sun is at
     # higher altitude
-    hour_angle_rad = math.radians(15 * (12 - solar_time))
+    hour_angle_deg = (15 * (12 - solar_time))
 
-    # Altitude Position of the Sun in Radians
-    altitude_rad = math.asin(math.cos(latitude_rad) * math.cos(declination_rad) * math.cos(hour_angle_rad) +
-                             math.sin(latitude_rad) * math.sin(declination_rad))
 
-    # Azimuth Position fo the sun in radians
-    azimuth_rad = math.asin(
-        math.cos(declination_rad) * math.sin(hour_angle_rad) / math.cos(altitude_rad))
 
-    # I don't really know what this code does, it has been imported from
-    # PySolar
-    if(math.cos(hour_angle_rad) >= (math.tan(declination_rad) / math.tan(latitude_rad))):
-        return math.degrees(altitude_rad), math.degrees(azimuth_rad)
-    else:
-        return math.degrees(altitude_rad), (180 - math.degrees(azimuth_rad))
+    ## zenith in radians!!
+    zenith_rad = pvlib.solarposition.solar_zenith_analytical(latitude=math.radians(latitude_deg),
+                                                          hourangle=math.radians(hour_angle_deg),
+                                                          declination=declination)
+
+    azimuth_rad = pvlib.solarposition.solar_azimuth_analytical(latitude=math.radians(latitude_deg),
+                                                               hourangle=math.radians(hour_angle_deg),
+                                                               declination=declination,
+                                                               zenith=zenith_rad)
+
+    zenith_deg = math.degrees(zenith_rad)
+    azimuth_deg = math.degrees(azimuth_rad)
+
+    return zenith_deg, azimuth_deg
+
+
+
+
 
 def read_location_from_epw(epw_path):
     epw_data = pvlib.iotools.read_epw(epw_path, coerce_year=None)
@@ -507,11 +496,11 @@ def read_location_from_epw(epw_path):
     latitude = epw_data[1]['latitude']
     return longitude, latitude
 
-def string_orientation_to_angle_RC(string_orientation):
+def string_orientation_to_angle(string_orientation):
     """
-    This function follows the convention of the RC model. 0 is south
+    This function follows the good convention. N=0°, S = 180°, E = 90°
     :param string_orientation:
     :return:
     """
-    translation = {"N":180., 'NE':135., 'E':90., 'SE':45.0, 'S':0., 'SW':-45.0, 'W':-90, 'NW':-135.0}
+    translation = {"N":0., 'NE':45., 'E':90., 'SE':135.0, 'S':180., 'SW':225.0, 'W':270, 'NW':315.0}
     return translation[string_orientation]

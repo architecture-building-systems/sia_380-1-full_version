@@ -15,6 +15,7 @@ class Building(object):
                  energy_reference_area,
                  heat_recovery_nutzungsgrad,
                  infiltration_volume_flow,
+                 ventilation_volume_flow,
                  thermal_storage_capacity_per_floor_area,
                  korrekturfaktor_luftungs_eff_f_v,
                  height_above_sea):
@@ -28,9 +29,12 @@ class Building(object):
         self.energy_reference_area = energy_reference_area  # One value, float
         self.anlagennutzungsgrad_wrg = heat_recovery_nutzungsgrad  # One value, float
         self.q_inf = infiltration_volume_flow
+        self.ventilation_volume_flow = ventilation_volume_flow
         self.warmespeicherfahigkeit_pro_ebf = thermal_storage_capacity_per_floor_area # One value, float
         self.korrekturfaktor_luftungs_eff_f_v = korrekturfaktor_luftungs_eff_f_v
         self.hohe_uber_meer = height_above_sea
+
+
 
 
         # Further optional attributes:
@@ -55,7 +59,13 @@ class Building(object):
         # independently.
         elektrizitatsbedarf = dp.sia_standardnutzungsdaten('gains_from_electrical_appliances')
         reduktion_elektrizitat = dp.sia_standardnutzungsdaten('reduction_factor_for_electricity')
-        aussenluft_strome = dp.sia_standardnutzungsdaten('effective_air_flow')
+
+        if self.ventilation_volume_flow == "SIA":
+            aussenluft_strome = dp.sia_standardnutzungsdaten('effective_air_flow')
+
+        else:
+            aussenluft_strome = {int(self.gebaeudekategorie_sia):self.ventilation_volume_flow+self.q_inf}
+
         # aussenluft_strome = {1: 2.1}  # UBA-Vergleichsstudie
 
 
@@ -197,6 +207,7 @@ class Building(object):
 
             theta_ic_083 = theta_i_001 + delta_phi_i_002
 
+
             q_re_084 = np.sum((theta_ic_083-theta_e_011) * t_c_009 * a_re_018 * u_re_041 * 24 / (a_e_017*1000)) # Dach geg Aussenluft [kWh/m2]
             q_ru_085 = np.sum((theta_ic_083-theta_e_011) * t_c_009 * a_ru_019 * u_ru_042 * b_ur_043 * 24 / (a_e_017*1000))  # Decke gegen unbeheizte Räume [kWh/m2]
             q_we_086 = np.sum((theta_ic_083-theta_e_011) * t_c_009 * a_we_020 * u_we_044 * 24 / (a_e_017*1000))  # Wand gegen Aussenluft
@@ -322,14 +333,15 @@ class Building(object):
         self.genutzte_warmeeintrage = genutzte_warmeeintrage
         self.heizwarmebedarf = heizwarmebedarf
 
-    def run_ISO_52016_monthly(self, weather_data_sia):
+    def run_ISO_52016_monthly(self, weather_data_sia, cooling_setpoint):
 
         """
         This function calculates monthly cooling energy demand per energy reference area in kWh/m2a. The output of
         this function is positive for cooling demand.
         """
 
-        cooling_temperature = dp.sia_standardnutzungsdaten('room_temperature_cooling')
+        # cooling_temperature = dp.sia_standardnutzungsdaten('room_temperature_cooling')
+        cooling_temperature = cooling_setpoint
         personenflachen = dp.sia_standardnutzungsdaten('area_per_person')
         warmeabgabe_p_p = dp.sia_standardnutzungsdaten('gain_per_person')
         prasenzzeiten = dp.sia_standardnutzungsdaten('presence_time')
@@ -527,6 +539,9 @@ class Building(object):
         # plt.legend()
         # plt.show()
 
+        self.iso_transmission_losses = q_c_tr_ztc_m/self.energy_reference_area
+        self.iso_solar_gains = q_hc_sol_wi/self.energy_reference_area
+        self.iso_internal_gains =  q_hc_int_dir_ztc_m / self.energy_reference_area
         self.monthly_cooling_demand = q_c_nd_ztc_m/self.energy_reference_area
 
 
