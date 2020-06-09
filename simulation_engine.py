@@ -188,7 +188,7 @@ class Building(object):
             ## Dies muss insbesondere angeschaut werden, da die Fenster ansonsten pro Himmelsrichtung getrennt sind. Dies sollte
             ## bei zusätzlicher Vektorisierung aufgehoben werden.
             ## Gleiches gilt für die unten angegebenen Verschattungsfaktoren!
-            f_f_072 = 0.95# Abminderungsfaktor für Fensterrahmen [-] Ebenfalls im Hardcode bei cooling nach ISO52016-1
+            f_f_072 = 1.0# Abminderungsfaktor für Fensterrahmen [-] Ebenfalls im Hardcode bei cooling nach ISO52016-1 für BESTEST Validierung =1.0
             f_sh_073 = 1.0  # Verschattungsfaktor horizontal [-]
             f_ss_074 = 1.0  # Verschattungsfaktor Süd [-]
             f_se_075 = 1.0  # Verschattungsfaktor ost [-]
@@ -285,7 +285,9 @@ class Building(object):
             # q_sw_119 = np.sum(g_sw_015 * a_ww_033 * 0.9 * g_071 * f_f_072 * f_sw_076 / a_e_017)
             # q_sn_120 = np.sum(g_sn_016 * a_wn_034 * 0.9 * g_071 * f_f_072 * f_sn_077 / a_e_017)
             # q_s_121 = q_sh_116 + q_ss_117 + q_se_118 + q_sw_119 + q_sn_120
-            q_s_121 = np.sum(g_s_windows * self.windows[1] * self.windows[3] * 0.9 * f_f_072 * f_sh_073 / a_e_017)
+
+            # anstelle von 1.0 muss für SIA design 0.9 verwendet werden. Für Validierung verwende ich 1.0
+            q_s_121 = np.sum(g_s_windows * self.windows[1] * self.windows[3] * 1.0 * f_f_072 * f_sh_073 / a_e_017)
 
 
             q_g_122 = q_i_115 + q_s_121  # Interne Wärmegewinne
@@ -450,7 +452,7 @@ class Building(object):
         temperatur_mittelwert = weather_data_sia['temperature']  # degC
 
         q_hc_sol_wi = np.empty(12)
-        f_glass_rahmen = 0.95  # zu verwendender Wert gemäss SIA 380/1
+        f_glass_rahmen = 1.0  # zu verwendender Wert gemäss SIA 380/1  Für BESTEST Validierung 1.0
         f_shading = 1  # anpassen, falls Verschattung diskutiert werden soll. Im Moment in SIA heating demand gleich.
         for month in range(12):
 
@@ -462,8 +464,8 @@ class Building(object):
 
             g_s_windows = window_irradiation(self.windows, g_sh_012, g_ss_013, g_se_014, g_sw_015, g_sn_016)
 
-
-            q_hc_sol_wi[month] = np.sum(g_s_windows * self.windows[1] * self.windows[3] * 0.9 *
+            # the factor of 0.9 instead of 1.0 should be used for SIA design
+            q_hc_sol_wi[month] = np.sum(g_s_windows * self.windows[1] * self.windows[3] * 1.0 *
                                         f_glass_rahmen * f_shading)
 
 

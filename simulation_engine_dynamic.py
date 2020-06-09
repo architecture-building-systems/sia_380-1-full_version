@@ -207,8 +207,8 @@ class Sim_Building(object):
 
                 # The facotr 0.855 comes from SIA to account for shading and window frame and is included
                 # here to ensure consistency to the SIA approach. (If this is continuously used, remove
-                # from hard code.
-                solar_gains += 0.855 * pvlib.irradiance.get_total_irradiance(window_tilt,
+                # from hard code. ## 1.0 for BESTEST Validation für SIA müsste 0.9 oder 0.855 verwendet werden.
+                solar_gains += 1.0 * pvlib.irradiance.get_total_irradiance(window_tilt,
                                                   window_azimuth,
                                                   solar_zenith_deg,
                                                   solar_azimuth_deg,
