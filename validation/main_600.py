@@ -23,14 +23,14 @@ occupancy_path = r"C:\Users\walkerl\Documents\code\RC_BuildingSimulator\rc_simul
 ## Erforderliche Nutzereingaben:
 gebaeudekategorie_sia = 1.1
 regelung = "andere"  # oder "Referenzraum" oder "andere"
-hohe_uber_meer = 435.0 # Eingabe
+hohe_uber_meer = 1609 # Eingabe
 energiebezugsflache = 48.0  # m2
 anlagennutzungsgrad_wrg = 0.0 ## SIA 380-1 Tab 23
-warmespeicherfahigkeit_pro_EBF = 0.08 ## Wert noch nicht klar, bestimmen gemäss SN EN ISO 13786 oder Tab25 Einheiten?
+warmespeicherfahigkeit_pro_EBF = 0.016 ## Wert noch nicht klar, bestimmen gemäss SN EN ISO 13786 oder Tab25 Einheiten?
 korrekturfaktor_luftungs_eff_f_v = 1.0  # zwischen 0.8 und 1.2 gemäss SIA380-1 Tab 24
 infiltration_volume_flow = 1.35  # Gemäss SIA 380-1 2016 3.5.5 soll 0.15m3/(hm2) verwendet werden. Korrigenda anschauen
 ventilation_volume_flow = 0.0 # give a number in m3/(hm2) or select "SIA" to follow SIA380-1 code
-cooling_setpoint = 26.0  # degC (?)
+cooling_setpoint = 27.0  # degC (?)
 
 
 ## Gebäudehülle
@@ -64,7 +64,7 @@ windows = np.array([["S"],
                    dtype=object)  # dtype=object is necessary because there are different data types
 
 # walls: [[Areas], [U-values]] zuvor waren es 4 x 412.5
-walls = np.array([[21.6, 21.6, 16.2, 16.2],
+walls = np.array([[9.6, 21.6, 16.2, 16.2], #one wall has minus 12m2 for the windows -->1.8m2 instead of 21.6
                   [u_walls, u_walls, u_walls, u_walls]])
 
 
@@ -121,11 +121,11 @@ Gebaeude_static.dhw_heating_system = dhw_heizsystem  ## Achtung, momentan ist de
 Gebaeude_static.cooling_system = cooling_system  # Diese Definitionens sollten verschoben werden zur definition des Objekts
 Gebaeude_static.run_dhw_demand()
 
-print("heating")
+print("heating SIA")
 print(Gebaeude_static.heizwarmebedarf.sum())
 # print("dhw")
 # print(Gebaeude_static.dhw_demand)
-print("cooling")
+print("cooling SIA")
 print(Gebaeude_static.monthly_cooling_demand.sum())
 
 # Gebaeude_static.run_SIA_electricity_demand(occupancy_path)
@@ -150,11 +150,11 @@ Gebaeude_dyn.run_rc_simulation(weatherfile_path=weatherfile_path,
                              occupancy_path=occupancy_path, cooling_setpoint=cooling_setpoint)
 
 
-print("Heating")
+print("Heating RC")
 print((dp.hourly_to_monthly(Gebaeude_dyn.heating_demand) / 1000.0 / energiebezugsflache).sum())
 # print("DHW")
 # print(dp.hourly_to_monthly(Gebaeude_dyn.dhw_demand)/1000.0 / energiebezugsflache)
-print("cooling")
+print("cooling RC")
 print(dp.hourly_to_monthly((Gebaeude_dyn.cooling_demand)/ 1000.0 / energiebezugsflache).sum())
 
 # Gebaeude_dyn.run_SIA_electricity_demand(occupancy_path)
