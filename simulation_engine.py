@@ -1,3 +1,5 @@
+from typing import Any, Union
+
 import numpy as np
 import pandas as pd
 import data_prep as dp
@@ -274,8 +276,9 @@ class Building(object):
             ### Wärmeeinträge
             q_i_el_113 = e_f_el_006 * f_el_007 * t_c_009 / 365
             q_l_p_114 = q_p_004 * t_p_005 * t_c_009/(a_p_003 * 1000)
-            q_i_115 = q_i_el_113 + q_l_p_114
 
+            # in kWh/month/energy reference area
+            q_i_115 = 200 * 24 * t_c_009 / a_e_017 / 1000  # q_i_el_113 + q_l_p_114
 
             q_sh_116 = np.sum(g_sh_012 * a_wh_030 * 0.9 * g_071 * f_f_072 * f_sh_073 / a_e_017)
 
@@ -432,8 +435,9 @@ class Building(object):
 
         q_personen = warmeabgabe_p_p[int(self.gebaeudekategorie_sia)] / 1000.0 * prasenzzeiten[int(self.gebaeudekategorie_sia)] * (delta_t_m/24.0) / (personenflachen[int(self.gebaeudekategorie_sia)]) * self.energy_reference_area
 
+        #Eingabe in W hier gemäss ASHRAE 140 5.2.1.7
+        q_hc_int_dir_ztc_m = 200/1000 * delta_t_m #q_elektrische_anlagen + q_personen
 
-        q_hc_int_dir_ztc_m = q_elektrische_anlagen + q_personen
 
         # 6.6.7 Summe interner Wärmegewinne: Hier gilt folgende Gleichung, weil ich nur von einer
         # Zone ausgehe:

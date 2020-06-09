@@ -177,7 +177,7 @@ class Sim_Building(object):
             # Occupancy for the time step
             occupancy = occupancyProfile.loc[hour, 'People'] * max_occupancy
             # Gains from occupancy and appliances
-            internal_gains = gain_per_person * (presence_time_per_day/ 24) * 8760 / occupancyProfile['People'].sum() * occupancy + appliance_gains * reduction_factor_electricity * Office.floor_area
+            internal_gains = 200 #gain_per_person * (presence_time_per_day/ 24) * 8760 / occupancyProfile['People'].sum() * occupancy + appliance_gains * reduction_factor_electricity * Office.floor_area
 
             self.internal_gains[hour] = internal_gains
 
