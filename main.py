@@ -32,6 +32,7 @@ infiltration_volume_flow = 1.35  # Gemäss SIA 380-1 2016 3.5.5 soll 0.15m3/(hm2
 ventilation_volume_flow = 0.0 # give a number in m3/(hm2) or select "SIA" to follow SIA380-1 code
 heating_setpoint = "SIA"  # give a number in deC or select "SIA" to follow the SIA380-1 code
 cooling_setpoint = "SIA"  # give a number in deC or select "SIA" to follow the SIA380-1 code
+area_per_person = "SIA"  # give a number or select "SIA" to follow the SIA380-1 code (typical for MFH 40)
 
 
 
@@ -110,7 +111,7 @@ These steps are either carried out in the dynamic or in the static model. This i
 Gebaeude_static = se.Building(gebaeudekategorie_sia, regelung, windows, walls, roof, floor, energiebezugsflache,
                          anlagennutzungsgrad_wrg, infiltration_volume_flow, ventilation_volume_flow,
                          warmespeicherfahigkeit_pro_EBF, korrekturfaktor_luftungs_eff_f_v, hohe_uber_meer,
-                              heating_setpoint, cooling_setpoint)
+                              heating_setpoint, cooling_setpoint, area_per_person)
 
 # Gebaeude_static.pv_production = pv_yield_hourly
 
@@ -146,7 +147,7 @@ Gebaeude_dyn = sime.Sim_Building(gebaeudekategorie_sia, regelung, windows, walls
                                anlagennutzungsgrad_wrg, infiltration_volume_flow, ventilation_volume_flow,
                                warmespeicherfahigkeit_pro_EBF,
                                korrekturfaktor_luftungs_eff_f_v, hohe_uber_meer, heizsystem, cooling_system,
-                               dhw_heizsystem, heating_setpoint, cooling_setpoint)
+                               dhw_heizsystem, heating_setpoint, cooling_setpoint, area_per_person)
 
 # Gebaeude_dyn.pv_production = pv_yield_hourly
 

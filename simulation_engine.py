@@ -20,7 +20,8 @@ class Building(object):
                  korrekturfaktor_luftungs_eff_f_v,
                  height_above_sea,
                  heating_setpoint="SIA",
-                 cooling_setpoint="SIA"):
+                 cooling_setpoint="SIA",
+                 area_per_person="SIA"):
 
         self.gebaeudekategorie_sia = gebaeudekategorie_sia
         self.regelung = regelung
@@ -35,9 +36,9 @@ class Building(object):
         self.warmespeicherfahigkeit_pro_ebf = thermal_storage_capacity_per_floor_area # One value, float
         self.korrekturfaktor_luftungs_eff_f_v = korrekturfaktor_luftungs_eff_f_v
         self.hohe_uber_meer = height_above_sea
-        self.heating_setpoint=heating_setpoint
-        self.cooling_setpoint=cooling_setpoint
-
+        self.heating_setpoint= heating_setpoint
+        self.cooling_setpoint= cooling_setpoint
+        self.area_per_person= area_per_person
 
 
 
@@ -55,7 +56,7 @@ class Building(object):
 
         ### "Datenbanken"
         regelzuschlaege = dp.sia_standardnutzungsdaten('regelzuschaege')
-        personenflachen = dp.sia_standardnutzungsdaten('area_per_person')
+
         warmeabgabe_p_p = dp.sia_standardnutzungsdaten('gain_per_person')
         prasenzzeiten = dp.sia_standardnutzungsdaten('presence_time')
         # this part of elektrizitatsbedarf only goes into thermal calculations. Electricity demand is calculated
@@ -73,6 +74,11 @@ class Building(object):
             standard_raumtemperaturen = dp.sia_standardnutzungsdaten('room_temperature_heating')
         else:
             standard_raumtemperaturen = {int(self.gebaeudekategorie_sia):self.heating_setpoint}
+
+        if self.area_per_person == "SIA":
+            personenflachen = dp.sia_standardnutzungsdaten('area_per_person')
+        else:
+            personenflachen = {int(self.gebaeudekategorie_sia):self.area_per_person}
 
 
         ## Klimadaten aus SIA2028 (Zürich-Kloten)

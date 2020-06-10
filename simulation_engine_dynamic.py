@@ -31,7 +31,8 @@ class Sim_Building(object):
                  cooling_system,
                  dhw_heating_system,
                  heating_setpoint="SIA",
-                 cooling_setpoint="SIA"):
+                 cooling_setpoint="SIA",
+                 area_per_person="SIA"):
 
         ### Similar to SIA some are unecessary.
         self.gebaeudekategorie_sia = gebaeudekategorie_sia
@@ -49,6 +50,7 @@ class Sim_Building(object):
         self.hohe_uber_meer = height_above_sea
         self.heating_system = heating_system
         self.cooling_system = cooling_system
+        self.area_per_person = area_per_person
 
         self.longitude = None
         self.latitude = None
@@ -110,12 +112,17 @@ class Sim_Building(object):
         else:
             pass
 
+        if self.area_per_person == "SIA":
+            personenflachen = dp.sia_standardnutzungsdaten('area_per_person')
+        else:
+            personenflachen = {int(self.gebaeudekategorie_sia):self.area_per_person}
+
+
         warmeabgabe_p_p = dp.sia_standardnutzungsdaten("gain_per_person") # 380-1 Tab10 (W)
 
         elektrizitatsbedarf = dp.sia_standardnutzungsdaten("gains_from_electrical_appliances") # 380-1 Tab12 (kWh/m2a)
         reduction_factor_electricity = dp.sia_standardnutzungsdaten("reduction_factor_for_electricity")[int(self.gebaeudekategorie_sia)]
 
-        personenflachen = dp.sia_standardnutzungsdaten("area_per_person")  # 380-1 Tab9
         presence_time_per_day = dp.sia_standardnutzungsdaten("presence_time")[int(self.gebaeudekategorie_sia)]
 
 
