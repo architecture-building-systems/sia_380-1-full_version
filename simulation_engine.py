@@ -18,7 +18,9 @@ class Building(object):
                  ventilation_volume_flow,
                  thermal_storage_capacity_per_floor_area,
                  korrekturfaktor_luftungs_eff_f_v,
-                 height_above_sea):
+                 height_above_sea,
+                 heating_setpoint="SIA",
+                 cooling_setpoint="SIA"):
 
         self.gebaeudekategorie_sia = gebaeudekategorie_sia
         self.regelung = regelung
@@ -33,6 +35,8 @@ class Building(object):
         self.warmespeicherfahigkeit_pro_ebf = thermal_storage_capacity_per_floor_area # One value, float
         self.korrekturfaktor_luftungs_eff_f_v = korrekturfaktor_luftungs_eff_f_v
         self.hohe_uber_meer = height_above_sea
+        self.heating_setpoint=heating_setpoint
+        self.cooling_setpoint=cooling_setpoint
 
 
 
@@ -50,7 +54,6 @@ class Building(object):
     def run_SIA_380_1(self, weather_data_sia):
 
         ### "Datenbanken"
-        standard_raumtemperaturen = dp.sia_standardnutzungsdaten('room_temperature_heating')
         regelzuschlaege = dp.sia_standardnutzungsdaten('regelzuschaege')
         personenflachen = dp.sia_standardnutzungsdaten('area_per_person')
         warmeabgabe_p_p = dp.sia_standardnutzungsdaten('gain_per_person')
@@ -66,7 +69,10 @@ class Building(object):
         else:
             aussenluft_strome = {int(self.gebaeudekategorie_sia):self.ventilation_volume_flow+self.q_inf}
 
-        # aussenluft_strome = {1: 2.1}  # UBA-Vergleichsstudie
+        if self.heating_setpoint == "SIA":
+            standard_raumtemperaturen = dp.sia_standardnutzungsdaten('room_temperature_heating')
+        else:
+            standard_raumtemperaturen = {int(self.gebaeudekategorie_sia):self.heating_setpoint}
 
 
         ## Klimadaten aus SIA2028 (Zürich-Kloten)
@@ -333,15 +339,19 @@ class Building(object):
         self.genutzte_warmeeintrage = genutzte_warmeeintrage
         self.heizwarmebedarf = heizwarmebedarf
 
-    def run_ISO_52016_monthly(self, weather_data_sia, cooling_setpoint):
+    def run_ISO_52016_monthly(self, weather_data_sia, cooling_setpoint=None):
 
         """
         This function calculates monthly cooling energy demand per energy reference area in kWh/m2a. The output of
         this function is positive for cooling demand.
         """
+        if cooling_setpoint != None:
+            print("You use cooling setpoint as an input into ISO instead of the object definition. This version does no longer work.")
+            quit()
+        else:
+            pass
 
         # cooling_temperature = dp.sia_standardnutzungsdaten('room_temperature_cooling')
-        cooling_temperature = cooling_setpoint
         personenflachen = dp.sia_standardnutzungsdaten('area_per_person')
         warmeabgabe_p_p = dp.sia_standardnutzungsdaten('gain_per_person')
         prasenzzeiten = dp.sia_standardnutzungsdaten('presence_time')
@@ -352,6 +362,10 @@ class Building(object):
         aussenluft_strome = dp.sia_standardnutzungsdaten('effective_air_flow')
         # aussenluft_strome = {1: 2.1}  # UBA-Vergleichsstudie
 
+        if self.cooling_setpoint == "SIA":
+            cooling_temperature = dp.sia_standardnutzungsdaten('room_temperature_cooling')
+        else:
+            cooling_temperature = self.cooling_setpoint
 
         # Gesamtwärmeübergangskoeffizient für Elemente, die mit der äusseren Umgebung verbunden sind. Dieser Wert wird
         # zeitlich konstant angenommen. [W/K]
