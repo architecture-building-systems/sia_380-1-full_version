@@ -26,11 +26,11 @@ regelung = "andere"  # oder "Referenzraum" oder "andere"
 hohe_uber_meer = 1609 # Eingabe
 energiebezugsflache = 48.0  # m2
 anlagennutzungsgrad_wrg = 0.0 ## SIA 380-1 Tab 23
-warmespeicherfahigkeit_pro_EBF = 0.08 ## Wert noch nicht klar, bestimmen gemäss SN EN ISO 13786 oder Tab25 Einheiten?
+warmespeicherfahigkeit_pro_EBF = 0.016 ## Wert noch nicht klar, bestimmen gemäss SN EN ISO 13786 oder Tab25 Einheiten?
 korrekturfaktor_luftungs_eff_f_v = 1.0  # zwischen 0.8 und 1.2 gemäss SIA380-1 Tab 24
 infiltration_volume_flow = 1.35  # Gemäss SIA 380-1 2016 3.5.5 soll 0.15m3/(hm2) verwendet werden. Korrigenda anschauen
 ventilation_volume_flow = 0.0 # give a number in m3/(hm2) or select "SIA" to follow SIA380-1 code
-cooling_setpoint = 26.0  # degC (?)
+cooling_setpoint = 27.0  # degC (?)
 
 
 ## Gebäudehülle
@@ -57,14 +57,14 @@ pv_azimuth = 0  # IMPORTANT: The south convention applies. Sout = 0, North = -18
 
 ## Bauteile:
 # Windows: [[Orientation],[Areas],[U-value],[g-value]]
-windows = np.array([["S"],
-                    [12.0],
-                    [u_windows],
-                    [0.789]],
+windows = np.array([["E", "W"],
+                    [6.0, 6.0],
+                    [u_windows, u_windows],
+                    [0.789, 0.789]],
                    dtype=object)  # dtype=object is necessary because there are different data types
 
 # walls: [[Areas], [U-values]] zuvor waren es 4 x 412.5
-walls = np.array([[21.6, 21.6, 16.2, 16.2],
+walls = np.array([[21.6, 21.6, 10.2, 10.2],  # zweimal eine Wand um 6m2 reduziert wo Fensterfläche hinkommt. (10.2)
                   [u_walls, u_walls, u_walls, u_walls]])
 
 
