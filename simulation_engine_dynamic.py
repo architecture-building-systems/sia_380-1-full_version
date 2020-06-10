@@ -55,7 +55,6 @@ class Sim_Building(object):
         self.longitude = None
         self.latitude = None
 
-
         ### RC Simulator inputs (derive from other inputs as much as possible)
         ## So far the lighting load is still hard coded because it is not looked at and I don't know the source.
         lighting_load = 11.7  # [W/m2] (source?)
@@ -95,12 +94,11 @@ class Sim_Building(object):
         :param occupancy_path:
         :return:
         """
-        #TODO Remove cooling setpoint
+        #TODO Remove cooling setpoint once validation is done
         if self.t_set_heating == "SIA":
             self.t_set_heating = standard_raumtemperaturen = dp.sia_standardnutzungsdaten('room_temperature_heating')[int(self.gebaeudekategorie_sia)]
         else:
             pass
-
 
         if cooling_setpoint != None:
             print("You use cooling setpoint as an input into ISO instead of the object definition. This version does no longer work.")
@@ -126,17 +124,10 @@ class Sim_Building(object):
         presence_time_per_day = dp.sia_standardnutzungsdaten("presence_time")[int(self.gebaeudekategorie_sia)]
 
 
-        aussenluft_strome = dp.sia_standardnutzungsdaten("effective_air_flow") # 380-1 Tab14
-        # aussenluft_strome = {1:2.1}
-
         if self.ventilation_volume_flow == "SIA":
             self.ach_vent = dp.sia_standardnutzungsdaten("effective_air_flow")[int(self.gebaeudekategorie_sia)]/self.room_height  # here we switch from SIA m3/hm2 to air change rate /h
-
         else:
             self.ach_vent = self.ventilation_volume_flow/self.room_height  # m3/hm2 to air change rate
-
-        # in kWh/m2a according to SIA2024 possbily needs to be changed to SIA 385/2
-
 
 
         Loc = Location(epwfile_path=weatherfile_path)
@@ -144,8 +135,6 @@ class Sim_Building(object):
         gain_per_person = warmeabgabe_p_p[int(self.gebaeudekategorie_sia)]  # W/m2
         appliance_gains = elektrizitatsbedarf[int(self.gebaeudekategorie_sia)]/365.0/24.0*1000.0  # W per sqm (constant over the year)
         max_occupancy = self.energy_reference_area / personenflachen[int(self.gebaeudekategorie_sia)]
-
-
 
         heating_supply_system = dp.translate_system_sia_to_rc(self.heating_system)
         cooling_supply_system = dp.translate_system_sia_to_rc(self.cooling_system)
@@ -176,13 +165,10 @@ class Sim_Building(object):
                           cooling_emission_system=emission_system.AirConditioning,  # define this!
                           dhw_supply_temperature=self.dhw_supply_temperature, )
 
-
-
-
         ## Define occupancy
         occupancyProfile = pd.read_csv(occupancy_path)
 
-        t_m_prev = 20.0  # This is only for the very first step in therefore is hard coded.
+        t_m_prev = 20.0  # This is only for the very first step in therefore it is hard coded.
 
         self.electricity_demand = np.empty(8760)
         self.total_heat_demand = np.empty(8760)
@@ -204,7 +190,8 @@ class Sim_Building(object):
             # Occupancy for the time step
             occupancy = occupancyProfile.loc[hour, 'People'] * max_occupancy
             # Gains from occupancy and appliances
-            internal_gains = gain_per_person * (presence_time_per_day/ 24) * 8760 / occupancyProfile['People'].sum() * occupancy + appliance_gains * reduction_factor_electricity * Office.floor_area
+            internal_gains = gain_per_person * (presence_time_per_day/ 24) * 8760 / occupancyProfile['People'].sum() * \
+                             occupancy + appliance_gains * reduction_factor_electricity * Office.floor_area
 
             self.internal_gains[hour] = internal_gains
 
@@ -253,9 +240,7 @@ class Sim_Building(object):
                                          t_m_prev=t_m_prev, dhw_demand=dhw_demand)
 
             # Set the previous temperature for the next time step
-
             t_m_prev = Office.t_m_next
-
 
             self.heating_electricity_demand[hour] = Office.heating_sys_electricity  # unit? heating electricity demand
             self.heating_fossil_demand[hour] = Office.heating_sys_fossils
@@ -272,7 +257,6 @@ class Sim_Building(object):
             self.indoor_temperature[hour] = Office.t_air
 
             # self.total_heat_demand[hour] = Office.heating_demand + Office.dhw_demand  ## add again when dhw is solved
-
 
     def run_SIA_electricity_demand(self, occupancy_path):
         self.app_light_other_electricity_monthly_demand = dp.sia_electricity_per_erf_hourly(occupancy_path,
