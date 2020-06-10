@@ -35,7 +35,6 @@ cooling_setpoint = "SIA"  # give a number in deC or select "SIA" to follow the S
 area_per_person = "SIA"  # give a number or select "SIA" to follow the SIA380-1 code (typical for MFH 40)
 
 
-
 ## Gebäudehülle
 u_windows = 3.0
 g_windows = 0.5
@@ -56,7 +55,7 @@ pv_efficiency = 0.18
 pv_performance_ratio = 0.8
 pv_area = 506.0  # m2, can be directly linked with roof size
 pv_tilt = 30  # in degrees
-pv_azimuth = 0  # IMPORTANT: The south convention applies. Sout = 0, North = -180 or + 180
+pv_azimuth = 180  # The north=0 convention applies
 
 
 ## Bauteile:
@@ -96,17 +95,13 @@ These steps are either carried out in the dynamic or in the static model. This i
 
 ## PV calculation
 
-# Loc = pv.Location(epwfile_path=weatherfile_path)
-# PvSurface = pv.PhotovoltaicSurface(azimuth_tilt=pv_azimuth, altitude_tilt=pv_tilt, stc_efficiency=pv_efficiency,
-#                                    performance_ratio=pv_performance_ratio, area=pv_area)
-# PvSurface.pv_simulation_hourly(Loc)
-# pv_yield_hourly = PvSurface.solar_yield  # in Wh consistent with RC but inconsistent with SIA
+# pv yield in kWh for each hour
+#TODO check if the further functions also use kWh
+pv_yield_hourly = dp.photovoltaic_yield_hourly(pv_azimuth, pv_tilt, pv_efficiency, pv_performance_ratio, pv_area,
+                              weatherfile_path)
 
 
 ## heating demand and emission calculation
-
-
-# if simulation_type == "static":
 
 Gebaeude_static = se.Building(gebaeudekategorie_sia, regelung, windows, walls, roof, floor, energiebezugsflache,
                          anlagennutzungsgrad_wrg, infiltration_volume_flow, ventilation_volume_flow,
@@ -133,8 +128,10 @@ print(Gebaeude_static.heizwarmebedarf.sum())
 print("cooling")
 print(Gebaeude_static.monthly_cooling_demand.sum())
 
-# Gebaeude_static.run_SIA_electricity_demand(occupancy_path)
 
+
+# Gebaeude_static.run_SIA_electricity_demand(occupancy_path)
+#
 # Gebaeude_static.run_SIA_380_emissions(emission_factor_type="SIA_380", avg_ashp_cop=2.8)
 
 # print(Gebaeude_static.operational_emissions.sum())  # CO2eq/m2a

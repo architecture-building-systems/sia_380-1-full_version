@@ -94,18 +94,6 @@ def sia_standardnutzungsdaten(category):
     else:
         print('You are trying to look up data from SIA that are not implemented')
 
-
-# def persons_from_area_sia(energy_reference_area, type=1):
-#
-#     if type ==1:
-#         personenflache = 50.  # m2/p
-#
-#     elif type == 3:
-#         personenflache = 14.
-#
-#     occupants = energy_reference_area / personenflache
-#     return occupants
-
 def electric_appliances_sia(energy_reference_area, type=1, value="standard"):
     """
     This function calculates the use of electric appliances according to SIA 2024
@@ -487,9 +475,6 @@ def calc_sun_position_II(latitude_deg, longitude_deg, year, hoy):
     return zenith_deg, azimuth_deg
 
 
-
-
-
 def read_location_from_epw(epw_path):
     epw_data = pvlib.iotools.read_epw(epw_path, coerce_year=None)
     longitude = epw_data[1]['longitude']
@@ -504,3 +489,53 @@ def string_orientation_to_angle(string_orientation):
     """
     translation = {"N":0., 'NE':45., 'E':90., 'SE':135.0, 'S':180., 'SW':225.0, 'W':270, 'NW':315.0}
     return translation[string_orientation]
+
+def photovoltaic_yield_hourly(pv_azimuth, pv_tilt, stc_efficiency, performance_ratio, pv_area,
+                              epw_path, model="isotropic"):
+    """
+    This function returns the hourly PV yield of a photovoltaic system in kWh
+    :param pv_azimuth:
+    :param pv_tilt:
+    :param stc_efficiency:
+    :param performance_ratio:
+    :param pv_area:
+    :param epw_path:
+    :param model:
+    :return:
+    """
+    epw_labels = ['year', 'month', 'day', 'hour', 'minute', 'datasource', 'drybulb_C', 'dewpoint_C', 'relhum_percent',
+                  'atmos_Pa', 'exthorrad_Whm2', 'extdirrad_Whm2', 'horirsky_Whm2', 'glohorrad_Whm2',
+                  'dirnorrad_Whm2', 'difhorrad_Whm2', 'glohorillum_lux', 'dirnorillum_lux', 'difhorillum_lux',
+                  'zenlum_lux', 'winddir_deg', 'windspd_ms', 'totskycvr_tenths', 'opaqskycvr_tenths', 'visibility_km',
+                  'ceiling_hgt_m', 'presweathobs', 'presweathcodes', 'precip_wtr_mm', 'aerosol_opt_thousandths',
+                  'snowdepth_cm', 'days_last_snow', 'Albedo', 'liq_precip_depth_mm', 'liq_precip_rate_Hour']
+
+    # Import EPW file
+    header_data = pd.read_csv(epw_path, header=None, nrows=1)
+    latitude = header_data.iloc[0, 6]
+    longitude = header_data.iloc[0, 7]
+    weather_data = pd.read_csv(epw_path, skiprows=8, header=None, names=epw_labels).drop('datasource', axis=1)
+
+    hourly_yield = np.empty(8760)
+
+    for hour in range(8760):
+        solar_zenith_deg, solar_azimuth_deg = calc_sun_position_II(latitude, longitude, 2020, hour)
+        normal_direct_radiation = weather_data['dirnorrad_Whm2'][hour]
+        horizontal_diffuse_radiation = weather_data['difhorrad_Whm2'][hour]
+        global_horizontal_value = weather_data['glohorrad_Whm2'][hour]
+        dni_extra = weather_data['extdirrad_Whm2'][hour]
+        relative_air_mass = pvlib.atmosphere.get_relative_airmass(zenith=solar_zenith_deg)
+
+
+        irrad = pvlib.irradiance.get_total_irradiance(pv_tilt, pv_azimuth, solar_zenith_deg,
+                                                                            solar_azimuth_deg, normal_direct_radiation,
+                                                                            global_horizontal_value,
+                                                                            horizontal_diffuse_radiation,
+                                                                            dni_extra=dni_extra,
+                                                                            model=model,
+                                                                            airmass=relative_air_mass)['poa_global']
+        hourly_yield[hour] = irrad * pv_area * stc_efficiency * performance_ratio /1000.0  # division for kWh
+
+    return hourly_yield
+
+
