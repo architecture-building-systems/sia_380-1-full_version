@@ -29,7 +29,9 @@ class Sim_Building(object):
                  height_above_sea,
                  heating_system,
                  cooling_system,
-                 dhw_heating_system):
+                 dhw_heating_system,
+                 heating_setpoint="SIA",
+                 cooling_setpoint="SIA"):
 
         ### Similar to SIA some are unecessary.
         self.gebaeudekategorie_sia = gebaeudekategorie_sia
@@ -74,8 +76,8 @@ class Sim_Building(object):
         self.ach_infl = self.q_inf / self.room_height  # Umrechnung von m3/(h*m2) in 1/h
         self.ventilation_efficiency = self.anlagennutzungsgrad_wrg
         self.thermal_capacitance_per_floor_area = self.warmespeicherfahigkeit_pro_ebf
-        self.t_set_heating = None
-        self.t_set_cooling = None
+        self.t_set_heating = heating_setpoint
+        self.t_set_cooling = cooling_setpoint
         self.max_cooling_energy_per_floor_area = -np.inf
         self.max_heating_energy_per_floor_area = np.inf
         self.dhw_supply_temperature = 60  # deg C fixed and hard coded
@@ -84,14 +86,30 @@ class Sim_Building(object):
         self.pv_production = None
 
 
-    def run_rc_simulation(self, weatherfile_path, occupancy_path, cooling_setpoint):
+    def run_rc_simulation(self, weatherfile_path, occupancy_path, cooling_setpoint=None):
         """
         ACHTUNG. Im Vergleich zum SIA Modul sind hier im Moment noch Wh als output zu finden.
         :param weatherfile_path:
         :param occupancy_path:
         :return:
         """
-        standard_raumtemperaturen = dp.sia_standardnutzungsdaten("room_temperature_heating")  # 380-1 Tab7
+        #TODO Remove cooling setpoint
+        if self.t_set_heating == "SIA":
+            self.t_set_heating = standard_raumtemperaturen = dp.sia_standardnutzungsdaten('room_temperature_heating')[int(self.gebaeudekategorie_sia)]
+        else:
+            pass
+
+
+        if cooling_setpoint != None:
+            print("You use cooling setpoint as an input into ISO instead of the object definition. This version does no longer work.")
+            quit()
+        else:
+            pass
+        if self.t_set_cooling == "SIA":
+            self.t_set_cooling = dp.sia_standardnutzungsdaten('room_temperature_cooling')
+        else:
+            pass
+
         warmeabgabe_p_p = dp.sia_standardnutzungsdaten("gain_per_person") # 380-1 Tab10 (W)
 
         elektrizitatsbedarf = dp.sia_standardnutzungsdaten("gains_from_electrical_appliances") # 380-1 Tab12 (kWh/m2a)
@@ -104,21 +122,23 @@ class Sim_Building(object):
         aussenluft_strome = dp.sia_standardnutzungsdaten("effective_air_flow") # 380-1 Tab14
         # aussenluft_strome = {1:2.1}
 
+        if self.ventilation_volume_flow == "SIA":
+            self.ach_vent = dp.sia_standardnutzungsdaten("effective_air_flow")[int(self.gebaeudekategorie_sia)]/self.room_height  # here we switch from SIA m3/hm2 to air change rate /h
+
+        else:
+            self.ach_vent = self.ventilation_volume_flow/self.room_height  # m3/hm2 to air change rate
+
         # in kWh/m2a according to SIA2024 possbily needs to be changed to SIA 385/2
 
 
-        self.t_set_heating = standard_raumtemperaturen[int(self.gebaeudekategorie_sia)]
+
         Loc = Location(epwfile_path=weatherfile_path)
         self.longitude, self.latitude = dp.read_location_from_epw(weatherfile_path)
         gain_per_person = warmeabgabe_p_p[int(self.gebaeudekategorie_sia)]  # W/m2
         appliance_gains = elektrizitatsbedarf[int(self.gebaeudekategorie_sia)]/365.0/24.0*1000.0  # W per sqm (constant over the year)
         max_occupancy = self.energy_reference_area / personenflachen[int(self.gebaeudekategorie_sia)]
 
-        if self.ventilation_volume_flow == "SIA":
-            self.ach_vent = aussenluft_strome[int(self.gebaeudekategorie_sia)]/self.room_height  # here we switch from SIA m3/hm2 to air change rate /h
 
-        else:
-            self.ach_vent = self.ventilation_volume_flow/self.room_height  # m3/hm2 to air change rate
 
         heating_supply_system = dp.translate_system_sia_to_rc(self.heating_system)
         cooling_supply_system = dp.translate_system_sia_to_rc(self.cooling_system)
@@ -140,7 +160,7 @@ class Sim_Building(object):
                           ventilation_efficiency=self.ventilation_efficiency,
                           thermal_capacitance_per_floor_area=self.thermal_capacitance_per_floor_area * 3600 * 1000,  # Comes as kWh/m2K and needs to be J/m2K
                           t_set_heating=self.t_set_heating,
-                          t_set_cooling=cooling_setpoint,  # maybe this can be added to the simulation object as well
+                          t_set_cooling=self.t_set_cooling,  # maybe this can be added to the simulation object as well
                           max_cooling_energy_per_floor_area=self.max_cooling_energy_per_floor_area,
                           max_heating_energy_per_floor_area=self.max_heating_energy_per_floor_area,
                           heating_supply_system=heating_supply_system,

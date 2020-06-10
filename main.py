@@ -151,7 +151,7 @@ Gebaeude_dyn = sime.Sim_Building(gebaeudekategorie_sia, regelung, windows, walls
 # Gebaeude_dyn.pv_production = pv_yield_hourly
 
 Gebaeude_dyn.run_rc_simulation(weatherfile_path=weatherfile_path,
-                             occupancy_path=occupancy_path, cooling_setpoint=cooling_setpoint)
+                             occupancy_path=occupancy_path)
 
 
 print("Heating")
