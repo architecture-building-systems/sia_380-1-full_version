@@ -15,7 +15,7 @@ Im this first part of the code, building, its location and all the related syste
 
 ## Pfade zu weiteren Daten
 
-weatherfile_path = r"C:\Users\walkerl\Documents\Zürich-hour_historic.epw"
+weatherfile_path = r"C:\Users\walkerl\Documents\Zuerich-Kloten-hour.epw"
 
 weather_data_sia = dp.epw_to_sia_irrad(weatherfile_path)
 occupancy_path = r"C:\Users\walkerl\Documents\code\RC_BuildingSimulator\rc_simulator\auxiliary\occupancy_office.csv"
@@ -29,15 +29,15 @@ anlagennutzungsgrad_wrg = 0.0 ## SIA 380-1 Tab 23
 warmespeicherfahigkeit_pro_EBF = 0.08 ## Wert noch nicht klar, bestimmen gemäss SN EN ISO 13786 oder Tab25 Einheiten?
 korrekturfaktor_luftungs_eff_f_v = 1.0  # zwischen 0.8 und 1.2 gemäss SIA380-1 Tab 24
 infiltration_volume_flow = 0.15  # Gemäss SIA 380-1 2016 3.5.5 soll 0.15m3/(hm2) verwendet werden. Korrigenda anschauen
-ventilation_volume_flow = 0.0 # give a number in m3/(hm2) or select "SIA" to follow SIA380-1 code
+ventilation_volume_flow = 2.1 # give a number in m3/(hm2) or select "SIA" to follow SIA380-1 code
 cooling_setpoint = 26.0  # degC (?)
 
 
 ## Gebäudehülle
-u_windows = 3.0
-u_walls = 0.514
-u_roof = 0.318
-u_floor = 0.039
+u_windows = 1.30
+u_walls = 0.25
+u_roof = 0.19
+u_floor = 0.23
 b_floor = 0.4
 
 ## Systeme
@@ -52,7 +52,7 @@ pv_efficiency = 0.18
 pv_performance_ratio = 0.8
 pv_area = 506.0  # m2, can be directly linked with roof size
 pv_tilt = 30  # in degrees
-pv_azimuth = 0  # IMPORTANT: The south convention applies. Sout = 0, North = -180 or + 180
+pv_azimuth = 0  # IMPORTANT: The south convention applies. Sout = 0, North = -180 or + 180 @LW under review
 
 
 ## Bauteile:
@@ -60,7 +60,7 @@ pv_azimuth = 0  # IMPORTANT: The south convention applies. Sout = 0, North = -18
 windows = np.array([["N", "E", "S", "W"],
                     [131.5, 131.5, 131.5, 131.5],
                     [u_windows, u_windows, u_windows, u_windows],
-                    [0.9, 0.9, 0.9, 0.9]],
+                    [0.50, 0.50, 0.50, 0.50]],
                    dtype=object)  # dtype=object is necessary because there are different data types
 
 # walls: [[Areas], [U-values]] zuvor waren es 4 x 412.5
@@ -177,8 +177,10 @@ ajajaj = zip(dp.hourly_to_monthly(Gebaeude_dyn.heating_demand) / 1000.0 / energi
               -Gebaeude_static.monthly_cooling_demand)
 
 
+
 results = pd.DataFrame(ajajaj, columns=["RC heating", "RC DHW", "RC cooling", "380 heating", "380 DHW", "ISO cooling"])
 # results["ISO2RC"] = results['ISO cooling']/results['RC cooling']
+
 results["RC_solar_gains"] = dp.hourly_to_monthly(Gebaeude_dyn.solar_gains)/1000.0 / energiebezugsflache
 results["ISO_solar_gains"] = Gebaeude_static.iso_solar_gains
 results["SIA_solar_gains"] = Gebaeude_static.solare_eintrage
@@ -190,6 +192,10 @@ results["internal_gains_RC"] = dp.hourly_to_monthly(Gebaeude_dyn.internal_gains)
 results["internal_gains_SIA"] = Gebaeude_static.interne_eintrage
 results["internal_gains_ISO"] = Gebaeude_static.iso_internal_gains
 
+# print(results["SIA_solar_gains"])
+# print(results["internal_gains_SIA"])
+# print(results["transmission_losses_SIA"])
+#
 results[["RC_solar_gains", "ISO_solar_gains", "SIA_solar_gains"]].plot(kind='bar', title="Monthly Solar Gains")
 plt.ylabel("Solar Gains [kWh/m2M]")
 plt.show()
