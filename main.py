@@ -30,11 +30,15 @@ warmespeicherfahigkeit_pro_EBF = 0.08 ## Wert noch nicht klar, bestimmen gemäss
 korrekturfaktor_luftungs_eff_f_v = 1.0  # zwischen 0.8 und 1.2 gemäss SIA380-1 Tab 24
 infiltration_volume_flow = 1.35  # Gemäss SIA 380-1 2016 3.5.5 soll 0.15m3/(hm2) verwendet werden. Korrigenda anschauen
 ventilation_volume_flow = 0.0 # give a number in m3/(hm2) or select "SIA" to follow SIA380-1 code
-cooling_setpoint = 26.0  # degC (?)
+heating_setpoint = "SIA"  # give a number in deC or select "SIA" to follow the SIA380-1 code
+cooling_setpoint = "SIA"  # give a number in deC or select "SIA" to follow the SIA380-1 code
+area_per_person = "SIA"  # give a number or select "SIA" to follow the SIA380-1 code (typical for MFH 40)
+
 
 
 ## Gebäudehülle
 u_windows = 3.0
+g_windows = 0.5
 u_walls = 0.514
 u_roof = 0.318
 u_floor = 0.039
@@ -60,7 +64,7 @@ pv_azimuth = 0  # IMPORTANT: The south convention applies. Sout = 0, North = -18
 windows = np.array([["S"],
                     [12.0],
                     [u_windows],
-                    [0.789]],
+                    [g_windows]],
                    dtype=object)  # dtype=object is necessary because there are different data types
 
 # walls: [[Areas], [U-values]] zuvor waren es 4 x 412.5
@@ -106,13 +110,14 @@ These steps are either carried out in the dynamic or in the static model. This i
 
 Gebaeude_static = se.Building(gebaeudekategorie_sia, regelung, windows, walls, roof, floor, energiebezugsflache,
                          anlagennutzungsgrad_wrg, infiltration_volume_flow, ventilation_volume_flow,
-                         warmespeicherfahigkeit_pro_EBF, korrekturfaktor_luftungs_eff_f_v, hohe_uber_meer)
+                         warmespeicherfahigkeit_pro_EBF, korrekturfaktor_luftungs_eff_f_v, hohe_uber_meer,
+                              heating_setpoint, cooling_setpoint, area_per_person)
 
 # Gebaeude_static.pv_production = pv_yield_hourly
 
 
 Gebaeude_static.run_SIA_380_1(weather_data_sia)
-Gebaeude_static.run_ISO_52016_monthly(weather_data_sia, cooling_setpoint)
+Gebaeude_static.run_ISO_52016_monthly(weather_data_sia)
 
 
 ## Gebäudedimensionen
@@ -142,12 +147,12 @@ Gebaeude_dyn = sime.Sim_Building(gebaeudekategorie_sia, regelung, windows, walls
                                anlagennutzungsgrad_wrg, infiltration_volume_flow, ventilation_volume_flow,
                                warmespeicherfahigkeit_pro_EBF,
                                korrekturfaktor_luftungs_eff_f_v, hohe_uber_meer, heizsystem, cooling_system,
-                               dhw_heizsystem)
+                               dhw_heizsystem, heating_setpoint, cooling_setpoint, area_per_person)
 
 # Gebaeude_dyn.pv_production = pv_yield_hourly
 
 Gebaeude_dyn.run_rc_simulation(weatherfile_path=weatherfile_path,
-                             occupancy_path=occupancy_path, cooling_setpoint=cooling_setpoint)
+                             occupancy_path=occupancy_path)
 
 
 print("Heating")
