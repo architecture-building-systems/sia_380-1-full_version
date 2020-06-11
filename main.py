@@ -108,7 +108,7 @@ Gebaeude_static = se.Building(gebaeudekategorie_sia, regelung, windows, walls, r
                          warmespeicherfahigkeit_pro_EBF, korrekturfaktor_luftungs_eff_f_v, hohe_uber_meer,
                               heating_setpoint, cooling_setpoint, area_per_person)
 
-# Gebaeude_static.pv_production = pv_yield_hourly
+Gebaeude_static.pv_production = pv_yield_hourly
 
 
 Gebaeude_static.run_SIA_380_1(weather_data_sia)
@@ -123,18 +123,18 @@ Gebaeude_static.run_dhw_demand()
 
 print("heating")
 print(Gebaeude_static.heizwarmebedarf.sum())
-# print("dhw")
-# print(Gebaeude_static.dhw_demand)
+
 print("cooling")
 print(Gebaeude_static.monthly_cooling_demand.sum())
 
 
 
-# Gebaeude_static.run_SIA_electricity_demand(occupancy_path)
-#
-# Gebaeude_static.run_SIA_380_emissions(emission_factor_type="SIA_380", avg_ashp_cop=2.8)
+Gebaeude_static.run_SIA_electricity_demand(occupancy_path)
 
-# print(Gebaeude_static.operational_emissions.sum())  # CO2eq/m2a
+Gebaeude_static.run_SIA_380_emissions(emission_factor_type="SIA_380", avg_ashp_cop=2.8)
+
+print("operational emissions static")
+print(Gebaeude_static.operational_emissions.sum())  # CO2eq/m2a
 
 # print(Gebaeude_1.non_renewable_primary_energy.sum())  # kWh/m2a
 
