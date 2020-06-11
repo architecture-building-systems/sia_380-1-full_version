@@ -532,7 +532,7 @@ class Building(object):
             quit()
 
         # self.pv_production is total PV production in Wh and has to be normalized and divided by 1000 for the SIA
-        # framework
+        # framework because it comes in Wh
         pv_prod_month = dp.hourly_to_monthly(self.pv_production)/self.energy_reference_area/1000.0
 
 

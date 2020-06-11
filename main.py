@@ -31,7 +31,7 @@ korrekturfaktor_luftungs_eff_f_v = 1.0  # zwischen 0.8 und 1.2 gemäss SIA380-1 
 infiltration_volume_flow = 1.35  # Gemäss SIA 380-1 2016 3.5.5 soll 0.15m3/(hm2) verwendet werden. Korrigenda anschauen
 ventilation_volume_flow = 0.0 # give a number in m3/(hm2) or select "SIA" to follow SIA380-1 code
 heating_setpoint = "SIA"  # give a number in deC or select "SIA" to follow the SIA380-1 code
-cooling_setpoint = "SIA"  # give a number in deC or select "SIA" to follow the SIA380-1 code
+cooling_setpoint = "SIA" # give a number in deC or select "SIA" to follow the SIA380-1 code
 area_per_person = "SIA"  # give a number or select "SIA" to follow the SIA380-1 code (typical for MFH 40)
 
 
@@ -53,7 +53,7 @@ dhw_heizsystem = heizsystem ## This is currently a limitation of the RC Model. A
 cooling_system = "GSHP"  # Only affects dynamic calculation. Static does not include cooling
 pv_efficiency = 0.18
 pv_performance_ratio = 0.8
-pv_area = 506.0  # m2, can be directly linked with roof size
+pv_area = 0  # m2, can be directly linked with roof size
 pv_tilt = 30  # in degrees
 pv_azimuth = 180  # The north=0 convention applies
 
@@ -76,8 +76,6 @@ roof = np.array([[48.0], [u_roof]])
 
 # floor to ground (for now) [[Areas],[U-values],[b-values]]
 floor = np.array([[48],[u_floor],[b_floor]])
-
-simulation_type = "static"  # Choose between static and dynamic
 
 
 """
@@ -175,10 +173,12 @@ ajajaj = zip(dp.hourly_to_monthly(Gebaeude_dyn.heating_demand) / 1000.0 / energi
               dp.hourly_to_monthly(Gebaeude_dyn.cooling_demand)/ 1000.0 / energiebezugsflache,
               Gebaeude_static.heizwarmebedarf,
               Gebaeude_static.dhw_demand,
-              -Gebaeude_static.monthly_cooling_demand)
+              -Gebaeude_static.monthly_cooling_demand,
+             Gebaeude_static.operational_emissions,
+             dp.hourly_to_monthly(Gebaeude_dyn.operational_emissions)/energiebezugsflache)
 
 
-results = pd.DataFrame(ajajaj, columns=["RC heating", "RC DHW", "RC cooling", "380 heating", "380 DHW", "ISO cooling"])
+results = pd.DataFrame(ajajaj, columns=["RC heating", "RC DHW", "RC cooling", "380 heating", "380 DHW", "ISO cooling", "static_emissions", "dynamic emissions"])
 # results["ISO2RC"] = results['ISO cooling']/results['RC cooling']
 results["RC_solar_gains"] = dp.hourly_to_monthly(Gebaeude_dyn.solar_gains)/1000.0 / energiebezugsflache
 results["ISO_solar_gains"] = Gebaeude_static.iso_solar_gains
@@ -191,7 +191,7 @@ results["internal_gains_RC"] = dp.hourly_to_monthly(Gebaeude_dyn.internal_gains)
 results["internal_gains_SIA"] = Gebaeude_static.interne_eintrage
 results["internal_gains_ISO"] = Gebaeude_static.iso_internal_gains
 
-"""
+
 results[["RC_solar_gains", "ISO_solar_gains", "SIA_solar_gains"]].plot(kind='bar', title="Monthly Solar Gains")
 plt.ylabel("Solar Gains [kWh/m2M]")
 plt.show()
@@ -215,7 +215,9 @@ results[["RC heating", "RC DHW", "RC cooling", "380 heating", "380 DHW", "ISO co
 plt.ylabel("Energy demand for heating, cooling and DHW [kWh/m2M]")
 plt.show()
 
-"""
+results[["static_emissions", "dynamic emissions"]].plot(kind="bar", title="Operational Emissions")
+plt.show()
+
 
 
 """
