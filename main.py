@@ -94,7 +94,6 @@ These steps are either carried out in the dynamic or in the static model. This i
 """
 
 ## PV calculation
-
 # pv yield in kWh for each hour
 #TODO check if the further functions also use kWh
 pv_yield_hourly = dp.photovoltaic_yield_hourly(pv_azimuth, pv_tilt, pv_efficiency, pv_performance_ratio, pv_area,
@@ -109,8 +108,6 @@ Gebaeude_static = se.Building(gebaeudekategorie_sia, regelung, windows, walls, r
                               heating_setpoint, cooling_setpoint, area_per_person)
 
 Gebaeude_static.pv_production = pv_yield_hourly
-
-
 Gebaeude_static.run_SIA_380_1(weather_data_sia)
 Gebaeude_static.run_ISO_52016_monthly(weather_data_sia)
 
@@ -136,9 +133,8 @@ Gebaeude_static.run_SIA_380_emissions(emission_factor_type="SIA_380", avg_ashp_c
 print("operational emissions static")
 print(Gebaeude_static.operational_emissions.sum())  # CO2eq/m2a
 
-# print(Gebaeude_1.non_renewable_primary_energy.sum())  # kWh/m2a
+# print(Gebaeude_static.non_renewable_primary_energy.sum())  # kWh/m2a
 
-# elif simulation_type == "dynamic":
 
 Gebaeude_dyn = sime.Sim_Building(gebaeudekategorie_sia, regelung, windows, walls, roof, floor, energiebezugsflache,
                                anlagennutzungsgrad_wrg, infiltration_volume_flow, ventilation_volume_flow,
@@ -146,7 +142,7 @@ Gebaeude_dyn = sime.Sim_Building(gebaeudekategorie_sia, regelung, windows, walls
                                korrekturfaktor_luftungs_eff_f_v, hohe_uber_meer, heizsystem, cooling_system,
                                dhw_heizsystem, heating_setpoint, cooling_setpoint, area_per_person)
 
-# Gebaeude_dyn.pv_production = pv_yield_hourly
+Gebaeude_dyn.pv_production = pv_yield_hourly
 
 Gebaeude_dyn.run_rc_simulation(weatherfile_path=weatherfile_path,
                              occupancy_path=occupancy_path)
@@ -159,10 +155,11 @@ print((dp.hourly_to_monthly(Gebaeude_dyn.heating_demand) / 1000.0 / energiebezug
 print("cooling")
 print(dp.hourly_to_monthly((Gebaeude_dyn.cooling_demand)/ 1000.0 / energiebezugsflache).sum())
 
-# Gebaeude_dyn.run_SIA_electricity_demand(occupancy_path)
-# Gebaeude_dyn.run_dynamic_emissions("SIA_380", "c")
-
-# print(Gebaeude_dyn.operational_emissions.sum() / 1000.0 / energiebezugsflache)
+Gebaeude_dyn.run_SIA_electricity_demand(occupancy_path)
+Gebaeude_dyn.run_dynamic_emissions("SIA_380", "c")
+#
+print("operational emissions dynamic")
+print(Gebaeude_dyn.operational_emissions.sum() / energiebezugsflache)
 # print(dp.hourly_to_monthly((Gebaeude_1.heating_emissions + Gebaeude_1.dhw_emisions) / 1000.0 / energiebezugsflache))
 
 # else:
@@ -194,6 +191,7 @@ results["internal_gains_RC"] = dp.hourly_to_monthly(Gebaeude_dyn.internal_gains)
 results["internal_gains_SIA"] = Gebaeude_static.interne_eintrage
 results["internal_gains_ISO"] = Gebaeude_static.iso_internal_gains
 
+"""
 results[["RC_solar_gains", "ISO_solar_gains", "SIA_solar_gains"]].plot(kind='bar', title="Monthly Solar Gains")
 plt.ylabel("Solar Gains [kWh/m2M]")
 plt.show()
@@ -216,6 +214,9 @@ plt.show()
 results[["RC heating", "RC DHW", "RC cooling", "380 heating", "380 DHW", "ISO cooling"]].plot(kind="bar", title="Energy Demand")
 plt.ylabel("Energy demand for heating, cooling and DHW [kWh/m2M]")
 plt.show()
+
+"""
+
 
 """
 ###################################### EMBODIED EMISSIONS ##############################################################
