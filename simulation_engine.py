@@ -548,9 +548,11 @@ class Building(object):
 
         elif self.heating_system == "electric":
             self.heating_elec = self.heizwarmebedarf
+            self.dhw_elec = self.dhw_demand
 
         else:
             self.heating_elec = 0.0
+            self.dhw_elec = 0.0
 
         # same for cooling
         if self.cooling_system == "GSHP":
