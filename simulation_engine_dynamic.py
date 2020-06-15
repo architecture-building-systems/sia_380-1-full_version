@@ -293,8 +293,10 @@ class Sim_Building(object):
             exit(1)
 
         if self.heating_fossil_demand.any()>0:
+            # Those factors come in kgCO2eq per kWh heating energy
             fossil_heating_emission_factors = dp.fossil_emission_factors(self.heating_system)
         else:
+            # This is necessary for the vectorized multiplication below
             fossil_heating_emission_factors = np.repeat(0, 8760)
 
         if self.cooling_fossil_demand.any()>0: # TODO: Check if cooling fossil demand is given in - or +
@@ -323,11 +325,13 @@ class Sim_Building(object):
         self.electricity_emissions = np.empty(8760)
 
         for hour in range(8760):
-            self.fossil_emissions[hour] = (self.heating_fossil_demand[hour] * fossil_heating_emission_factors[hour]) + (
-                        self.cooling_fossil_demand[hour] * fossil_cooling_emission_factors[hour]) + (
-                                                      self.dhw_fossil_demand[hour] * fossil_dhw_emission_factors[hour])
+            # The division by 1000 is necessary because RC models energy in Wh but the emission factors are given
+            # in kgCO2 per kWh.
+            self.fossil_emissions[hour] =((self.heating_fossil_demand[hour] * fossil_heating_emission_factors[hour]) + (
+                        self.cooling_fossil_demand[hour] * fossil_cooling_emission_factors[hour]) +
+                                          (self.dhw_fossil_demand[hour] * fossil_dhw_emission_factors[hour]))/1000.0
 
-            self.electricity_emissions[hour] = self.net_electricity_demand[hour] * grid_emission_factors[hour]
+            self.electricity_emissions[hour] = (self.net_electricity_demand[hour] * grid_emission_factors[hour])/1000.0
 
 
         self.operational_emissions = self.fossil_emissions + self.electricity_emissions

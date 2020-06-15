@@ -493,7 +493,7 @@ def string_orientation_to_angle(string_orientation):
 def photovoltaic_yield_hourly(pv_azimuth, pv_tilt, stc_efficiency, performance_ratio, pv_area,
                               epw_path, model="isotropic"):
     """
-    This function returns the hourly PV yield of a photovoltaic system in kWh
+    This function returns the hourly PV yield of a photovoltaic system in Wh
     :param pv_azimuth:
     :param pv_tilt:
     :param stc_efficiency:
@@ -501,7 +501,7 @@ def photovoltaic_yield_hourly(pv_azimuth, pv_tilt, stc_efficiency, performance_r
     :param pv_area:
     :param epw_path:
     :param model:
-    :return:
+    :return: hourly yield in Wh
     """
     epw_labels = ['year', 'month', 'day', 'hour', 'minute', 'datasource', 'drybulb_C', 'dewpoint_C', 'relhum_percent',
                   'atmos_Pa', 'exthorrad_Whm2', 'extdirrad_Whm2', 'horirsky_Whm2', 'glohorrad_Whm2',
@@ -534,7 +534,7 @@ def photovoltaic_yield_hourly(pv_azimuth, pv_tilt, stc_efficiency, performance_r
                                                                             dni_extra=dni_extra,
                                                                             model=model,
                                                                             airmass=relative_air_mass)['poa_global']
-        hourly_yield[hour] = irrad * pv_area * stc_efficiency * performance_ratio /1000.0  # division for kWh
+        hourly_yield[hour] = irrad * pv_area * stc_efficiency * performance_ratio  # in Wh
 
     return hourly_yield
 

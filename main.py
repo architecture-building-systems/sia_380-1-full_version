@@ -31,7 +31,7 @@ korrekturfaktor_luftungs_eff_f_v = 1.0  # zwischen 0.8 und 1.2 gemäss SIA380-1 
 infiltration_volume_flow = 1.35  # Gemäss SIA 380-1 2016 3.5.5 soll 0.15m3/(hm2) verwendet werden. Korrigenda anschauen
 ventilation_volume_flow = 0.0 # give a number in m3/(hm2) or select "SIA" to follow SIA380-1 code
 heating_setpoint = "SIA"  # give a number in deC or select "SIA" to follow the SIA380-1 code
-cooling_setpoint = "SIA"  # give a number in deC or select "SIA" to follow the SIA380-1 code
+cooling_setpoint = "SIA" # give a number in deC or select "SIA" to follow the SIA380-1 code
 area_per_person = "SIA"  # give a number or select "SIA" to follow the SIA380-1 code (typical for MFH 40)
 
 
@@ -53,7 +53,7 @@ dhw_heizsystem = heizsystem ## This is currently a limitation of the RC Model. A
 cooling_system = "GSHP"  # Only affects dynamic calculation. Static does not include cooling
 pv_efficiency = 0.18
 pv_performance_ratio = 0.8
-pv_area = 506.0  # m2, can be directly linked with roof size
+pv_area = 0  # m2, can be directly linked with roof size
 pv_tilt = 30  # in degrees
 pv_azimuth = 180  # The north=0 convention applies
 
@@ -77,8 +77,6 @@ roof = np.array([[48.0], [u_roof]])
 # floor to ground (for now) [[Areas],[U-values],[b-values]]
 floor = np.array([[48],[u_floor],[b_floor]])
 
-simulation_type = "static"  # Choose between static and dynamic
-
 
 """
 ###################################### SYSTEM SIMULATION ###############################################################
@@ -94,7 +92,6 @@ These steps are either carried out in the dynamic or in the static model. This i
 """
 
 ## PV calculation
-
 # pv yield in kWh for each hour
 #TODO check if the further functions also use kWh
 pv_yield_hourly = dp.photovoltaic_yield_hourly(pv_azimuth, pv_tilt, pv_efficiency, pv_performance_ratio, pv_area,
@@ -109,8 +106,6 @@ Gebaeude_static = se.Building(gebaeudekategorie_sia, regelung, windows, walls, r
                               heating_setpoint, cooling_setpoint, area_per_person)
 
 Gebaeude_static.pv_production = pv_yield_hourly
-
-
 Gebaeude_static.run_SIA_380_1(weather_data_sia)
 Gebaeude_static.run_ISO_52016_monthly(weather_data_sia)
 
@@ -136,9 +131,8 @@ Gebaeude_static.run_SIA_380_emissions(emission_factor_type="SIA_380", avg_ashp_c
 print("operational emissions static")
 print(Gebaeude_static.operational_emissions.sum())  # CO2eq/m2a
 
-# print(Gebaeude_1.non_renewable_primary_energy.sum())  # kWh/m2a
+# print(Gebaeude_static.non_renewable_primary_energy.sum())  # kWh/m2a
 
-# elif simulation_type == "dynamic":
 
 Gebaeude_dyn = sime.Sim_Building(gebaeudekategorie_sia, regelung, windows, walls, roof, floor, energiebezugsflache,
                                anlagennutzungsgrad_wrg, infiltration_volume_flow, ventilation_volume_flow,
@@ -146,7 +140,7 @@ Gebaeude_dyn = sime.Sim_Building(gebaeudekategorie_sia, regelung, windows, walls
                                korrekturfaktor_luftungs_eff_f_v, hohe_uber_meer, heizsystem, cooling_system,
                                dhw_heizsystem, heating_setpoint, cooling_setpoint, area_per_person)
 
-# Gebaeude_dyn.pv_production = pv_yield_hourly
+Gebaeude_dyn.pv_production = pv_yield_hourly
 
 Gebaeude_dyn.run_rc_simulation(weatherfile_path=weatherfile_path,
                              occupancy_path=occupancy_path)
@@ -159,10 +153,11 @@ print((dp.hourly_to_monthly(Gebaeude_dyn.heating_demand) / 1000.0 / energiebezug
 print("cooling")
 print(dp.hourly_to_monthly((Gebaeude_dyn.cooling_demand)/ 1000.0 / energiebezugsflache).sum())
 
-# Gebaeude_dyn.run_SIA_electricity_demand(occupancy_path)
-# Gebaeude_dyn.run_dynamic_emissions("SIA_380", "c")
-
-# print(Gebaeude_dyn.operational_emissions.sum() / 1000.0 / energiebezugsflache)
+Gebaeude_dyn.run_SIA_electricity_demand(occupancy_path)
+Gebaeude_dyn.run_dynamic_emissions("SIA_380", "c")
+#
+print("operational emissions dynamic")
+print(Gebaeude_dyn.operational_emissions.sum() / energiebezugsflache)
 # print(dp.hourly_to_monthly((Gebaeude_1.heating_emissions + Gebaeude_1.dhw_emisions) / 1000.0 / energiebezugsflache))
 
 # else:
@@ -178,10 +173,12 @@ ajajaj = zip(dp.hourly_to_monthly(Gebaeude_dyn.heating_demand) / 1000.0 / energi
               dp.hourly_to_monthly(Gebaeude_dyn.cooling_demand)/ 1000.0 / energiebezugsflache,
               Gebaeude_static.heizwarmebedarf,
               Gebaeude_static.dhw_demand,
-              -Gebaeude_static.monthly_cooling_demand)
+              -Gebaeude_static.monthly_cooling_demand,
+             Gebaeude_static.operational_emissions,
+             dp.hourly_to_monthly(Gebaeude_dyn.operational_emissions)/energiebezugsflache)
 
 
-results = pd.DataFrame(ajajaj, columns=["RC heating", "RC DHW", "RC cooling", "380 heating", "380 DHW", "ISO cooling"])
+results = pd.DataFrame(ajajaj, columns=["RC heating", "RC DHW", "RC cooling", "380 heating", "380 DHW", "ISO cooling", "static_emissions", "dynamic emissions"])
 # results["ISO2RC"] = results['ISO cooling']/results['RC cooling']
 results["RC_solar_gains"] = dp.hourly_to_monthly(Gebaeude_dyn.solar_gains)/1000.0 / energiebezugsflache
 results["ISO_solar_gains"] = Gebaeude_static.iso_solar_gains
@@ -193,6 +190,7 @@ results["transmission_losses_SIA"] = Gebaeude_static.transmissionsverluste
 results["internal_gains_RC"] = dp.hourly_to_monthly(Gebaeude_dyn.internal_gains)/1000.0 /energiebezugsflache
 results["internal_gains_SIA"] = Gebaeude_static.interne_eintrage
 results["internal_gains_ISO"] = Gebaeude_static.iso_internal_gains
+
 
 results[["RC_solar_gains", "ISO_solar_gains", "SIA_solar_gains"]].plot(kind='bar', title="Monthly Solar Gains")
 plt.ylabel("Solar Gains [kWh/m2M]")
@@ -216,6 +214,11 @@ plt.show()
 results[["RC heating", "RC DHW", "RC cooling", "380 heating", "380 DHW", "ISO cooling"]].plot(kind="bar", title="Energy Demand")
 plt.ylabel("Energy demand for heating, cooling and DHW [kWh/m2M]")
 plt.show()
+
+results[["static_emissions", "dynamic emissions"]].plot(kind="bar", title="Operational Emissions")
+plt.show()
+
+
 
 """
 ###################################### EMBODIED EMISSIONS ##############################################################
