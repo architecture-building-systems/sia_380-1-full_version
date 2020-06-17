@@ -34,6 +34,10 @@ heating_setpoint = "SIA"  # give a number in deC or select "SIA" to follow the S
 cooling_setpoint = "SIA" # give a number in deC or select "SIA" to follow the SIA380-1 code
 area_per_person = "SIA"  # give a number or select "SIA" to follow the SIA380-1 code (typical for MFH 40)
 
+## LCA angaben
+electricity_factor_source = "SIA"  # Can be "SIA", "eu", "empa_ac"
+electricity_factor_type = "annual"  # Can be "annual", "monthly", "hourly" (Hourly will only work for hourly model and
+                                     # source: empa_ac )
 
 ## Gebäudehülle
 u_windows = 3.0
@@ -126,7 +130,8 @@ print(Gebaeude_static.monthly_cooling_demand.sum())
 
 Gebaeude_static.run_SIA_electricity_demand(occupancy_path)
 
-Gebaeude_static.run_SIA_380_emissions(emission_factor_type="SIA_380", avg_ashp_cop=2.8)
+Gebaeude_static.run_SIA_380_emissions(emission_factor_source=electricity_factor_source,
+                                      emission_factor_type=electricity_factor_type, avg_ashp_cop=2.8)
 
 print("operational emissions static")
 print(Gebaeude_static.operational_emissions.sum())  # CO2eq/m2a
@@ -154,7 +159,7 @@ print("cooling")
 print(dp.hourly_to_monthly((Gebaeude_dyn.cooling_demand)/ 1000.0 / energiebezugsflache).sum())
 
 Gebaeude_dyn.run_SIA_electricity_demand(occupancy_path)
-Gebaeude_dyn.run_dynamic_emissions("SIA_380", "c")
+Gebaeude_dyn.run_dynamic_emissions(emission_factor_source=electricity_factor_source, emission_factor_type=electricity_factor_type, grid_export_assumption="c")
 #
 print("operational emissions dynamic")
 print(Gebaeude_dyn.operational_emissions.sum() / energiebezugsflache)

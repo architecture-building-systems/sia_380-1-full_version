@@ -517,7 +517,7 @@ class Building(object):
         self.dhw_demand = np.repeat(dp.sia_annaul_dhw_demand(self.gebaeudekategorie_sia) / 12.0, 12)
         # monthly kWh/energy_reference area --> this way is simplified and needs to be done according to 384/2
 
-    def run_SIA_380_emissions(self, emission_factor_type, avg_gshp_cop=3.8, avg_ashp_cop=2.8):
+    def run_SIA_380_emissions(self, emission_factor_source, emission_factor_type, avg_gshp_cop=3.8, avg_ashp_cop=2.8):
         """
         Beachte: Die SIA Norm kennt keinen flexiblen Strommix. Soll das Stromprodukt ausgewählt werden können,
         müssten hiere noch weitere Anpassungen durchgeführt werden.
@@ -597,7 +597,7 @@ class Building(object):
 
 
         # acount for net grid import emissions
-        self.grid_electricity_emissions = self.net_electricity_demand * dp.build_yearly_emission_factors_sia().mean()
+        self.grid_electricity_emissions = self.net_electricity_demand * dp.build_yearly_emission_factors(emission_factor_source, emission_factor_type).mean()
         self.grid_electricity_emissions[self.grid_electricity_emissions < 0.0] = 0.0
 
         self.operational_emissions = self.fossil_heating_emissions + self.fossil_dhw_emissions + \
