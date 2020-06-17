@@ -12,9 +12,9 @@ import pandas as pd
 ###################################### SYSTEM DEFINITION ###############################################################
 Im this first part of the code, building, its location and all the related systems are defined.
 """
-scenarios_path = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\scenarios.xlsx"
-configurations_path = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\configurations.xlsx"
-performance_matrix_path = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\performance_matrix.xlsx"
+scenarios_path = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\scenarios_UBA.xlsx"
+configurations_path = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\configurations_UBA.xlsx"
+performance_matrix_path = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\performance_matrix_UBA.xlsx"
 
 
 scenarios = pd.read_excel(scenarios_path)
