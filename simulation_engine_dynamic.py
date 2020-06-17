@@ -263,7 +263,7 @@ class Sim_Building(object):
                                                                                             self.gebaeudekategorie_sia)
 
 
-    def run_dynamic_emissions(self, emission_factor_type, grid_export_assumption='c'):
+    def run_dynamic_emissions(self, emission_factor_source, emission_factor_type, grid_export_assumption='c'):
         """
 
         :return:
@@ -278,19 +278,7 @@ class Sim_Building(object):
 
 
         ### Too many ifs. TODO: simplify by adding into a single function or table.
-        if emission_factor_type == 'annual':
-            grid_emission_factors = dp.build_yearly_emission_factors(export_assumption=grid_export_assumption)
-        elif emission_factor_type == 'monthly':
-            grid_emission_factors = dp.build_monthly_emission_factors(export_assumption=grid_export_assumption)
-        elif emission_factor_type == 'hourly':
-            grid_emission_factors = dp.build_grid_emission_hourly(export_assumption=grid_export_assumption)
-        elif emission_factor_type == 'SIA_380':
-            grid_emission_factors = dp.build_yearly_emission_factors_sia()
-        elif emission_factor_type == 'EU':
-            grid_emission_factors = dp.build_yearly_emission_factors_eu()
-        else:
-            print("Type of emission factor was not sufficiently specified")
-            exit(1)
+        grid_emission_factors = dp.build_yearly_emission_factors(source=emission_factor_source, export_assumption=grid_export_assumption)
 
         if self.heating_fossil_demand.any()>0:
             # Those factors come in kgCO2eq per kWh heating energy

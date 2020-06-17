@@ -118,74 +118,52 @@ def electric_appliances_sia(energy_reference_area, type=1, value="standard"):
 
     return demand_profile * energy_reference_area #Wh
 
-def build_yearly_emission_factors(export_assumption="c"):
+# def build_yearly_emission_factors(export_assumption="c"):
+#
+#     choice = "TEF" + export_assumption
+#     emissions_df = pd.read_excel(r"C:\Users\walkerl\Documents\code\proof_of_concept\data\emission_factors_AC.xlsx",
+#                                  index="Time")
+#     emissions_df = emissions_df.set_index('Time')
+#     emissions_df.resample('Y').mean()
+#     #swiss
+#     hourly_emission_factor = np.repeat(emissions_df.resample('Y').mean()[choice].to_numpy(), 8760)/1000.0 #kgCO2eq/kWh
+#
+#     return hourly_emission_factor
 
-    choice = "TEF" + export_assumption
-    emissions_df = pd.read_excel(r"C:\Users\walkerl\Documents\code\proof_of_concept\data\emission_factors_AC.xlsx",
+def build_yearly_emission_factors(source, type="annual", export_assumption="c"):
+
+
+    if source =="SIA":
+        #SIA has a constant factor, the type therefore does not matter
+        hourly_emission_factor = np.repeat(139, 8760) / 1000.0  # kgCO2eq/kWh SIA380
+        return hourly_emission_factor
+    elif source == "eu":
+        # here a constant factor of the european power mix is assumed, the type therefore does not matter
+        hourly_emission_factor = np.repeat(630, 8760) / 1000.0  # kgCO2eq/kWh www.co2-monitor.ch/de/information/glossar/
+
+    elif source == "empa_ac":
+
+
+        choice = "TEF" + export_assumption
+        emissions_df = pd.read_excel(r"C:\Users\walkerl\Documents\code\proof_of_concept\data\emission_factors_AC.xlsx",
                                  index="Time")
-    emissions_df = emissions_df.set_index('Time')
-    emissions_df.resample('Y').mean()
-    #swiss
-    hourly_emission_factor = np.repeat(emissions_df.resample('Y').mean()[choice].to_numpy(), 8760)/1000.0 #kgCO2eq/kWh
+        emissions_df = emissions_df.set_index('Time')
 
-    return hourly_emission_factor
-
-def build_yearly_emission_factors_sia():
-    hourly_emission_factor = np.repeat(139, 8760) / 1000.0  # kgCO2eq/kWh SIA380
-    return hourly_emission_factor
-
-def build_yearly_emission_factors_eu():
-    hourly_emission_factor = np.repeat(630, 8760) / 1000.0  # kgCO2eq/kWh www.co2-monitor.ch/de/information/glossar/
-    return hourly_emission_factor
-
-def build_monthly_emission_factors(export_assumption="c"):
-    """
-    This function creates simple monthly emission factors of the Swiss consumption mix based on the year 2015.
-    It returns an hourly list of the monthly values. No input is needed. The list is generated here to omit hard coding
-    values within the simulatin process.
-    :return: np array of length 8760 with monthly emission factors on hourly resolution.
-    """
-    if export_assumption=="c":
-        grid_emission_factor = {"jan": .1366, "feb": .1548, "mar": .1403, "apr": .1170, "may": .0578, "jun": .0716,
-                                "jul": .0956, "aug": .1096, "sep": .1341, "oct": .1750, "nov": .1644, "dec": .1577}  # for TEFc (AC)
-
-    elif export_assumption=="d":
-        grid_emission_factor = {"jan": .1108, "feb": .1257, "mar": .1175, "apr": .0937, "may": .0400, "jun": .0463,
-                                "jul": .0594, "aug": .0931, "sep": .1111, "oct": .1418, "nov": .1344, "dec": .1343}  # for TEFd (AC)
+        if type == "annual":
+            hourly_emission_factor = np.repeat(emissions_df.resample('Y').mean()[choice].to_numpy(),
+                                           8760) / 1000.0  # kgCO2eq/kWh
+        if type=="monthly":
+            hourly_emission_factor = np.repeat(emissions_df.resample('M').mean()[choice].to_numpy(),
+                                           8760) / 1000.0  # kgCO2eq/kWh
+        if type=="hourly":
+            hourly_emission_factor = emissions_df[choice].to_numpy() / 1000.0
 
     else:
-        "Choice of export assumption not valid"
+        quit("Emission factors for electricity could not be built. Simulation stopped")
 
-    ## Factors above According to ST Alice Chevrier
-    ## hours of the months:
-    # jan:  0 - 743
-    # feb:  744 - 1415
-    # mar:  1440 - 2159
-    # apr:  2160 - 2906
-    # may:  2907 - 3623
-    # jun:  3624 - 4343
-    # jul:  4344 - 5087
-    # aug:  5088 - 5831
-    # sep:  5832 - 6551
-    # oct:  6552 - 7295
-    # nov:  7296 - 8015
-    # dec:  8016 - 8759
 
-    hourly_emission_factors = np.concatenate([
-        np.repeat(grid_emission_factor["jan"], 744),
-        np.repeat(grid_emission_factor["feb"], 672),
-        np.repeat(grid_emission_factor["mar"], 744),
-        np.repeat(grid_emission_factor["apr"], 720),
-        np.repeat(grid_emission_factor["may"], 744),
-        np.repeat(grid_emission_factor["jun"], 720),
-        np.repeat(grid_emission_factor["jul"], 744),
-        np.repeat(grid_emission_factor["aug"], 744),
-        np.repeat(grid_emission_factor["sep"], 720),
-        np.repeat(grid_emission_factor["oct"], 744),
-        np.repeat(grid_emission_factor["nov"], 720),
-        np.repeat(grid_emission_factor["dec"], 744)
-    ])  # in g/kWh
-    return hourly_emission_factors
+    return hourly_emission_factor
+
 
 def build_grid_emission_hourly(export_assumption="c"):
     emissions_df = pd.read_excel(r"C:\Users\walkerl\Documents\code\proof_of_concept\data\emission_factors_AC.xlsx")
