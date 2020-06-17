@@ -548,9 +548,11 @@ class Building(object):
 
         elif self.heating_system == "electric":
             self.heating_elec = self.heizwarmebedarf
+            self.dhw_elec = self.dhw_demand
 
         else:
             self.heating_elec = 0.0
+            self.dhw_elec = 0.0
 
         # same for cooling
         if self.cooling_system == "GSHP":
@@ -581,14 +583,14 @@ class Building(object):
 
         # account for fossil heating emissions
         if self.heating_system in ["Oil", "Natural Gas", "Wood", "Pellets"]:
-            self.fossil_heating_emissions = self.heizwarmebedarf * dp.fossil_emission_factors(self.heating_system)
+            self.fossil_heating_emissions = self.heizwarmebedarf * dp.fossil_emission_factors(self.heating_system).mean()
 
         else:
             self.fossil_heating_emissions = 0.0
 
         # account for fossil dhw emissions
         if self.dhw_heating_system in ["Oil", "Natural Gas", "Wood", "Pellets"]:
-            self.fossil_dhw_emissions = self.dhw_demand * dp.fossil_emission_factors(self.dhw_heating_system)
+            self.fossil_dhw_emissions = self.dhw_demand * dp.fossil_emission_factors(self.dhw_heating_system).mean()
 
         else:
             self.fossil_dhw_emissions = 0.0
