@@ -90,6 +90,8 @@ for config_index, config in configurations.iterrows():
 
     for scenario_index, scenario in scenarios.iterrows():
 
+        print("Calculating Scenario %s" %(scenario_index))
+
         weatherfile_path = scenario["weatherfile"]
         occupancy_path = scenario['occupancy schedule']
 
