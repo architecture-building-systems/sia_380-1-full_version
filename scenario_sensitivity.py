@@ -80,6 +80,7 @@ if __name__ == '__main__':
 
     ### Run Model
     Y = np.zeros([param_values.shape[0]])
+    Z = np.zeros([param_values.shape[0]])
     for i, X in enumerate(param_values):
 
 
@@ -135,8 +136,29 @@ if __name__ == '__main__':
 
         ### Stündliche Berechnungen:
 
-        # Y[i] = Gebaeude_1.heizwarmebedarf.sum()  #kWh/m2a
+        ### Stündliche Berechnungen:
+
+        Gebaeude_dyn = sime.Sim_Building(gebaeudekategorie_sia, regelung, windows, walls, roof, floor,
+                                         energiebezugsflache,
+                                         anlagennutzungsgrad_wrg, infiltration_volume_flow, ventilation_volume_flow,
+                                         warmespeicherfahigkeit_pro_EBF,
+                                         korrekturfaktor_luftungs_eff_f_v, hohe_uber_meer, heizsystem, cooling_system,
+                                         dhw_heizsystem, heating_setpoint, cooling_setpoint, area_per_person)
+
+        Gebaeude_dyn.pv_production = pv_yield_hourly
+
+        Gebaeude_dyn.run_rc_simulation(weatherfile_path=weatherfile_path,
+                                       occupancy_path=occupancy_path)
+        Gebaeude_dyn.run_SIA_electricity_demand(occupancy_path)
+        Gebaeude_dyn.run_dynamic_emissions(emission_factor_source=electricity_factor_source,
+                                           emission_factor_type=electricity_factor_type, grid_export_assumption="c")
+
+
         Y[i] = Gebaeude_static.operational_emissions.sum()
+        Z[i] = (Gebaeude_dyn.operational_emissions/energiebezugsflache/1000).sum()
+
+
+
 
     print("sobol analysis...")
     Si = sobol.analyze(problem, Y, parallel=True, n_processors=6)
@@ -158,6 +180,27 @@ if __name__ == '__main__':
     plt.colorbar()
     plt.xticks(np.arange(0.5, 12.5, 1.0), problem['names'])
     plt.yticks(np.arange(0.5, 12.5, 1.0), problem['names'])
+    plt.title("Monatliche Berechnung")
     plt.show()
 
+    print("sobol analysis...")
+    Si = sobol.analyze(problem, Z, parallel=True, n_processors=6 )
 
+    print(Si['S1'])
+    print(Si['S2'])
+    print(Si['ST'])
+
+    # print("x1-x2:", Si['S2'][0,1])
+    # print("x1-x3:", Si['S2'][0,2])
+    # print("x2-x3:", Si['S2'][1,2])
+    #
+
+    plt.bar(problem['names'], Si['ST'])
+    # plt.title('Sobol Sensitivities of Parameters for heating energy')
+    plt.show()
+
+    plt.pcolormesh(Si['S2'], cmap='binary')
+    plt.colorbar()
+    plt.xticks(np.arange(0.5,12.5,1.0), problem['names'])
+    plt.yticks(np.arange(0.5,12.5,1.0), problem['names'])
+    plt.show()
