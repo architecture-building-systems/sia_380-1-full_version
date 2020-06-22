@@ -12,15 +12,22 @@ import pandas as pd
 ###################################### SYSTEM DEFINITION ###############################################################
 Im this first part of the code, building, its location and all the related systems are defined.
 """
-scenarios_path = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\scenarios_UBA.xlsx"
-configurations_path = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\configurations_UBA.xlsx"
-performance_matrix_path = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\performance_matrix_UBA.xlsx"
+scenarios_path = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\scenarios.xlsx"
+configurations_path = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\configurations.xlsx"
+performance_matrix_path = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\performance_matrix.xlsx"
 
 
 scenarios = pd.read_excel(scenarios_path)
 configurations = pd.read_excel(configurations_path, index_col="Configuration", skiprows=[1])
 
 emission_performance_matrix = np.empty((len(configurations.index), len(scenarios.index)))
+
+## LCA angaben
+electricity_factor_source = "SIA"  # Can be "SIA", "eu", "empa_ac"
+electricity_factor_type = "annual"  # Can be "annual", "monthly", "hourly" (Hourly will only work for hourly model and
+                                     # source: empa_ac )
+
+
 
 for config_index, config in configurations.iterrows():
 
@@ -137,27 +144,8 @@ for config_index, config in configurations.iterrows():
         Gebaeude_static.cooling_system = cooling_system  # Diese Definitionens sollten verschoben werden zur definition des Objekts
         Gebaeude_static.run_dhw_demand()
 
-
-        # print("heating SIA")
-        # print(Gebaeude_static.heizwarmebedarf.sum())
-
-        # print("cooling SIA")
-        # print(Gebaeude_static.monthly_cooling_demand.sum())
-
         Gebaeude_static.run_SIA_electricity_demand(occupancy_path)
 
-        Gebaeude_static.run_SIA_380_emissions(emission_factor_type="SIA_380", avg_ashp_cop=2.8)
-
-        # print("operational emissions static SIA")
-        # print(Gebaeude_static.operational_emissions.sum())  # CO2eq/m2a
-
-        emission_performance_matrix[config_index, scenario_index] = Gebaeude_static.operational_emissions.sum()
-
-
-        # print(Gebaeude_static.non_renewable_primary_energy.sum())  # kWh/m2a
-
-
-        """
 
         Gebaeude_dyn = sime.Sim_Building(gebaeudekategorie_sia, regelung, windows, walls, roof, floor, energiebezugsflache,
                                        anlagennutzungsgrad_wrg, infiltration_volume_flow, ventilation_volume_flow,
@@ -171,30 +159,31 @@ for config_index, config in configurations.iterrows():
                                      occupancy_path=occupancy_path)
 
 
-
-        print("Heating RC")
-        print((dp.hourly_to_monthly(Gebaeude_dyn.heating_demand) / 1000.0 / energiebezugsflache).sum())
-        # print("DHW")
-        # print(dp.hourly_to_monthly(Gebaeude_dyn.dhw_demand)/1000.0 / energiebezugsflache)
-        print("cooling RC")
-        print(dp.hourly_to_monthly((Gebaeude_dyn.cooling_demand)/ 1000.0 / energiebezugsflache).sum())
-
         Gebaeude_dyn.run_SIA_electricity_demand(occupancy_path)
-        Gebaeude_dyn.run_dynamic_emissions("SIA_380", "c")
-        #
-        print("operational emissions dynamic RC")
-        print(Gebaeude_dyn.operational_emissions.sum() / energiebezugsflache)
-        # print(dp.hourly_to_monthly((Gebaeude_1.heating_emissions + Gebaeude_1.dhw_emisions) / 1000.0 / energiebezugsflache))
 
-        # else:
-        #     print("simulation type not correctly specified")
 
-        """
 
-        """####################################
+
+
+
+
+        #### OPERATIONAL IMPACT SIMULATION ####
+
+        Gebaeude_dyn.run_dynamic_emissions(emission_factor_source=electricity_factor_source,
+                                           emission_factor_type=electricity_factor_type, grid_export_assumption="c")
+
+
+        Gebaeude_static.run_SIA_380_emissions(emission_factor_source=electricity_factor_source,
+                                              emission_factor_type=electricity_factor_type, avg_ashp_cop=2.8)
+
+
+        emission_performance_matrix[config_index, scenario_index] = Gebaeude_dyn.operational_emissions.sum()/1000.0
+
+
+
     
 
-
+        """
 
         ajajaj = zip(dp.hourly_to_monthly(Gebaeude_dyn.heating_demand) / 1000.0 / energiebezugsflache,
                       dp.hourly_to_monthly(Gebaeude_dyn.dhw_demand)/1000.0 / energiebezugsflache,
