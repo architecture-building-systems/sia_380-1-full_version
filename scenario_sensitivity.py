@@ -58,14 +58,17 @@ if __name__ == '__main__':
 
     ### Generate Samples
     problem = {
-        'num_vars': 4,
-        'names': ['weather_file', 'infiltration_flow', 'occupancy_schedule', 'area_per_person'],
+        'num_vars': 6,
+        'names': ['weather_file', 'infiltration_flow', 'occupancy_schedule', 'area_per_person', "heating_setpoint",
+                  "cooling_setpoint"],
         'bounds': [[0.5, 4.5],
                    [0.05, 0.50],
                    [0.5, 2.5],
-                   [20.0, 150.0]]}  # Heating system ## Abklären, ob dies so gemacht werden kann für diskretisierte Variablen.
+                   [20.0, 150.0],
+                   [18.0, 25.0],
+                   [20.0, 30.0]]}  # Heating system ## Abklären, ob dies so gemacht werden kann für diskretisierte Variablen.
     # "Natural Gas":0.249, "Wood":0.020, "Pellets":0.048, "GSHP_CH_mix":0.055, "ASHP_CH_mix":0.076, "GSHP_EU_mix":0.207, "ASHP_EU_mix":0.285
-    param_values = saltelli.sample(problem, 3)
+    param_values = saltelli.sample(problem, 60)
 
 
     number_to_climate = {1: r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\Zürich-hour_historic.epw",
@@ -74,8 +77,8 @@ if __name__ == '__main__':
                          4: r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\Zürich-2070-B1.epw"}
 
     number_to_occupancy = {1: r"C:\Users\walkerl\Documents\code\RC_BuildingSimulator\rc_simulator\auxiliary\occupancy_office.csv",
-                           2: r"C:\Users\walkerl\Documents\code\RC_BuildingSimulator\rc_simulator\auxiliary\occupancy_single_res.csv"
-                           }
+                           2: r"C:\Users\walkerl\Documents\code\RC_BuildingSimulator\rc_simulator\auxiliary\occupancy_single_res.csv"}
+
 
 
     ### Run Model
@@ -94,7 +97,8 @@ if __name__ == '__main__':
         occupancy_path = number_to_occupancy[occupancy_number]
 
         area_per_person = X[3]
-
+        heating_setpoint = X[4]
+        cooling_setpoint = X[5]
 
 
         ## Bauteile:
@@ -174,12 +178,13 @@ if __name__ == '__main__':
 
     plt.bar(problem['names'], Si['ST'])
     # plt.title('Sobol Sensitivities of Parameters for heating energy')
+    plt.title("Monatliche Berechnung")
     plt.show()
 
     plt.pcolormesh(Si['S2'], cmap='binary')
     plt.colorbar()
-    plt.xticks(np.arange(0.5, 12.5, 1.0), problem['names'])
-    plt.yticks(np.arange(0.5, 12.5, 1.0), problem['names'])
+    plt.xticks(np.arange(0.5, 6.5, 1.0), problem['names'])
+    plt.yticks(np.arange(0.5, 6.5, 1.0), problem['names'])
     plt.title("Monatliche Berechnung")
     plt.show()
 
@@ -197,10 +202,12 @@ if __name__ == '__main__':
 
     plt.bar(problem['names'], Si['ST'])
     # plt.title('Sobol Sensitivities of Parameters for heating energy')
+    plt.title("stündliche Berechnung")
     plt.show()
 
     plt.pcolormesh(Si['S2'], cmap='binary')
     plt.colorbar()
-    plt.xticks(np.arange(0.5,12.5,1.0), problem['names'])
-    plt.yticks(np.arange(0.5,12.5,1.0), problem['names'])
+    plt.xticks(np.arange(0.5,6.5,1.0), problem['names'])
+    plt.yticks(np.arange(0.5,6.5,1.0), problem['names'])
+    plt.title("stündliche Berechnung")
     plt.show()

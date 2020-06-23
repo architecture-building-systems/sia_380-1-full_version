@@ -34,22 +34,20 @@ if __name__=='__main__':
 
     ### Generate Samples
     problem = {
-        'num_vars':11,
-        'names':['u_opaque', 'u_glazing', 'g_windows', 'heating_setpoint', 'PV azimuth', 'cooling_setpoint', 'thermal_mass',
+        'num_vars':9,
+        'names':['u_opaque', 'u_glazing', 'g_windows', 'PV azimuth', 'thermal_mass',
                  'pv_effieicncy', 'eta_g', 'infiltration_flow', 'heating system'],
         'bounds':[[0.12, 0.4],  # u_walls
                   [0.75, 2.0],  # u_windows
                   [0.2, 0.8],  # g_windows
-                  [17.0, 25.0],  # heating_setpoint
                   [0.0, 359.0],  # PV azimuth
-                  [19.0, 30.0],  # cooling_setpoint
                   [0.03, 0.15],  # waermespeicherfaehigkeit pro EBF
                   [0.10, 0.30],  # pv_efficiency
                   [0.0, 0.70],  # eta g, heat recovery efficiency
                   [0.05, 0.25],  # infiltration volume flow
                   [0.5, 5.5]]}   # Heating system ## Abklären, ob dies so gemacht werden kann für diskretisierte Variablen.
     # "Natural Gas":0.249, "Wood":0.020, "Pellets":0.048, "GSHP_CH_mix":0.055, "ASHP_CH_mix":0.076, "GSHP_EU_mix":0.207, "ASHP_EU_mix":0.285
-    param_values = saltelli.sample(problem, 3)
+    param_values = saltelli.sample(problem, 50)
 
 
     gebaeudekategorie_sia = 1.1
@@ -60,6 +58,8 @@ if __name__=='__main__':
     area_per_person = "SIA"  # give a number or select "SIA" to follow the SIA380-1 code (typical for MFH 40)
     korrekturfaktor_luftungs_eff_f_v = 1.0
     b_floor = 0.4
+    heating_setpoint = "SIA"
+    cooling_setpoint = "SIA"
 
 
     weatherfile_path = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\Zürich-hour_historic.epw"
@@ -76,14 +76,12 @@ if __name__=='__main__':
         u_floor = u_roof = u_walls = X[0]
         u_windows = X[1]
         g_windows = X[2]
-        heating_setpoint = X[3]
-        pv_azimuth = X[4]
-        cooling_setpoint = X[5]
-        warmespeicherfahigkeit_pro_EBF = X[6]
-        pv_efficiency = X[7]  # zwischen 0.8 und 1.2 gemäss SIA380-1 Tab 24
-        anlagennutzungsgrad_wrg = X[8]
-        infiltration_volume_flow = X[9]
-        heating_system_number = np.round(X[10], 0)
+        pv_azimuth = X[3]
+        warmespeicherfahigkeit_pro_EBF = X[4]
+        pv_efficiency = X[5]  # zwischen 0.8 und 1.2 gemäss SIA380-1 Tab 24
+        anlagennutzungsgrad_wrg = X[6]
+        infiltration_volume_flow = X[7]
+        heating_system_number = np.round(X[8], 0)
         number_to_system = {1:"Natural Gas", 2:"Wood", 3:"Pellets", 4:"GSHP", 5:"ASHP"}
 
         heizsystem = number_to_system[heating_system_number]
@@ -168,12 +166,13 @@ if __name__=='__main__':
 
     plt.bar(problem['names'], Si['ST'])
     # plt.title('Sobol Sensitivities of Parameters for heating energy')
+    plt.title("Monatliche Berechnung")
     plt.show()
 
     plt.pcolormesh(Si['S2'], cmap='binary')
     plt.colorbar()
-    plt.xticks(np.arange(0.5,12.5,1.0), problem['names'])
-    plt.yticks(np.arange(0.5,12.5,1.0), problem['names'])
+    plt.xticks(np.arange(0.5,9.5,1.0), problem['names'])
+    plt.yticks(np.arange(0.5,9.5,1.0), problem['names'])
     plt.title("Monatliche Berechnung")
     plt.show()
 
@@ -192,12 +191,13 @@ if __name__=='__main__':
 
     plt.bar(problem['names'], Si['ST'])
     # plt.title('Sobol Sensitivities of Parameters for heating energy')
+    plt.title("Stündliche Berechnung")
     plt.show()
 
     plt.pcolormesh(Si['S2'], cmap='binary')
     plt.colorbar()
-    plt.xticks(np.arange(0.5,12.5,1.0), problem['names'])
-    plt.yticks(np.arange(0.5,12.5,1.0), problem['names'])
+    plt.xticks(np.arange(0.5,9.5,1.0), problem['names'])
+    plt.yticks(np.arange(0.5,9.5,1.0), problem['names'])
     plt.title("Stündliche Berechnung")
     plt.show()
 
