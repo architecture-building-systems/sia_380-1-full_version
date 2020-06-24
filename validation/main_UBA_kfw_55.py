@@ -25,7 +25,7 @@ gebaeudekategorie_sia = 1.1
 regelung = "andere"  # oder "Referenzraum" oder "andere"
 hohe_uber_meer = 435 # Eingabe
 energiebezugsflache = 2275  # m2
-anlagennutzungsgrad_wrg = 0.6 ## SIA 380-1 Tab 23
+anlagennutzungsgrad_wrg = 0.0 ## SIA 380-1 Tab 23
 warmespeicherfahigkeit_pro_EBF = 0.08 ## Wert noch nicht klar, bestimmen gemäss SN EN ISO 13786 oder Tab25 Einheiten?
 korrekturfaktor_luftungs_eff_f_v = 1.0  # zwischen 0.8 und 1.2 gemäss SIA380-1 Tab 24
 infiltration_volume_flow = 0.15  # Gemäss SIA 380-1 2016 3.5.5 soll 0.15m3/(hm2) verwendet werden. Korrigenda anschauen
@@ -205,8 +205,33 @@ results[["internal_gains_RC", "internal_gains_SIA", "internal_gains_ISO"]].plot(
 plt.ylabel("Internal Gains [kWh/m2M]")
 plt.show()
 
-plt.plot(Gebaeude_dyn.cooling_demand/1000.0/energiebezugsflache, label="Cooling")
-plt.plot(Gebaeude_dyn.heating_demand/1000.0/energiebezugsflache, label="Heating")
+starttime = pd.to_datetime('1/1/2020')
+drange = pd.date_range(start=starttime, periods=8760, freq='H')
+
+
+
+why_is_this_necessary = zip(Gebaeude_dyn.cooling_demand/1000.0/energiebezugsflache, Gebaeude_dyn.heating_demand/1000.0/energiebezugsflache)
+hourly_results = pd.DataFrame(why_is_this_necessary,
+                              columns=["RC cooling", "RC heating"], index=drange)
+
+daily_results = hourly_results.resample('D').sum()
+ax1 = daily_results["RC heating"].plot(label="RC heating", kind='bar', color='orange')
+ax2 = daily_results["RC cooling"].plot(label="RC cooling", kind='bar')
+
+ax1.xaxis.set_ticks([])
+ax2.xaxis.set_ticks([])
+
+# n=10
+# ticks = ax1.xaxis.get_ticklocs()
+# ticklabels = [l.get_text() for l in ax1.xaxis.get_ticklabels()]
+# ax1.xaxis.set_ticks(ticks[::n])
+# ax1.xaxis.set_ticklabels(ticklabels[::n])
+# ax2.xaxis.set_ticks(ticks[::n])
+# ax2.xaxis.set_ticklabels(ticklabels[::n])
+
+
+# plt.bar(Gebaeude_dyn.cooling_demand/1000.0/energiebezugsflache, label="Cooling")
+# plt.bar(Gebaeude_dyn.heating_demand/1000.0/energiebezugsflache, label="Heating")
 plt.ylabel("Energy / Power [kWh/m2h]")
 plt.legend()
 plt.show()
