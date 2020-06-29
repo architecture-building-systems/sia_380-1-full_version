@@ -345,6 +345,7 @@ class Building(object):
         # cooling_temperature = dp.sia_standardnutzungsdaten('room_temperature_cooling')
         cooling_temperature = cooling_setpoint
         # cooling_temperature = dp.sia_standardnutzungsdaten('room_temperature_cooling')
+        personenflachen = dp.sia_standardnutzungsdaten('area_per_person')
         warmeabgabe_p_p = dp.sia_standardnutzungsdaten('gain_per_person')
         prasenzzeiten = dp.sia_standardnutzungsdaten('presence_time')
         # this part of elektrizitatsbedarf only goes into thermal calculations. Electricity demand is calculated
