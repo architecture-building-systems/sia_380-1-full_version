@@ -318,20 +318,28 @@ class Building(object):
             pass
 
         # cooling_temperature = dp.sia_standardnutzungsdaten('room_temperature_cooling')
-        personenflachen = dp.sia_standardnutzungsdaten('area_per_person')
         warmeabgabe_p_p = dp.sia_standardnutzungsdaten('gain_per_person')
         prasenzzeiten = dp.sia_standardnutzungsdaten('presence_time')
         # this part of elektrizitatsbedarf only goes into thermal calculations. Electricity demand is calculated
         # independently.
         elektrizitatsbedarf = dp.sia_standardnutzungsdaten('gains_from_electrical_appliances')
         reduktion_elektrizitat = dp.sia_standardnutzungsdaten('reduction_factor_for_electricity')
-        aussenluft_strome = dp.sia_standardnutzungsdaten('effective_air_flow')
         # aussenluft_strome = {1: 2.1}  # UBA-Vergleichsstudie
 
         if self.cooling_setpoint == "SIA":
             cooling_temperature = dp.sia_standardnutzungsdaten('room_temperature_cooling')
         else:
             cooling_temperature = self.cooling_setpoint
+
+        if self.ventilation_volume_flow == "SIA":
+            aussenluft_strome = dp.sia_standardnutzungsdaten('effective_air_flow')
+        else:
+            aussenluft_strome = {int(self.gebaeudekategorie_sia):self.ventilation_volume_flow+self.q_inf}
+
+        if self.area_per_person == "SIA":
+            personenflachen = dp.sia_standardnutzungsdaten('area_per_person')
+        else:
+            personenflachen = {int(self.gebaeudekategorie_sia):self.area_per_person}
 
         # Gesamtwärmeübergangskoeffizient für Elemente, die mit der äusseren Umgebung verbunden sind. Dieser Wert wird
         # zeitlich konstant angenommen. [W/K]
