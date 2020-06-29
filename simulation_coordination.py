@@ -12,15 +12,16 @@ import pandas as pd
 ###################################### SYSTEM DEFINITION ###############################################################
 Im this first part of the code, building, its location and all the related systems are defined.
 """
-scenarios_path = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\scenarios.xlsx"
-configurations_path = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\configurations.xlsx"
-performance_matrix_path = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\performance_matrix.xlsx"
-
+scenarios_path = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\scenarios_UBA.xlsx"
+configurations_path = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\configurations_UBA.xlsx"
+performance_matrix_path_hourly = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\performance_matrix_UBA_hourly.xlsx"
+performance_matrix_path_monthly = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\performance_matrix_UBA_monthly.xlsx"
 
 scenarios = pd.read_excel(scenarios_path)
 configurations = pd.read_excel(configurations_path, index_col="Configuration", skiprows=[1])
 
-emission_performance_matrix = np.empty((len(configurations.index), len(scenarios.index)))
+emission_performance_matrix_dyn = np.empty((len(configurations.index), len(scenarios.index)))
+emission_performance_matrix_stat = np.empty((len(configurations.index), len(scenarios.index)))
 
 ## LCA angaben
 electricity_factor_source = "SIA"  # Can be "SIA", "eu", "empa_ac"
@@ -42,7 +43,6 @@ for config_index, config in configurations.iterrows():
     korrekturfaktor_luftungs_eff_f_v = 1.0  # zwischen 0.8 und 1.2 gemäss SIA380-1 Tab 24
     infiltration_volume_flow_planned = config['infiltration volume flow']  # Gemäss SIA 380-1 2016 3.5.5 soll 0.15m3/(hm2) verwendet werden. Korrigenda anschauen
     ventilation_volume_flow = config['ventilation volume flow'] # give a number in m3/(hm2) or select "SIA" to follow SIA380-1 code
-    heating_setpoint = config['heating setpoint']  # give a number in deC or select "SIA" to follow the SIA380-1 code
     cooling_setpoint = config['cooling setpoint'] # give a number in deC or select "SIA" to follow the SIA380-1 code
     area_per_person = config['area per person']  # give a number or select "SIA" to follow the SIA380-1 code (typical for MFH 40)
 
@@ -101,6 +101,7 @@ for config_index, config in configurations.iterrows():
 
         weatherfile_path = scenario["weatherfile"]
         occupancy_path = scenario['occupancy schedule']
+        heating_setpoint = scenario['heating setpoint']  # give a number in deC or select "SIA" to follow the SIA380-1 code
 
         weather_data_sia = dp.epw_to_sia_irrad(weatherfile_path)
         infiltration_volume_flow = infiltration_volume_flow_planned * scenario['infiltration volume flow factor']  # This accounts for improper construction/tightness
@@ -177,7 +178,8 @@ for config_index, config in configurations.iterrows():
                                               emission_factor_type=electricity_factor_type, avg_ashp_cop=2.8)
 
 
-        emission_performance_matrix[config_index, scenario_index] = Gebaeude_dyn.operational_emissions.sum()/1000.0
+        emission_performance_matrix_dyn[config_index, scenario_index] = Gebaeude_dyn.operational_emissions.sum()/1000.0
+        emission_performance_matrix_stat[config_index, scenario_index] = Gebaeude_static.operational_emissions.sum()
 
 
 
@@ -243,5 +245,6 @@ for config_index, config in configurations.iterrows():
         
         """
 
-print(emission_performance_matrix)
-pd.DataFrame(emission_performance_matrix, index=configurations.index, columns=scenarios.index).to_excel(performance_matrix_path)
+
+pd.DataFrame(emission_performance_matrix_dyn, index=configurations.index, columns=scenarios.index).to_excel(performance_matrix_path_hourly)
+pd.DataFrame(emission_performance_matrix_stat, index=configurations.index, columns=scenarios.index).to_excel(performance_matrix_path_monthly)
