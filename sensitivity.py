@@ -148,8 +148,8 @@ if __name__=='__main__':
                                            emission_factor_type=electricity_factor_type, grid_export_assumption="c")
 
         # Y[i] = Gebaeude_1.heizwarmebedarf.sum()  #kWh/m2a
-        Y[i] = Gebaeude_static.operational_emissions.sum()
-        Z[i] = (Gebaeude_dyn.operational_emissions/energiebezugsflache/1000).sum()
+        Y[i] = Gebaeude_static.heizwarmebedarf.sum()
+        Z[i] = (Gebaeude_dyn.heating_demand/energiebezugsflache/1000).sum()
 
 
     print("sobol analysis...")

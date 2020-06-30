@@ -135,8 +135,8 @@ if __name__ == '__main__':
         Gebaeude_static.cooling_system = cooling_system  # Diese Definitionens sollten verschoben werden zur definition des Objekts
         Gebaeude_static.run_dhw_demand()
         Gebaeude_static.run_SIA_electricity_demand(occupancy_path)
-        Gebaeude_static.run_SIA_380_emissions(emission_factor_source=electricity_factor_source,
-                                              emission_factor_type=electricity_factor_type, avg_ashp_cop=2.8)
+        # Gebaeude_static.run_SIA_380_emissions(emission_factor_source=electricity_factor_source,
+        #                                       emission_factor_type=electricity_factor_type, avg_ashp_cop=2.8)
 
         ### Stündliche Berechnungen:
 
@@ -154,12 +154,12 @@ if __name__ == '__main__':
         Gebaeude_dyn.run_rc_simulation(weatherfile_path=weatherfile_path,
                                        occupancy_path=occupancy_path)
         Gebaeude_dyn.run_SIA_electricity_demand(occupancy_path)
-        Gebaeude_dyn.run_dynamic_emissions(emission_factor_source=electricity_factor_source,
-                                           emission_factor_type=electricity_factor_type, grid_export_assumption="c")
+        # Gebaeude_dyn.run_dynamic_emissions(emission_factor_source=electricity_factor_source,
+        #                                    emission_factor_type=electricity_factor_type, grid_export_assumption="c")
 
 
-        Y[i] = Gebaeude_static.operational_emissions.sum()
-        Z[i] = (Gebaeude_dyn.operational_emissions/energiebezugsflache/1000).sum()
+        Y[i] = Gebaeude_static.heizwarmebedarf.sum()
+        Z[i] = (Gebaeude_dyn.heating_demand/energiebezugsflache/1000).sum()
 
 
 
