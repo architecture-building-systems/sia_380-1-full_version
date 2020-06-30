@@ -1,14 +1,14 @@
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-from pandas.plotting import parallel_coordinates
+import plotly.express as px
+
 
 
 pd.set_option('display.max_rows', 500)
 pd.set_option('display.max_columns', 10)
 
 
-classifier = "PV area"
+classifier = "PV Area"
 
 
 scenarios_path = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\Zwischenspeichern\Case_study_I\scenarios_UBA.xlsx"
@@ -21,9 +21,8 @@ configurations = pd.read_excel(configurations_path,  skiprows=[1])
 performance_matrix = pd.read_excel(performance_matrix_path, index_col="Configuration")
 
 
-# print(configurations.index)
-# print(scenarios.index)
-#
+""" Das kann später genutzt werden um alles in einer Tabelle zu haben:
+
 # repeater = len(scenarios.index)
 #
 # all_configs = pd.DataFrame(configurations.values.repeat(repeater, axis=0), columns=configurations.columns)
@@ -35,15 +34,18 @@ performance_matrix = pd.read_excel(performance_matrix_path, index_col="Configura
 #
 # all_data.rename(columns={"Unnamed: 0":"Scenario"}, inplace=True)
 #
-#
-# def func(x, y):
-#     return performance_matrix[x][y]
-#
-# all_data["Performance"] = performance_matrix[all_data['Scenario']][all_data['Configuration']]
+# all_data["Performance"] = 0
 #
 #
-# print(all_data)
+# def performance_reader(row, performance_matrix):
+#
+#    return performance_matrix[row["Scenario"]][row["Configuration"]]
+#
+#
+# all_data["Performance"] = all_data.apply(lambda row: performance_reader(row, performance_matrix), axis=1)
+"""
 
+### Add a scenario and a bla filter here.
 
 
 
