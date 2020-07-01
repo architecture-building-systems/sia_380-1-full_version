@@ -34,33 +34,31 @@ if __name__=='__main__':
 
     ### Generate Samples
     problem = {
-        'num_vars':9,
-        'names':['u_opaque', 'u_glazing', 'g_windows', 'PV azimuth', 'thermal_mass',
-                 'pv_effieicncy', 'eta_g', 'infiltration_flow', 'heating system'],
+        'num_vars':8,
+        'names':['u_opaque', 'u_glazing', 'g_windows', 'PV area', 'thermal_mass',
+                 'pv_effieicncy', 'eta_g', 'heating system'],
         'bounds':[[0.12, 0.4],  # u_walls
                   [0.75, 2.0],  # u_windows
                   [0.2, 0.8],  # g_windows
-                  [0.0, 359.0],  # PV azimuth
+                  [0.0, 506.0],  # PV area from 0 to full roof
                   [0.03, 0.15],  # waermespeicherfaehigkeit pro EBF
                   [0.10, 0.30],  # pv_efficiency
                   [0.0, 0.70],  # eta g, heat recovery efficiency
-                  [0.05, 0.25],  # infiltration volume flow
-                  [0.5, 5.5]]}   # Heating system ## Abklären, ob dies so gemacht werden kann für diskretisierte Variablen.
+                  [0.5, 4.5]]}   # Heating system ## Abklären, ob dies so gemacht werden kann für diskretisierte Variablen.
     # "Natural Gas":0.249, "Wood":0.020, "Pellets":0.048, "GSHP_CH_mix":0.055, "ASHP_CH_mix":0.076, "GSHP_EU_mix":0.207, "ASHP_EU_mix":0.285
-    param_values = saltelli.sample(problem, 50)
-
-
+    param_values = saltelli.sample(problem, 40)
     gebaeudekategorie_sia = 1.1
     regelung = "andere"  # oder "Referenzraum" oder "andere"
     hohe_uber_meer = 435.0  # Eingabe
     energiebezugsflache = 2275.0  # m2
     ventilation_volume_flow = 2.1  # give a number in m3/(hm2) or select "SIA" to follow SIA380-1 code
+    infiltration_volume_flow = 0.15  # SIA
     area_per_person = "SIA"  # give a number or select "SIA" to follow the SIA380-1 code (typical for MFH 40)
     korrekturfaktor_luftungs_eff_f_v = 1.0
     b_floor = 0.4
     heating_setpoint = "SIA"
     cooling_setpoint = "SIA"
-
+    pv_azimuth = 180.0 # south
 
     weatherfile_path = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\Zürich-hour_historic.epw"
     weather_data_sia = dp.epw_to_sia_irrad(weatherfile_path)
@@ -76,19 +74,17 @@ if __name__=='__main__':
         u_floor = u_roof = u_walls = X[0]
         u_windows = X[1]
         g_windows = X[2]
-        pv_azimuth = X[3]
+        pv_area = X[3]
         warmespeicherfahigkeit_pro_EBF = X[4]
-        pv_efficiency = X[5]  # zwischen 0.8 und 1.2 gemäss SIA380-1 Tab 24
+        pv_efficiency = X[5]
         anlagennutzungsgrad_wrg = X[6]
-        infiltration_volume_flow = X[7]
-        heating_system_number = np.round(X[8], 0)
-        number_to_system = {1:"Natural Gas", 2:"Wood", 3:"Pellets", 4:"GSHP", 5:"ASHP"}
+        heating_system_number = np.round(X[7], 0)
+        number_to_system = {1:"ASHP", 2:"Wood", 3:"Pellets", 4:"GSHP"}
 
         heizsystem = number_to_system[heating_system_number]
         dhw_heizsystem = heizsystem  ## This is currently a limitation of the RC Model. Automatically the same!
         cooling_system = "GSHP"  # Only affects dynamic calculation. Static does not include cooling
         pv_performance_ratio = 0.8
-        pv_area = energiebezugsflache  # m2, can be directly linked with roof size
         pv_tilt = 30  # in degrees
 
         ## Bauteile:
@@ -104,10 +100,10 @@ if __name__=='__main__':
                           [u_walls, u_walls, u_walls, u_walls]])
 
         # roof: [[Areas], [U-values]]
-        roof = np.array([[energiebezugsflache], [u_roof]])
+        roof = np.array([[506], [u_roof]])
 
         # floor to ground (for now) [[Areas],[U-values],[b-values]]
-        floor = np.array([[energiebezugsflache], [u_floor], [b_floor]])
+        floor = np.array([[506], [u_floor], [b_floor]])
 
 
         ### Monatliche Berechnungen
@@ -148,9 +144,11 @@ if __name__=='__main__':
                                            emission_factor_type=electricity_factor_type, grid_export_assumption="c")
 
         # Y[i] = Gebaeude_1.heizwarmebedarf.sum()  #kWh/m2a
-        Y[i] = Gebaeude_static.heizwarmebedarf.sum()
-        Z[i] = (Gebaeude_dyn.heating_demand/energiebezugsflache/1000).sum()
+        # Y[i] = Gebaeude_static.heizwarmebedarf.sum()
+        # Z[i] = (Gebaeude_dyn.heating_demand/energiebezugsflache/1000).sum()
 
+        Y[i] = Gebaeude_static.operational_emissions.sum()
+        Z[i] = (Gebaeude_dyn.operational_emissions/energiebezugsflache/1000).sum()
 
     print("sobol analysis...")
     Si = sobol.analyze(problem, Y, parallel=True, n_processors=6 )
@@ -167,6 +165,7 @@ if __name__=='__main__':
     plt.bar(problem['names'], Si['ST'])
     # plt.title('Sobol Sensitivities of Parameters for heating energy')
     plt.title("Monatliche Berechnung")
+    plt.ylabel("Sobol coefficient")
     plt.show()
 
     plt.pcolormesh(Si['S2'], cmap='binary')
@@ -192,6 +191,7 @@ if __name__=='__main__':
     plt.bar(problem['names'], Si['ST'])
     # plt.title('Sobol Sensitivities of Parameters for heating energy')
     plt.title("Stündliche Berechnung")
+    plt.ylabel("Sobol coefficient")
     plt.show()
 
     plt.pcolormesh(Si['S2'], cmap='binary')

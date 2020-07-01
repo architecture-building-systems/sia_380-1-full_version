@@ -49,7 +49,7 @@ if __name__ == '__main__':
     pv_tilt = 30  # in degrees
 
     ## LCA angaben
-    electricity_factor_source = "SIA"  # Can be "SIA", "eu", "empa_ac"
+
     electricity_factor_type = "annual"  # Can be "annual", "monthly", "hourly" (Hourly will only work for hourly model and
     # source: empa_ac )
 
@@ -58,17 +58,18 @@ if __name__ == '__main__':
 
     ### Generate Samples
     problem = {
-        'num_vars': 6,
+        'num_vars': 7,
         'names': ['weather_file', 'infiltration_flow', 'occupancy_schedule', 'area_per_person', "heating_setpoint",
-                  "cooling_setpoint"],
+                  "cooling_setpoint", "grid_emission_factor"],
         'bounds': [[0.5, 4.5],
                    [0.05, 0.50],
                    [0.5, 2.5],
                    [20.0, 150.0],
                    [18.0, 25.0],
-                   [20.0, 30.0]]}  # Heating system ## Abklären, ob dies so gemacht werden kann für diskretisierte Variablen.
+                   [20.0, 30.0],
+                   [0.5, 2.5]]}  # Heating system ## Abklären, ob dies so gemacht werden kann für diskretisierte Variablen.
     # "Natural Gas":0.249, "Wood":0.020, "Pellets":0.048, "GSHP_CH_mix":0.055, "ASHP_CH_mix":0.076, "GSHP_EU_mix":0.207, "ASHP_EU_mix":0.285
-    param_values = saltelli.sample(problem, 60)
+    param_values = saltelli.sample(problem, 40)
 
 
     number_to_climate = {1: r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\Zürich-hour_historic.epw",
@@ -79,7 +80,7 @@ if __name__ == '__main__':
     number_to_occupancy = {1: r"C:\Users\walkerl\Documents\code\RC_BuildingSimulator\rc_simulator\auxiliary\occupancy_office.csv",
                            2: r"C:\Users\walkerl\Documents\code\RC_BuildingSimulator\rc_simulator\auxiliary\occupancy_single_res.csv"}
 
-
+    number_to_grid_emission = {1:"SIA", 2:"eu"}
 
     ### Run Model
     Y = np.zeros([param_values.shape[0]])
@@ -100,6 +101,9 @@ if __name__ == '__main__':
         heating_setpoint = X[4]
         cooling_setpoint = X[5]
 
+        grid_emission_number = np.round(X[6],0)
+        electricity_factor_source = number_to_grid_emission[grid_emission_number]  # Can be "SIA", "eu", "empa_ac"
+
 
         ## Bauteile:
         # Windows: [[Orientation],[Areas],[U-value],[g-value]]
@@ -114,10 +118,10 @@ if __name__ == '__main__':
                           [u_walls, u_walls, u_walls, u_walls]])
 
         # roof: [[Areas], [U-values]]
-        roof = np.array([[energiebezugsflache], [u_roof]])
+        roof = np.array([[506], [u_roof]])
 
         # floor to ground (for now) [[Areas],[U-values],[b-values]]
-        floor = np.array([[energiebezugsflache], [u_floor], [b_floor]])
+        floor = np.array([[506], [u_floor], [b_floor]])
 
         ### Monatliche Berechnungen
         pv_yield_hourly = dp.photovoltaic_yield_hourly(pv_azimuth, pv_tilt, pv_efficiency, pv_performance_ratio,
@@ -135,8 +139,8 @@ if __name__ == '__main__':
         Gebaeude_static.cooling_system = cooling_system  # Diese Definitionens sollten verschoben werden zur definition des Objekts
         Gebaeude_static.run_dhw_demand()
         Gebaeude_static.run_SIA_electricity_demand(occupancy_path)
-        # Gebaeude_static.run_SIA_380_emissions(emission_factor_source=electricity_factor_source,
-        #                                       emission_factor_type=electricity_factor_type, avg_ashp_cop=2.8)
+        Gebaeude_static.run_SIA_380_emissions(emission_factor_source=electricity_factor_source,
+                                              emission_factor_type=electricity_factor_type, avg_ashp_cop=2.8)
 
         ### Stündliche Berechnungen:
 
@@ -154,14 +158,14 @@ if __name__ == '__main__':
         Gebaeude_dyn.run_rc_simulation(weatherfile_path=weatherfile_path,
                                        occupancy_path=occupancy_path)
         Gebaeude_dyn.run_SIA_electricity_demand(occupancy_path)
-        # Gebaeude_dyn.run_dynamic_emissions(emission_factor_source=electricity_factor_source,
-        #                                    emission_factor_type=electricity_factor_type, grid_export_assumption="c")
+        Gebaeude_dyn.run_dynamic_emissions(emission_factor_source=electricity_factor_source,
+                                           emission_factor_type=electricity_factor_type, grid_export_assumption="c")
 
 
-        Y[i] = Gebaeude_static.heizwarmebedarf.sum()
-        Z[i] = (Gebaeude_dyn.heating_demand/energiebezugsflache/1000).sum()
-
-
+        # Y[i] = Gebaeude_static.heizwarmebedarf.sum()
+        # Z[i] = (Gebaeude_dyn.heating_demand/energiebezugsflache/1000).sum()
+        Y[i] = Gebaeude_static.operational_emissions.sum()
+        Z[i] = (Gebaeude_dyn.operational_emissions/energiebezugsflache/1000).sum()
 
 
     print("sobol analysis...")
@@ -179,6 +183,7 @@ if __name__ == '__main__':
     plt.bar(problem['names'], Si['ST'])
     # plt.title('Sobol Sensitivities of Parameters for heating energy')
     plt.title("Monatliche Berechnung")
+    plt.ylabel("Sobol coefficient")
     plt.show()
 
     plt.pcolormesh(Si['S2'], cmap='binary')
@@ -203,6 +208,7 @@ if __name__ == '__main__':
     plt.bar(problem['names'], Si['ST'])
     # plt.title('Sobol Sensitivities of Parameters for heating energy')
     plt.title("stündliche Berechnung")
+    plt.ylabel("Sobol coefficient")
     plt.show()
 
     plt.pcolormesh(Si['S2'], cmap='binary')
