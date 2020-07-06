@@ -15,12 +15,7 @@ if __name__ == '__main__':
     ###################################### SYSTEM DEFINITION ###############################################################
     Im this first part of the code, building, its location and all the related systems are defined.
     """
-    scenarios_path = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\scenarios.xlsx"
-    configurations_path = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\configurations.xlsx"
-    performance_matrix_path = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\performance_matrix.xlsx"
 
-    scenarios = pd.read_excel(scenarios_path)
-    configurations = pd.read_excel(configurations_path, index_col="Configuration", skiprows=[1])
 
     gebaeudekategorie_sia = 1.1
     regelung = "andere"  # oder "Referenzraum" oder "andere"
@@ -69,7 +64,7 @@ if __name__ == '__main__':
                    [20.0, 30.0],
                    [0.5, 2.5]]}  # Heating system ## Abklären, ob dies so gemacht werden kann für diskretisierte Variablen.
     # "Natural Gas":0.249, "Wood":0.020, "Pellets":0.048, "GSHP_CH_mix":0.055, "ASHP_CH_mix":0.076, "GSHP_EU_mix":0.207, "ASHP_EU_mix":0.285
-    param_values = saltelli.sample(problem, 40)
+    param_values = saltelli.sample(problem, 120)
 
 
     number_to_climate = {1: r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\Zürich-hour_historic.epw",

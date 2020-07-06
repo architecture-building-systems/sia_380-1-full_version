@@ -2,6 +2,8 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 
+import data_prep as dp
+
 
 
 
@@ -16,12 +18,9 @@ performance_matrix = pd.read_excel(performance_matrix_path, index_col="Configura
 
 
 
-## Maximin
-
-
 print(dp.maximin(performance_matrix, minimizing=True))
 print(dp.maximax(performance_matrix, minimizing=True))
-print(dp.hurwicz(performance_matrix, 0.6, minimizing=True))
+print(dp.hurwicz(performance_matrix, 0.5, minimizing=True))
 print(dp.laplace_insufficient_reasoning(performance_matrix, minimizing=True))
 print(dp.minimax_regret(performance_matrix, minimizing=True))
 print(dp.percentile_based_skewness(performance_matrix, minimizing=True))

@@ -24,7 +24,7 @@ emission_performance_matrix_dyn = np.empty((len(configurations.index), len(scena
 emission_performance_matrix_stat = np.empty((len(configurations.index), len(scenarios.index)))
 
 ## LCA angaben
-electricity_factor_source = "SIA"  # Can be "SIA", "eu", "empa_ac"
+
 electricity_factor_type = "annual"  # Can be "annual", "monthly", "hourly" (Hourly will only work for hourly model and
                                      # source: empa_ac )
 
@@ -102,6 +102,7 @@ for config_index, config in configurations.iterrows():
         weatherfile_path = scenario["weatherfile"]
         occupancy_path = scenario['occupancy schedule']
         heating_setpoint = scenario['heating setpoint']  # give a number in deC or select "SIA" to follow the SIA380-1 code
+        electricity_factor_source = scenario['emission source']
 
         weather_data_sia = dp.epw_to_sia_irrad(weatherfile_path)
         infiltration_volume_flow = infiltration_volume_flow_planned * scenario['infiltration volume flow factor']  # This accounts for improper construction/tightness
@@ -148,20 +149,20 @@ for config_index, config in configurations.iterrows():
         Gebaeude_static.run_SIA_electricity_demand(occupancy_path)
 
 
-        Gebaeude_dyn = sime.Sim_Building(gebaeudekategorie_sia, regelung, windows, walls, roof, floor, energiebezugsflache,
-                                       anlagennutzungsgrad_wrg, infiltration_volume_flow, ventilation_volume_flow,
-                                       warmespeicherfahigkeit_pro_EBF,
-                                       korrekturfaktor_luftungs_eff_f_v, hohe_uber_meer, heizsystem, cooling_system,
-                                       dhw_heizsystem, heating_setpoint, cooling_setpoint, area_per_person)
-
-        Gebaeude_dyn.pv_production = pv_yield_hourly
-
-        Gebaeude_dyn.run_rc_simulation(weatherfile_path=weatherfile_path,
-                                     occupancy_path=occupancy_path)
-
-
-        Gebaeude_dyn.run_SIA_electricity_demand(occupancy_path)
-
+        # Gebaeude_dyn = sime.Sim_Building(gebaeudekategorie_sia, regelung, windows, walls, roof, floor, energiebezugsflache,
+        #                                anlagennutzungsgrad_wrg, infiltration_volume_flow, ventilation_volume_flow,
+        #                                warmespeicherfahigkeit_pro_EBF,
+        #                                korrekturfaktor_luftungs_eff_f_v, hohe_uber_meer, heizsystem, cooling_system,
+        #                                dhw_heizsystem, heating_setpoint, cooling_setpoint, area_per_person)
+        #
+        # Gebaeude_dyn.pv_production = pv_yield_hourly
+        #
+        # Gebaeude_dyn.run_rc_simulation(weatherfile_path=weatherfile_path,
+        #                              occupancy_path=occupancy_path)
+        #
+        #
+        # Gebaeude_dyn.run_SIA_electricity_demand(occupancy_path)
+        #
 
 
 
@@ -170,15 +171,15 @@ for config_index, config in configurations.iterrows():
 
         #### OPERATIONAL IMPACT SIMULATION ####
 
-        Gebaeude_dyn.run_dynamic_emissions(emission_factor_source=electricity_factor_source,
-                                           emission_factor_type=electricity_factor_type, grid_export_assumption="c")
+        # Gebaeude_dyn.run_dynamic_emissions(emission_factor_source=electricity_factor_source,
+        #                                    emission_factor_type=electricity_factor_type, grid_export_assumption="c")
 
 
         Gebaeude_static.run_SIA_380_emissions(emission_factor_source=electricity_factor_source,
                                               emission_factor_type=electricity_factor_type, avg_ashp_cop=2.8)
 
 
-        emission_performance_matrix_dyn[config_index, scenario_index] = Gebaeude_dyn.operational_emissions.sum()/1000.0
+        # emission_performance_matrix_dyn[config_index, scenario_index] = Gebaeude_dyn.operational_emissions.sum()/1000.0
         emission_performance_matrix_stat[config_index, scenario_index] = Gebaeude_static.operational_emissions.sum()
 
 
@@ -246,5 +247,5 @@ for config_index, config in configurations.iterrows():
         """
 
 
-pd.DataFrame(emission_performance_matrix_dyn, index=configurations.index, columns=scenarios.index).to_excel(performance_matrix_path_hourly)
+# pd.DataFrame(emission_performance_matrix_dyn, index=configurations.index, columns=scenarios.index).to_excel(performance_matrix_path_hourly)
 pd.DataFrame(emission_performance_matrix_stat, index=configurations.index, columns=scenarios.index).to_excel(performance_matrix_path_monthly)
