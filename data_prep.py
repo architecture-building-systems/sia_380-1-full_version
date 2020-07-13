@@ -406,7 +406,6 @@ def calc_sun_position(latitude_deg, longitude_deg):
     start_of_year = datetime.datetime(2019, 1, 1, 0, 0, 0, 0)
     end_of_year = datetime.datetime(2019, 12, 31, 23, 0, 0, 0)
     utc_datetime = pd.date_range(start_of_year, end_of_year, periods=8760)
-    print(utc_datetime)
 
     day_of_year = utc_datetime.dayofyear
 
@@ -444,7 +443,6 @@ def calc_sun_position(latitude_deg, longitude_deg):
 
     zenith_deg = np.degrees(zenith_rad)
     azimuth_deg = np.degrees(azimuth_rad)
-    print(azimuth_deg)
 
     return zenith_deg, azimuth_deg
 

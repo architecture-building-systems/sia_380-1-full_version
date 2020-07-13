@@ -190,17 +190,14 @@ class Sim_Building(object):
         global_horizontal_value = Loc.weather_data['glohorrad_Whm2']
         dni_extra = Loc.weather_data['extdirrad_Whm2']
 
-        solar_zenith_deg = np.empty(8760)
-        solar_azimuth_deg = np.empty(8760)
-        relative_air_mass =np.empty(8760)
-        for hour in range(8760):
-            solar_zenith_deg[hour], solar_azimuth_deg[hour] = dp.calc_sun_position_II(self.latitude, self.longitude, 2020, hour)
 
+
+        solar_zenith_deg, solar_azimuth_deg = dp.calc_sun_position(self.latitude, self.longitude)
         relative_air_mass = pvlib.atmosphere.get_relative_airmass(90 - solar_zenith_deg)
         solar_gains = 0
+        window_tilt = 90.0
         for window in range(len(self.windows[0])):
             window_azimuth = dp.string_orientation_to_angle(self.windows[0][window])
-            window_tilt = 90.0  ## for now in Hard code
 
             # The facotr 0.855 comes from SIA to account for shading and window frame and is included
             # here to ensure consistency to the SIA approach. (If this is continuously used, remove
