@@ -15,20 +15,20 @@ Im this first part of the code, building, its location and all the related syste
 
 ## Pfade zu weiteren Daten
 
-weatherfile_path = r"C:\Users\walkerl\polybox\phd\Validation\ASHRAE140\140-2017-AccompanyingFiles\DRYCOLD.epw"
+weatherfile_path = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\Zürich-hour_historic.epw"
 
 weather_data_sia = dp.epw_to_sia_irrad(weatherfile_path)
-occupancy_path = r"C:\Users\walkerl\Documents\code\RC_BuildingSimulator\rc_simulator\auxiliary\occupancy_office.csv"
+occupancy_path = r"C:\Users\walkerl\Documents\code\RC_BuildingSimulator\rc_simulator\auxiliary\occupancy_single_res.csv"
 
 ## Erforderliche Nutzereingaben:
 gebaeudekategorie_sia = 1.1
 regelung = "andere"  # oder "Referenzraum" oder "andere"
 hohe_uber_meer = 435.0 # Eingabe
-energiebezugsflache = 48.0  # m2
+energiebezugsflache = 2275  # m2
 anlagennutzungsgrad_wrg = 0.0 ## SIA 380-1 Tab 23
 warmespeicherfahigkeit_pro_EBF = 0.08 ## Wert noch nicht klar, bestimmen gemäss SN EN ISO 13786 oder Tab25 Einheiten?
 korrekturfaktor_luftungs_eff_f_v = 1.0  # zwischen 0.8 und 1.2 gemäss SIA380-1 Tab 24
-infiltration_volume_flow = 1.35  # Gemäss SIA 380-1 2016 3.5.5 soll 0.15m3/(hm2) verwendet werden. Korrigenda anschauen
+infiltration_volume_flow = 0.15  # Gemäss SIA 380-1 2016 3.5.5 soll 0.15m3/(hm2) verwendet werden. Korrigenda anschauen
 ventilation_volume_flow = 2.1 # give a number in m3/(hm2) or select "SIA" to follow SIA380-1 code
 heating_setpoint = "SIA"  # give a number in deC or select "SIA" to follow the SIA380-1 code
 cooling_setpoint = "SIA" # give a number in deC or select "SIA" to follow the SIA380-1 code
@@ -40,11 +40,11 @@ electricity_factor_type = "annual"  # Can be "annual", "monthly", "hourly" (Hour
                                      # source: empa_ac )
 
 ## Gebäudehülle
-u_windows = 3.0
+u_windows = 0.9
 g_windows = 0.5
-u_walls = 0.514
-u_roof = 0.318
-u_floor = 0.039
+u_walls = 0.14
+u_roof = 0.13
+u_floor = 0.17
 b_floor = 0.4
 
 ## Systeme
@@ -54,32 +54,32 @@ Thes ystem choice is translated to a similar system available in the RC Simulato
 """
 heizsystem = "ASHP"
 dhw_heizsystem = heizsystem ## This is currently a limitation of the RC Model. Automatically the same!
-cooling_system = "GSHP"  # Only affects dynamic calculation. Static does not include cooling
+cooling_system = "ASHP"  # Only affects dynamic calculation. Static does not include cooling
 pv_efficiency = 0.18
 pv_performance_ratio = 0.8
-pv_area = 0  # m2, can be directly linked with roof size
+pv_area = 506  # m2, can be directly linked with roof size
 pv_tilt = 30  # in degrees
 pv_azimuth = 180  # The north=0 convention applies
 
 
 ## Bauteile:
 # Windows: [[Orientation],[Areas],[U-value],[g-value]]
-windows = np.array([["S"],
-                    [12.0],
-                    [u_windows],
-                    [g_windows]],
+windows = np.array([["N", "E", "S", "W"],
+                    [131.5, 131.5, 131.5, 131.5],
+                    [u_windows, u_windows, u_windows, u_windows],
+                    [g_windows, g_windows, g_windows, g_windows]],
                    dtype=object)  # dtype=object is necessary because there are different data types
 
 # walls: [[Areas], [U-values]] zuvor waren es 4 x 412.5
-walls = np.array([[21.6, 21.6, 16.2, 16.2],
+walls = np.array([[281.0, 281.0, 281.0, 281.0],
                   [u_walls, u_walls, u_walls, u_walls]])
 
 
 # roof: [[Areas], [U-values]]
-roof = np.array([[48.0], [u_roof]])
+roof = np.array([[506.0], [u_roof]])
 
 # floor to ground (for now) [[Areas],[U-values],[b-values]]
-floor = np.array([[48],[u_floor],[b_floor]])
+floor = np.array([[506.0],[u_floor],[b_floor]])
 
 
 """
