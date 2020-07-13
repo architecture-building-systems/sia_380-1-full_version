@@ -536,13 +536,7 @@ def photovoltaic_yield_hourly(pv_azimuth, pv_tilt, stc_efficiency, performance_r
     longitude = header_data.iloc[0, 7]
     weather_data = pd.read_csv(epw_path, skiprows=8, header=None, names=epw_labels).drop('datasource', axis=1)
 
-    solar_zenith_deg = np.empty(8760)
-    solar_azimuth_deg = np.empty(8760)
-
-    for hour in range(8760):
-
-        solar_zenith_deg[hour], solar_azimuth_deg[hour] = calc_sun_position_II(latitude, longitude, 2020, hour)
-
+    solar_zenith_deg, solar_azimuth_deg = calc_sun_position(latitude, longitude)
 
     normal_direct_radiation = weather_data['dirnorrad_Whm2']
     horizontal_diffuse_radiation = weather_data['difhorrad_Whm2']
