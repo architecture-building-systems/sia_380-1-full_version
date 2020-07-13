@@ -8,7 +8,7 @@ import supply_system
 import emission_system
 from radiation import Location
 import pvlib
-
+import time
 
 class Sim_Building(object):
     def __init__(self,
@@ -190,7 +190,7 @@ class Sim_Building(object):
         global_horizontal_value = Loc.weather_data['glohorrad_Whm2']
         dni_extra = Loc.weather_data['extdirrad_Whm2']
 
-
+        start = time.time()
 
         solar_zenith_deg, solar_azimuth_deg = dp.calc_sun_position(self.latitude, self.longitude)
         relative_air_mass = pvlib.atmosphere.get_relative_airmass(90 - solar_zenith_deg)
@@ -253,7 +253,6 @@ class Sim_Building(object):
 
         self.solar_gains = solar_gains.to_numpy()
             # self.total_heat_demand[hour] = Office.heating_demand + Office.dhw_demand  ## add again when dhw is solved
-
 
     def run_SIA_electricity_demand(self, occupancy_path):
         self.app_light_other_electricity_monthly_demand = dp.sia_electricity_per_erf_hourly(occupancy_path,
