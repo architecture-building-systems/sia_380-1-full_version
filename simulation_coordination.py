@@ -43,7 +43,6 @@ for config_index, config in configurations.iterrows():
     korrekturfaktor_luftungs_eff_f_v = 1.0  # zwischen 0.8 und 1.2 gemäss SIA380-1 Tab 24
     infiltration_volume_flow_planned = config['infiltration volume flow']  # Gemäss SIA 380-1 2016 3.5.5 soll 0.15m3/(hm2) verwendet werden. Korrigenda anschauen
     ventilation_volume_flow = config['ventilation volume flow'] # give a number in m3/(hm2) or select "SIA" to follow SIA380-1 code
-    cooling_setpoint = config['cooling setpoint'] # give a number in deC or select "SIA" to follow the SIA380-1 code
     area_per_person = config['area per person']  # give a number or select "SIA" to follow the SIA380-1 code (typical for MFH 40)
 
 
@@ -104,6 +103,8 @@ for config_index, config in configurations.iterrows():
         weatherfile_path = scenario["weatherfile"]
         occupancy_path = scenario['occupancy schedule']
         heating_setpoint = scenario['heating setpoint']  # give a number in deC or select "SIA" to follow the SIA380-1 code
+        cooling_setpoint = scenario['cooling setpoint']  # give a number in deC or select "SIA" to follow the SIA380-1 code
+
         electricity_factor_source = scenario['emission source']
 
         weather_data_sia = dp.epw_to_sia_irrad(weatherfile_path)
@@ -213,7 +214,7 @@ for config_index, config in configurations.iterrows():
         # print(time.time() - intermediate)
         # intermediate = time.time()
 
-        # emission_performance_matrix_dyn[config_index, scenario_index] = Gebaeude_dyn.operational_emissions.sum()/1000.0
+        emission_performance_matrix_dyn[config_index, scenario_index] = Gebaeude_dyn.operational_emissions.sum()/1000.0
         emission_performance_matrix_stat[config_index, scenario_index] = Gebaeude_static.operational_emissions.sum()
 
 
