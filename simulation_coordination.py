@@ -189,7 +189,7 @@ for config_index, config in configurations.iterrows():
 
         Gebaeude_dyn.run_SIA_electricity_demand(occupancy_path)
 
-        # print("elec demand dyn")
+        # print("elec demand dyn")y
         # print(time.time() - intermediate)
         # intermediate = time.time()
 
