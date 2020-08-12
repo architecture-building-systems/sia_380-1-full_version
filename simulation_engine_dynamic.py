@@ -8,9 +8,7 @@ import supply_system
 import emission_system
 from radiation import Location
 import pvlib
-
-
-
+import time
 
 class Sim_Building(object):
     def __init__(self,
@@ -131,6 +129,7 @@ class Sim_Building(object):
 
 
         Loc = Location(epwfile_path=weatherfile_path)
+
         self.longitude, self.latitude = dp.read_location_from_epw(weatherfile_path)
         gain_per_person = warmeabgabe_p_p[int(self.gebaeudekategorie_sia)]  # W/m2
         appliance_gains = elektrizitatsbedarf[int(self.gebaeudekategorie_sia)]/365.0/24.0*1000.0  # W per sqm (constant over the year)
@@ -168,6 +167,7 @@ class Sim_Building(object):
         ## Define occupancy
         occupancyProfile = pd.read_csv(occupancy_path)
 
+
         t_m_prev = 20.0  # This is only for the very first step in therefore it is hard coded.
 
         self.electricity_demand = np.empty(8760)
@@ -185,6 +185,34 @@ class Sim_Building(object):
         self.indoor_temperature = np.empty(8760)
         self.internal_gains = np.empty(8760)
 
+        normal_direct_radiation = Loc.weather_data['dirnorrad_Whm2']
+        horizontal_diffuse_radiation = Loc.weather_data['difhorrad_Whm2']
+        global_horizontal_value = Loc.weather_data['glohorrad_Whm2']
+        dni_extra = Loc.weather_data['extdirrad_Whm2']
+
+        start = time.time()
+
+        solar_zenith_deg, solar_azimuth_deg = dp.calc_sun_position(self.latitude, self.longitude)
+        relative_air_mass = pvlib.atmosphere.get_relative_airmass(90 - solar_zenith_deg)
+        solar_gains = 0
+        window_tilt = 90.0
+        for window in range(len(self.windows[0])):
+            window_azimuth = dp.string_orientation_to_angle(self.windows[0][window])
+
+            # The facotr 0.855 comes from SIA to account for shading and window frame and is included
+            # here to ensure consistency to the SIA approach. (If this is continuously used, remove
+            # from hard code.
+            solar_gains += 0.855 * pvlib.irradiance.get_total_irradiance(window_tilt,
+                                                                         window_azimuth,
+                                                                         solar_zenith_deg,
+                                                                         solar_azimuth_deg,
+                                                                         normal_direct_radiation,
+                                                                         global_horizontal_value,
+                                                                         horizontal_diffuse_radiation,
+                                                                         dni_extra=dni_extra,
+                                                                         model="isotropic",
+                                                                         airmass=relative_air_mass)['poa_global'] * \
+                           self.windows[1][window] * self.windows[3][window]
 
         for hour in range(8760):
             # Occupancy for the time step
@@ -202,40 +230,8 @@ class Sim_Building(object):
             # Extract the outdoor temperature in Zurich for that hour
             t_out = Loc.weather_data['drybulb_C'][hour]
 
-            # Altitude, Azimuth = Loc.calc_sun_position(latitude_deg=self.latitude, longitude_deg=self.longitude,
-            #                                           year=2015, hoy=hour)
 
-            ### Here with new convention of N=0°, E=90° and S=180°
-            normal_direct_radiation = Loc.weather_data['dirnorrad_Whm2'][hour]
-            horizontal_diffuse_radiation = Loc.weather_data['difhorrad_Whm2'][hour]
-            global_horizontal_value = Loc.weather_data['glohorrad_Whm2'][hour]
-            dni_extra = Loc.weather_data['extdirrad_Whm2'][hour]
-
-            solar_zenith_deg, solar_azimuth_deg = dp.calc_sun_position_II(self.latitude, self.longitude, 2020, hour)
-            relative_air_mass = pvlib.atmosphere.get_relative_airmass(90-solar_zenith_deg)
-
-            solar_gains = 0
-            for window in range(len(self.windows[0])):
-                window_azimuth = dp.string_orientation_to_angle(self.windows[0][window])
-                window_tilt = 90.0  ## for now in Hard code
-
-                # The facotr 0.855 comes from SIA to account for shading and window frame and is included
-                # here to ensure consistency to the SIA approach. (If this is continuously used, remove
-                # from hard code.
-                solar_gains += 0.855 * pvlib.irradiance.get_total_irradiance(window_tilt,
-                                                  window_azimuth,
-                                                  solar_zenith_deg,
-                                                  solar_azimuth_deg,
-                                                  normal_direct_radiation,
-                                                  global_horizontal_value,
-                                                  horizontal_diffuse_radiation,
-                                                  dni_extra=dni_extra,
-                                                  model="isotropic",
-                                                  airmass=relative_air_mass)['poa_global'] * self.windows[1][window] * self.windows[3][window]
-
-
-
-            Office.solve_building_energy(internal_gains=internal_gains, solar_gains=solar_gains,
+            Office.solve_building_energy(internal_gains=internal_gains, solar_gains=solar_gains[hour],
                                          t_out=t_out,
                                          t_m_prev=t_m_prev, dhw_demand=dhw_demand)
 
@@ -246,7 +242,6 @@ class Sim_Building(object):
             self.heating_fossil_demand[hour] = Office.heating_sys_fossils
             self.cooling_electricity_demand[hour] = Office.cooling_sys_electricity  # unit?
             self.cooling_fossil_demand[hour] = Office.cooling_sys_fossils
-            self.solar_gains[hour] = solar_gains
             self.electricity_demand[
                 hour] = Office.heating_sys_electricity + Office.dhw_sys_electricity + Office.cooling_sys_electricity  # in Wh
             self.heating_demand[hour] = Office.heating_demand  # this is the actual heat emitted, unit?
@@ -256,6 +251,7 @@ class Sim_Building(object):
             self.dhw_demand[hour] = dhw_demand
             self.indoor_temperature[hour] = Office.t_air
 
+        self.solar_gains = solar_gains.to_numpy()
             # self.total_heat_demand[hour] = Office.heating_demand + Office.dhw_demand  ## add again when dhw is solved
 
     def run_SIA_electricity_demand(self, occupancy_path):

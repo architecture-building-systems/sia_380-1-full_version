@@ -5,7 +5,7 @@ import simulation_engine_dynamic as sime
 import data_prep as dp
 import simulation_pv as pv
 import pandas as pd
-
+import time
 
 
 """
@@ -43,7 +43,6 @@ for config_index, config in configurations.iterrows():
     korrekturfaktor_luftungs_eff_f_v = 1.0  # zwischen 0.8 und 1.2 gemäss SIA380-1 Tab 24
     infiltration_volume_flow_planned = config['infiltration volume flow']  # Gemäss SIA 380-1 2016 3.5.5 soll 0.15m3/(hm2) verwendet werden. Korrigenda anschauen
     ventilation_volume_flow = config['ventilation volume flow'] # give a number in m3/(hm2) or select "SIA" to follow SIA380-1 code
-    cooling_setpoint = config['cooling setpoint'] # give a number in deC or select "SIA" to follow the SIA380-1 code
     area_per_person = config['area per person']  # give a number or select "SIA" to follow the SIA380-1 code (typical for MFH 40)
 
 
@@ -97,16 +96,22 @@ for config_index, config in configurations.iterrows():
 
     for scenario_index, scenario in scenarios.iterrows():
 
+        start=time.time()
+
         print("Calculating Scenario %s" %(scenario_index))
 
         weatherfile_path = scenario["weatherfile"]
         occupancy_path = scenario['occupancy schedule']
         heating_setpoint = scenario['heating setpoint']  # give a number in deC or select "SIA" to follow the SIA380-1 code
+        cooling_setpoint = scenario['cooling setpoint']  # give a number in deC or select "SIA" to follow the SIA380-1 code
+
         electricity_factor_source = scenario['emission source']
 
         weather_data_sia = dp.epw_to_sia_irrad(weatherfile_path)
         infiltration_volume_flow = infiltration_volume_flow_planned * scenario['infiltration volume flow factor']  # This accounts for improper construction/tightness
-
+        # print("weather to SIA")
+        # print(time.time() - intermediate)
+        # intermediate = time.time()
 
         """
         ###################################### SYSTEM SIMULATION ###############################################################
@@ -127,6 +132,9 @@ for config_index, config in configurations.iterrows():
         pv_yield_hourly = dp.photovoltaic_yield_hourly(pv_azimuth, pv_tilt, pv_efficiency, pv_performance_ratio, pv_area,
                                       weatherfile_path)
 
+        # print("PV yield")
+        # print(time.time() - intermediate)
+        # intermediate = time.time()
 
         ## heating demand and emission calculation
 
@@ -139,6 +147,9 @@ for config_index, config in configurations.iterrows():
         Gebaeude_static.run_SIA_380_1(weather_data_sia)
         Gebaeude_static.run_ISO_52016_monthly(weather_data_sia)
 
+        # print("monthly simulation")
+        # print(time.time()-intermediate)
+        # intermediate = time.time()
 
         ## Gebäudedimensionen
         Gebaeude_static.heating_system = heizsystem
@@ -148,22 +159,39 @@ for config_index, config in configurations.iterrows():
 
         Gebaeude_static.run_SIA_electricity_demand(occupancy_path)
 
+        # print("electricity sim")
+        # print(time.time() - intermediate)
+        # intermediate = time.time()
 
-        # Gebaeude_dyn = sime.Sim_Building(gebaeudekategorie_sia, regelung, windows, walls, roof, floor, energiebezugsflache,
-        #                                anlagennutzungsgrad_wrg, infiltration_volume_flow, ventilation_volume_flow,
-        #                                warmespeicherfahigkeit_pro_EBF,
-        #                                korrekturfaktor_luftungs_eff_f_v, hohe_uber_meer, heizsystem, cooling_system,
-        #                                dhw_heizsystem, heating_setpoint, cooling_setpoint, area_per_person)
-        #
-        # Gebaeude_dyn.pv_production = pv_yield_hourly
-        #
-        # Gebaeude_dyn.run_rc_simulation(weatherfile_path=weatherfile_path,
-        #                              occupancy_path=occupancy_path)
-        #
-        #
-        # Gebaeude_dyn.run_SIA_electricity_demand(occupancy_path)
-        #
 
+
+
+        Gebaeude_dyn = sime.Sim_Building(gebaeudekategorie_sia, regelung, windows, walls, roof, floor, energiebezugsflache,
+                                       anlagennutzungsgrad_wrg, infiltration_volume_flow, ventilation_volume_flow,
+                                       warmespeicherfahigkeit_pro_EBF,
+                                       korrekturfaktor_luftungs_eff_f_v, hohe_uber_meer, heizsystem, cooling_system,
+                                       dhw_heizsystem, heating_setpoint, cooling_setpoint, area_per_person)
+
+        Gebaeude_dyn.pv_production = pv_yield_hourly
+
+        # print("dyn prep")
+        # print(time.time() - intermediate)
+        # intermediate = time.time()
+
+
+
+        Gebaeude_dyn.run_rc_simulation(weatherfile_path=weatherfile_path,
+                                     occupancy_path=occupancy_path)
+
+        # print("RC sim inkl file read")
+        # print(time.time() - intermediate)
+        # intermediate = time.time()
+
+        Gebaeude_dyn.run_SIA_electricity_demand(occupancy_path)
+
+        # print("elec demand dyn")y
+        # print(time.time() - intermediate)
+        # intermediate = time.time()
 
 
 
@@ -171,81 +199,32 @@ for config_index, config in configurations.iterrows():
 
         #### OPERATIONAL IMPACT SIMULATION ####
 
-        # Gebaeude_dyn.run_dynamic_emissions(emission_factor_source=electricity_factor_source,
-        #                                    emission_factor_type=electricity_factor_type, grid_export_assumption="c")
+        Gebaeude_dyn.run_dynamic_emissions(emission_factor_source=electricity_factor_source,
+                                           emission_factor_type=electricity_factor_type, grid_export_assumption="c")
 
+        # print("emissions static")
+        # print(time.time() - intermediate)
+        # intermediate = time.time()
 
         Gebaeude_static.run_SIA_380_emissions(emission_factor_source=electricity_factor_source,
                                               emission_factor_type=electricity_factor_type, avg_ashp_cop=2.8)
 
 
-        # emission_performance_matrix_dyn[config_index, scenario_index] = Gebaeude_dyn.operational_emissions.sum()/1000.0
+        # print("emissions dynamic")
+        # print(time.time() - intermediate)
+        # intermediate = time.time()
+
+        emission_performance_matrix_dyn[config_index, scenario_index] = Gebaeude_dyn.operational_emissions.sum()/1000.0
         emission_performance_matrix_stat[config_index, scenario_index] = Gebaeude_static.operational_emissions.sum()
 
 
 
-    
-
-        """
-
-        ajajaj = zip(dp.hourly_to_monthly(Gebaeude_dyn.heating_demand) / 1000.0 / energiebezugsflache,
-                      dp.hourly_to_monthly(Gebaeude_dyn.dhw_demand)/1000.0 / energiebezugsflache,
-                      dp.hourly_to_monthly(Gebaeude_dyn.cooling_demand)/ 1000.0 / energiebezugsflache,
-                      Gebaeude_static.heizwarmebedarf,
-                      Gebaeude_static.dhw_demand,
-                      -Gebaeude_static.monthly_cooling_demand,
-                     Gebaeude_static.operational_emissions,
-                     dp.hourly_to_monthly(Gebaeude_dyn.operational_emissions)/energiebezugsflache)
-
-
-        results = pd.DataFrame(ajajaj, columns=["RC heating", "RC DHW", "RC cooling", "380 heating", "380 DHW", "ISO cooling", "static_emissions", "dynamic emissions"])
-        # results["ISO2RC"] = results['ISO cooling']/results['RC cooling']
-        results["RC_solar_gains"] = dp.hourly_to_monthly(Gebaeude_dyn.solar_gains)/1000.0 / energiebezugsflache
-        results["ISO_solar_gains"] = Gebaeude_static.iso_solar_gains
-        results["SIA_solar_gains"] = Gebaeude_static.solare_eintrage
-
-        results["transmission_losses_ISO"] = Gebaeude_static.iso_transmission_losses
-        results["transmission_losses_SIA"] = Gebaeude_static.transmissionsverluste
-
-        results["internal_gains_RC"] = dp.hourly_to_monthly(Gebaeude_dyn.internal_gains)/1000.0 /energiebezugsflache
-        results["internal_gains_SIA"] = Gebaeude_static.interne_eintrage
-        results["internal_gains_ISO"] = Gebaeude_static.iso_internal_gains
-
-
-        results[["RC_solar_gains", "ISO_solar_gains", "SIA_solar_gains"]].plot(kind='bar', title="Monthly Solar Gains")
-        plt.ylabel("Solar Gains [kWh/m2M]")
-        plt.show()
-
-
-        results[["internal_gains_RC", "internal_gains_SIA", "internal_gains_ISO"]].plot(kind='bar', title="Internal Gains")
-        plt.ylabel("Internal Gains [kWh/m2M]")
-        plt.show()
-
-        plt.plot(Gebaeude_dyn.cooling_demand/1000.0/energiebezugsflache, label="Cooling")
-        plt.plot(Gebaeude_dyn.heating_demand/1000.0/energiebezugsflache, label="Heating")
-        plt.ylabel("Energy / Power [kWh/m2h]")
-        plt.legend()
-        plt.show()
-
-        results[["transmission_losses_ISO", "transmission_losses_SIA"]].plot(kind='bar', title="Transmission Losses")
-        plt.ylabel("Monthly Transmission Losses [kWh/m2M]")
-        plt.show()
-
-        results[["RC heating", "RC DHW", "RC cooling", "380 heating", "380 DHW", "ISO cooling"]].plot(kind="bar", title="Energy Demand")
-        plt.ylabel("Energy demand for heating, cooling and DHW [kWh/m2M]")
-        plt.show()
-
-        results[["static_emissions", "dynamic emissions"]].plot(kind="bar", title="Operational Emissions")
-        plt.show()
-
-
-
+        end = time.time()
+        print("end")
+        print(end-start)
     
         ###################################### EMBODIED EMISSIONS ##############################################################
-        In this part the embodied emissions of a respective system and its components are defined.
-        
-        """
 
 
-# pd.DataFrame(emission_performance_matrix_dyn, index=configurations.index, columns=scenarios.index).to_excel(performance_matrix_path_hourly)
+pd.DataFrame(emission_performance_matrix_dyn, index=configurations.index, columns=scenarios.index).to_excel(performance_matrix_path_hourly)
 pd.DataFrame(emission_performance_matrix_stat, index=configurations.index, columns=scenarios.index).to_excel(performance_matrix_path_monthly)
