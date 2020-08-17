@@ -294,6 +294,11 @@ class Building(object):
             genutzte_warmeeintrage[month] = q_ug_127
             heizwarmebedarf[month] = q_h_129
 
+        # vereinfachte Normheizlast mit Angaben aus SIA 380-1 gemäss SIA 384.201
+
+
+        self.totaler_warmetransferkoeffizient = h_112
+
 
         self.transmissionsverluste = transmissionsverluste
         self.luftungsverlust=luftungsverluste

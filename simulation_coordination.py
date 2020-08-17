@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import simulation_engine as se
 import simulation_engine_dynamic as sime
 import data_prep as dp
-import simulation_pv as pv
+import embodied_emissions_calculation as eec
 import pandas as pd
 import time
 
@@ -22,11 +22,14 @@ configurations = pd.read_excel(configurations_path, index_col="Configuration", s
 
 emission_performance_matrix_dyn = np.empty((len(configurations.index), len(scenarios.index)))
 emission_performance_matrix_stat = np.empty((len(configurations.index), len(scenarios.index)))
+nominal_heating_power = np.empty(len(configurations.index))
+
 
 ## LCA angaben
 
 electricity_factor_type = "annual"  # Can be "annual", "monthly", "hourly" (Hourly will only work for hourly model and
                                      # source: empa_ac )
+
 
 
 
@@ -132,9 +135,6 @@ for config_index, config in configurations.iterrows():
         pv_yield_hourly = dp.photovoltaic_yield_hourly(pv_azimuth, pv_tilt, pv_efficiency, pv_performance_ratio, pv_area,
                                       weatherfile_path)
 
-        # print("PV yield")
-        # print(time.time() - intermediate)
-        # intermediate = time.time()
 
         ## heating demand and emission calculation
 
@@ -147,9 +147,6 @@ for config_index, config in configurations.iterrows():
         Gebaeude_static.run_SIA_380_1(weather_data_sia)
         Gebaeude_static.run_ISO_52016_monthly(weather_data_sia)
 
-        # print("monthly simulation")
-        # print(time.time()-intermediate)
-        # intermediate = time.time()
 
         ## Gebäudedimensionen
         Gebaeude_static.heating_system = heizsystem
@@ -159,13 +156,6 @@ for config_index, config in configurations.iterrows():
 
         Gebaeude_static.run_SIA_electricity_demand(occupancy_path)
 
-        # print("electricity sim")
-        # print(time.time() - intermediate)
-        # intermediate = time.time()
-
-
-
-
         Gebaeude_dyn = sime.Sim_Building(gebaeudekategorie_sia, regelung, windows, walls, roof, floor, energiebezugsflache,
                                        anlagennutzungsgrad_wrg, infiltration_volume_flow, ventilation_volume_flow,
                                        warmespeicherfahigkeit_pro_EBF,
@@ -174,26 +164,10 @@ for config_index, config in configurations.iterrows():
 
         Gebaeude_dyn.pv_production = pv_yield_hourly
 
-        # print("dyn prep")
-        # print(time.time() - intermediate)
-        # intermediate = time.time()
-
-
-
         Gebaeude_dyn.run_rc_simulation(weatherfile_path=weatherfile_path,
                                      occupancy_path=occupancy_path)
 
-        # print("RC sim inkl file read")
-        # print(time.time() - intermediate)
-        # intermediate = time.time()
-
         Gebaeude_dyn.run_SIA_electricity_demand(occupancy_path)
-
-        # print("elec demand dyn")y
-        # print(time.time() - intermediate)
-        # intermediate = time.time()
-
-
 
 
 
@@ -202,29 +176,48 @@ for config_index, config in configurations.iterrows():
         Gebaeude_dyn.run_dynamic_emissions(emission_factor_source=electricity_factor_source,
                                            emission_factor_type=electricity_factor_type, grid_export_assumption="c")
 
-        # print("emissions static")
-        # print(time.time() - intermediate)
-        # intermediate = time.time()
 
         Gebaeude_static.run_SIA_380_emissions(emission_factor_source=electricity_factor_source,
                                               emission_factor_type=electricity_factor_type, avg_ashp_cop=2.8)
 
 
-        # print("emissions dynamic")
-        # print(time.time() - intermediate)
-        # intermediate = time.time()
-
         emission_performance_matrix_dyn[config_index, scenario_index] = Gebaeude_dyn.operational_emissions.sum()/1000.0
         emission_performance_matrix_stat[config_index, scenario_index] = Gebaeude_static.operational_emissions.sum()
 
 
+        # This means that Scenario 0 needs to be the reference (design) scenario.
+        if scenario_index == 0:
+            nominal_heating_power[config_index] = dp.heating_sizing_384_201(Gebaeude_static.totaler_warmetransferkoeffizient,
+                                                              gebaeudekategorie_sia, weatherfile_path)
 
-        end = time.time()
+            # TODO: Add here sizing of cooling system and DHW system. Idealerweise aus statischer Betrachtung!
+
+        else:
+            pass
+
         print("end")
+        end = time.time()
         print(end-start)
-    
-        ###################################### EMBODIED EMISSIONS ##############################################################
+
+        # Nennheizleistung in W
+
+pd.DataFrame(emission_performance_matrix_dyn, index=configurations.index, columns=scenarios.index).to_excel(
+        performance_matrix_path_hourly)
+pd.DataFrame(emission_performance_matrix_stat, index=configurations.index, columns=scenarios.index).to_excel(
+        performance_matrix_path_monthly)
 
 
-pd.DataFrame(emission_performance_matrix_dyn, index=configurations.index, columns=scenarios.index).to_excel(performance_matrix_path_hourly)
-pd.DataFrame(emission_performance_matrix_stat, index=configurations.index, columns=scenarios.index).to_excel(performance_matrix_path_monthly)
+###################################### EMBODIED EMISSIONS ##############################################################
+""" The embodied emissions only need to be calculated per Configuration. They are assumed to only come into the calculation
+at the beginning of the life cycle. This means, that for now, they are not dependent on the scenarios."""
+
+for config_index, config in configurations.iterrows():
+
+    ee_database_path = 
+
+    eec.calculate_system_related_embodied_emissions(ee_database_path, heizsystem, dhw_heizsystem, cooling_system,
+                                                    heat_emission_system, pv_area, wall_areas, wall_type, window_areas,
+                                                    window_type)
+
+
+
