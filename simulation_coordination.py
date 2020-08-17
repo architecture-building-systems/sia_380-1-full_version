@@ -213,11 +213,36 @@ at the beginning of the life cycle. This means, that for now, they are not depen
 
 for config_index, config in configurations.iterrows():
 
-    ee_database_path = 
+    ee_database_path = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\embodied_emissions.xlsx"
+    energiebezugsflache = config['energy reference area']  # m2
 
-    eec.calculate_system_related_embodied_emissions(ee_database_path, heizsystem, dhw_heizsystem, cooling_system,
-                                                    heat_emission_system, pv_area, wall_areas, wall_type, window_areas,
-                                                    window_type)
+    ## Systeme
+    """
+    Choice: Oil, Natural Gas, Wood, Pellets, GSHP, ASHP, electric
+    Thes ystem choice is translated to a similar system available in the RC Simulator
+    """
+    heizsystem = config['heating system']  # zb"ASHP"
+    dhw_heizsystem = heizsystem  ## This is currently a limitation of the RC Model. Automatically the same!
+    cooling_system = config['cooling system']  # Only affects dynamic calculation. Static does not include cooling
+    pv_area = config['PV area']  # m2, can be directly linked with roof size
+    pv_type = config['PV type']  # Si, CIGS etc.
+
+    heat_emission_system = config['heat_emission_system']
+
+    total_wall_area = np.array(config['wall areas'].split(" "), dtype=float).sum()
+    wall_type = config['wall type']
+
+    total_window_area = np.array(config['window areas'].split(" "), dtype=float).sum()
+    window_type = config["window type"]
+
+    roof_areas = config["roof area"]
+    roof_type = config["roof type"]
+
+    config_heat_power = nominal_heating_power[config_index]
+
+    eec.calculate_system_related_embodied_emissions(ee_database_path, heizsystem, config_heat_power, dhw_heizsystem,
+                                                    cooling_system, nominal_cooling_power, heat_emission_system, pv_area, pv_type,
+                                                    total_wall_area, wall_type, total_window_area, window_type)
 
 
 
