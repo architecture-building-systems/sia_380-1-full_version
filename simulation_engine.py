@@ -49,6 +49,8 @@ class Building(object):
         self.dhw_demand = None  # np.array of monthly values per energy reference area [kWh/(m2*month)]
         self.dhw_heating_system = None
         self.pv_production = None  # This input is currently implemented as Wh (!)
+        self.nominal_heating_power = None
+        self.nominal_cooling_power = None
 
 
     def run_SIA_380_1(self, weather_data_sia):
@@ -622,6 +624,32 @@ class Building(object):
             dp.sia_electricity_per_erf_hourly(occupancy_path, self.gebaeudekategorie_sia))
 
 
+    def run_heating_sizing_384_201(self, weatherfile_path):
+
+        epw_labels = ['year', 'month', 'day', 'hour', 'minute', 'datasource', 'drybulb_C', 'dewpoint_C',
+                      'relhum_percent',
+                      'atmos_Pa', 'exthorrad_Whm2', 'extdirrad_Whm2', 'horirsky_Whm2', 'glohorrad_Whm2',
+                      'dirnorrad_Whm2', 'difhorrad_Whm2', 'glohorillum_lux', 'dirnorillum_lux', 'difhorillum_lux',
+                      'zenlum_lux', 'winddir_deg', 'windspd_ms', 'totskycvr_tenths', 'opaqskycvr_tenths',
+                      'visibility_km',
+                      'ceiling_hgt_m', 'presweathobs', 'presweathcodes', 'precip_wtr_mm', 'aerosol_opt_thousandths',
+                      'snowdepth_cm', 'days_last_snow', 'Albedo', 'liq_precip_depth_mm', 'liq_precip_rate_Hour']
+
+        weather_data = pd.read_csv(weatherfile_path, skiprows=8, header=None, names=epw_labels).drop('datasource',
+                                                                                                     axis=1)
+        min_temp = weather_data['drybulb_C'].min()
+        standard_temperature = dp.sia_standardnutzungsdaten('room_temperature_heating')[int(self.gebaeudekategorie_sia)]
+        # Nach SIA müsste hier der Mittelwert der kältesten 4 Tagesperiode der letzten 20 Jahren gewählt werden. Dies
+        # ist allerdings kaum möglich mit einem Wetterfile. Ich wähle deshalb die stündlich tiefste Temperatur eines
+        # typischen Jahres.
+        self.nominal_heating_power = self.totaler_warmetransferkoeffizient * (standard_temperature - min_temp)  # in W
+
+
+    def run_cooling_sizing(self):
+        self.nominal_cooling_power = self.energy_reference_area * 10  # in W TODO: remove hard coded value from SIA2024
+
+
+
 def window_irradiation(windows, g_sh_012, g_ss_013, g_se_014, g_sw_015, g_sn_016):
     """
     Diese Funktion rechnet die ausrichtungsspezifischen Einstrahlungswerte aus und bereitet den Einstrahlungsvektor
@@ -660,6 +688,8 @@ def window_irradiation(windows, g_sh_012, g_ss_013, g_se_014, g_sw_015, g_sn_016
             "zweistellige Richtungen erlaubt sind (N, E, S, W, NE, SE, SW, NW)"
 
     return g_s_windows
+
+
 
 
 

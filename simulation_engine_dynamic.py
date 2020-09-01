@@ -321,6 +321,12 @@ class Sim_Building(object):
         self.operational_emissions = self.fossil_emissions + self.electricity_emissions
 
 
+    def run_heating_sizing(self):
+        self.nominal_heating_power = self.heating_demand.max()
+
+    def run_cooling_sizing(self):
+        self.nominal_cooling_power = self.cooling_demand.min()
+
 
 def comfort_assessment(indoor_temperature_time_series, comfort_range=[19.0, 25.0], discomfort_type="integrated"):
     """

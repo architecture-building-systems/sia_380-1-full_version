@@ -683,25 +683,6 @@ def starrs_domain_criterion(performance_matrix, threshold, minimizing=False):
         starr_scenario = starr_scenario[0]
     return(starr_scenario, starr)
 
-def heating_sizing_384_201(totaler_warmetransferkoeffizient, gebaeudekategorie_sia, weatherfile_path):
 
-    epw_labels = ['year', 'month', 'day', 'hour', 'minute', 'datasource', 'drybulb_C', 'dewpoint_C', 'relhum_percent',
-                  'atmos_Pa', 'exthorrad_Whm2', 'extdirrad_Whm2', 'horirsky_Whm2', 'glohorrad_Whm2',
-                  'dirnorrad_Whm2', 'difhorrad_Whm2', 'glohorillum_lux', 'dirnorillum_lux', 'difhorillum_lux',
-                  'zenlum_lux', 'winddir_deg', 'windspd_ms', 'totskycvr_tenths', 'opaqskycvr_tenths', 'visibility_km',
-                  'ceiling_hgt_m', 'presweathobs', 'presweathcodes', 'precip_wtr_mm', 'aerosol_opt_thousandths',
-                  'snowdepth_cm', 'days_last_snow', 'Albedo', 'liq_precip_depth_mm', 'liq_precip_rate_Hour']
-
-
-    weather_data = pd.read_csv(weatherfile_path, skiprows=8, header=None, names=epw_labels).drop('datasource', axis=1)
-    min_temp = weather_data['drybulb_C'].min()
-    standard_temperature = sia_standardnutzungsdaten('room_temperature_heating')[int(gebaeudekategorie_sia)]
-
-    # Nach SIA müsste hier der Mittelwert der kältesten 4 Tagesperiode der letzten 20 Jahren gewählt werden. Dies
-    # ist allerdings kaum möglich mit einem Wetterfile. Ich wähle deshalb die stündlich tiefste Temperatur eines
-    # typischen Jahres.
-    nominal_heating_power = totaler_warmetransferkoeffizient * (standard_temperature - min_temp)
-
-    return nominal_heating_power
 
 
