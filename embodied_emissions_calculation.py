@@ -108,15 +108,18 @@ def calculate_envelope_emissions(database_path, total_wall_area, wall_type, tota
     database = pd.read_excel(database_path, index_col="Name")
 
     wall_embodied_per_area = database['GWP[kgCO2eq/m2]'][wall_type]
-    wall_embodied = total_wall_area * wall_embodied_per_area
+    wall_lifetime = database['lifetime'][wall_type]
+    wall_embodied = total_wall_area * wall_embodied_per_area/wall_lifetime
 
     window_embodied_per_area = database['GWP[kgCO2eq/m2]'][window_type]
+    window_lifetime = database['lifetime'][window_type]
     window_embodied = window_embodied_per_area * total_window_area
 
     roof_embodied_per_area = database['GWP[kgCO2eq/m2]'][roof_type]
+    roof_lifetime = database['lifetime'][roof_type]
     roof_embodied = roof_embodied_per_area * total_roof_area
 
-    return wall_embodied + window_embodied + roof_embodied   # in total GHG emissions (kgCO2eq)
+    return wall_embodied + window_embodied + roof_embodied   # in total GHG emissions per year (kgCO2eq/a)
 
 
 
