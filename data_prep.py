@@ -38,6 +38,7 @@ def embodied_emissions_heat_generation_kbob_per_kW(system_type):
 def embodied_emissions_borehole_per_m():
 
     coeq_borehole = 28.1 #kg/m[KBOB 2016]
+
     return coeq_borehole
 
 def embodied_emissions_heat_emission_system_per_m2(em_system_type):
@@ -681,4 +682,7 @@ def starrs_domain_criterion(performance_matrix, threshold, minimizing=False):
     if len(starr_scenario)==1:
         starr_scenario = starr_scenario[0]
     return(starr_scenario, starr)
+
+
+
 

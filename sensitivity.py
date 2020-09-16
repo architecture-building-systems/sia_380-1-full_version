@@ -5,6 +5,7 @@ import data_prep as dp
 
 import simulation_engine as se
 import simulation_engine_dynamic as sime
+import embodied_emissions_calculation as eec
 
 from SALib.sample import saltelli
 from SALib.analyze import sobol
@@ -46,7 +47,7 @@ if __name__=='__main__':
                   [0.0, 0.70],  # eta g, heat recovery efficiency
                   [0.5, 4.5]]}   # Heating system ## Abklären, ob dies so gemacht werden kann für diskretisierte Variablen.
     # "Natural Gas":0.249, "Wood":0.020, "Pellets":0.048, "GSHP_CH_mix":0.055, "ASHP_CH_mix":0.076, "GSHP_EU_mix":0.207, "ASHP_EU_mix":0.285
-    param_values = saltelli.sample(problem, 120)
+    param_values = saltelli.sample(problem, 250)
     gebaeudekategorie_sia = 1.1
     regelung = "andere"  # oder "Referenzraum" oder "andere"
     hohe_uber_meer = 435.0  # Eingabe
@@ -55,16 +56,23 @@ if __name__=='__main__':
     infiltration_volume_flow = 0.15  # SIA
     area_per_person = "SIA"  # give a number or select "SIA" to follow the SIA380-1 code (typical for MFH 40)
     korrekturfaktor_luftungs_eff_f_v = 1.0
+    heat_emission_system = "floor heating"
+    heat_distribution_system = "hydronic"
     b_floor = 0.4
     heating_setpoint = "SIA"
     cooling_setpoint = "SIA"
     pv_azimuth = 180.0 # south
+    pv_type = "m-Si"
+
+    wall_type =  "UBA_KfW_55_wall_stb"
+    window_type = "UBA_KfW_55_window"
+    roof_type = "UBA_KfW_55_roof_stb"
 
     weatherfile_path = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\Zürich-hour_historic.epw"
     weather_data_sia = dp.epw_to_sia_irrad(weatherfile_path)
     occupancy_path = r"C:\Users\walkerl\Documents\code\RC_BuildingSimulator\rc_simulator\auxiliary\occupancy_office.csv"
-
-
+    sys_ee_database_path = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\embodied_emissions_systems.xlsx"
+    env_ee_database_path = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\embodied_emissions_envelope.xlsx"
 
     ### Run Model
     Y = np.zeros([param_values.shape[0]])
@@ -79,7 +87,7 @@ if __name__=='__main__':
         pv_efficiency = X[5]
         anlagennutzungsgrad_wrg = X[6]
         heating_system_number = np.round(X[7], 0)
-        number_to_system = {1:"ASHP", 2:"Wood", 3:"Pellets", 4:"GSHP"}
+        number_to_system = {1:"ASHP", 2:"electric", 3:"Pellets", 4:"GSHP"}
 
         heizsystem = number_to_system[heating_system_number]
         dhw_heizsystem = heizsystem  ## This is currently a limitation of the RC Model. Automatically the same!
@@ -95,12 +103,18 @@ if __name__=='__main__':
                             [g_windows, g_windows, g_windows, g_windows]],
                            dtype=object)  # dtype=object is necessary because there are different data types
 
+        total_window_area =windows[1].sum()
+
         # walls: [[Areas], [U-values]] zuvor waren es 4 x 412.5
         walls = np.array([[281.0, 281.0, 281.0, 281.0],
                           [u_walls, u_walls, u_walls, u_walls]])
 
+        total_wall_area = walls[0].sum()
+
         # roof: [[Areas], [U-values]]
         roof = np.array([[506], [u_roof]])
+
+        total_roof_area = roof[1].sum()
 
         # floor to ground (for now) [[Areas],[U-values],[b-values]]
         floor = np.array([[506], [u_floor], [b_floor]])
@@ -125,30 +139,59 @@ if __name__=='__main__':
         Gebaeude_static.run_SIA_380_emissions(emission_factor_source=electricity_factor_source,
                                               emission_factor_type=electricity_factor_type, avg_ashp_cop=2.8)
 
+        Gebaeude_static.run_heating_sizing_384_201(weatherfile_path)
+        Gebaeude_static.run_cooling_sizing()
 
-       ### Stündliche Berechnungen:
+        systems_emissions = eec.calculate_system_related_embodied_emissions(ee_database_path=sys_ee_database_path,
+                                                        gebaeudekategorie=gebaeudekategorie_sia,
+                                                        energy_reference_area=energiebezugsflache,
+                                                        heizsystem=heizsystem,
+                                                        heat_emission_system=heat_emission_system,
+                                                        heat_distribution=heat_distribution_system,
+                                                        nominal_heating_power=Gebaeude_static.nominal_heating_power,
+                                                        dhw_heizsystem=None,
+                                                        cooling_system=cooling_system,
+                                                        cold_emission_system=heat_emission_system,
+                                                        nominal_cooling_power=Gebaeude_static.nominal_cooling_power,
+                                                        pv_area=pv_area,
+                                                        pv_type=pv_type,
+                                                        pv_efficiency=pv_efficiency)
 
-        Gebaeude_dyn = sime.Sim_Building(gebaeudekategorie_sia, regelung, windows, walls, roof, floor,
-                                         energiebezugsflache,
-                                         anlagennutzungsgrad_wrg, infiltration_volume_flow, ventilation_volume_flow,
-                                         warmespeicherfahigkeit_pro_EBF,
-                                         korrekturfaktor_luftungs_eff_f_v, hohe_uber_meer, heizsystem, cooling_system,
-                                         dhw_heizsystem, heating_setpoint, cooling_setpoint, area_per_person)
 
-        Gebaeude_dyn.pv_production = pv_yield_hourly
 
-        Gebaeude_dyn.run_rc_simulation(weatherfile_path=weatherfile_path,
-                                       occupancy_path=occupancy_path)
-        Gebaeude_dyn.run_SIA_electricity_demand(occupancy_path)
-        Gebaeude_dyn.run_dynamic_emissions(emission_factor_source=electricity_factor_source,
-                                           emission_factor_type=electricity_factor_type, grid_export_assumption="c")
+
+
+        ### Stündliche Berechnungen:
+
+        # Gebaeude_dyn = sime.Sim_Building(gebaeudekategorie_sia, regelung, windows, walls, roof, floor,
+        #                                  energiebezugsflache,
+        #                                  anlagennutzungsgrad_wrg, infiltration_volume_flow, ventilation_volume_flow,
+        #                                  warmespeicherfahigkeit_pro_EBF,
+        #                                  korrekturfaktor_luftungs_eff_f_v, hohe_uber_meer, heizsystem, cooling_system,
+        #                                  dhw_heizsystem, heating_setpoint, cooling_setpoint, area_per_person)
+
+        # Gebaeude_dyn.pv_production = pv_yield_hourly
+
+        # Gebaeude_dyn.run_rc_simulation(weatherfile_path=weatherfile_path,
+        #                                occupancy_path=occupancy_path)
+        # Gebaeude_dyn.run_SIA_electricity_demand(occupancy_path)
+        # Gebaeude_dyn.run_dynamic_emissions(emission_factor_source=electricity_factor_source,
+        #                                    emission_factor_type=electricity_factor_type, grid_export_assumption="c")
 
         # Y[i] = Gebaeude_1.heizwarmebedarf.sum()  #kWh/m2a
         # Y[i] = Gebaeude_static.heizwarmebedarf.sum()
         # Z[i] = (Gebaeude_dyn.heating_demand/energiebezugsflache/1000).sum()
 
-        Y[i] = Gebaeude_static.operational_emissions.sum()
-        Z[i] = (Gebaeude_dyn.operational_emissions/energiebezugsflache/1000).sum()
+        envelope_emissions = eec.calculate_envelope_emissions(database_path=env_ee_database_path,
+                                         total_wall_area=total_wall_area,
+                                         wall_type=wall_type,
+                                         total_window_area=total_window_area,
+                                         window_type=window_type,
+                                         total_roof_area=total_roof_area,
+                                         roof_type=roof_type)
+
+        Y[i] = Gebaeude_static.operational_emissions.sum() + systems_emissions + envelope_emissions
+        # Z[i] = (Gebaeude_dyn.operational_emissions/energiebezugsflache/1000).sum()
 
     print("sobol analysis...")
     Si = sobol.analyze(problem, Y, parallel=True, n_processors=6 )
@@ -175,6 +218,7 @@ if __name__=='__main__':
     plt.title("Monatliche Berechnung")
     plt.show()
 
+    quit()
 
     print("sobol analysis...")
     Si = sobol.analyze(problem, Z, parallel=True, n_processors=6 )
