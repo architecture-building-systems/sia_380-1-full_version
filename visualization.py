@@ -18,12 +18,21 @@ scenarios_path = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\s
 configurations_path = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\configurations_UBA.xlsx"
 performance_matrix_path = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\performance_matrix_UBA_hourly.xlsx"
 
+embodied_systems_matrix_path = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\embodied_systems_UBA_hourly.xlsx"
+
+embodied_envelope_matrix_path = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\embodied_envelope_UBA.xlsx"
+
+
+
 
 scenarios = pd.read_excel(scenarios_path)
 configurations = pd.read_excel(configurations_path,  skiprows=[1])
 performance_matrix = pd.read_excel(performance_matrix_path, index_col="Configuration")
 
+embodied_envelope_matrix = pd.read_excel(embodied_envelope_matrix_path, index_col="Configuration")
+embodied_systems_matrix = pd.read_excel(embodied_systems_matrix_path, index_col="Configuration")
 
+print(performance_matrix.head())
 
 repeater = len(scenarios.index)
 
@@ -52,6 +61,7 @@ def window_translator(row):
 
 all_data["Performance"] = all_data.apply(lambda row: performance_reader(row, performance_matrix), axis=1)
 all_data["windows"] = all_data.apply(lambda row: window_translator(row), axis=1)
+
 
 # all_data.to_excel(r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\Zwischenspeichern\Case_study_I\all_data.xlsx")
 

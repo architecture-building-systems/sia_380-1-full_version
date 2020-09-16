@@ -19,11 +19,11 @@ performance_matrix_path_monthly = r"C:\Users\walkerl\Documents\code\sia_380-1-fu
                                   r"BA_monthly.xlsx"
 
 embodied_systems_stat_performance_path = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\embodied_systems" \
-                                         r" UBA_monthly.xlsx"
+                                         r"_UBA_monthly.xlsx"
 embodied_systems_dyn_performance_path = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\embodied_systems" \
-                                        r" UBA_hourly.xlsx"
+                                        r"_UBA_hourly.xlsx"
 embodied_envelope_performance_path = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\embodied_envelope" \
-                                     r" UBA.xlsx"
+                                     r"_UBA.xlsx"
 
 scenarios = pd.read_excel(scenarios_path)
 configurations = pd.read_excel(configurations_path, index_col="Configuration", skiprows=[1])
@@ -245,29 +245,37 @@ for config_index, config in configurations.iterrows():
     Thes ystem choice is translated to a similar system available in the RC Simulator
     """
 
-    config_heating_power = np.array([nominal_heating_power_stat[config_index],
-                                    nominal_heating_power_dyn[config_index]])
-
-    config_cooling_power = np.array(nominal_cooling_power_stat[config_index],
-                                    nominal_cooling_power_dyn[config_index])
-
-
-    annualized_embodied_system_emissions = \
+    embodied_systems_emissions_performance_matrix_stat[config_index] = \
         eec.calculate_system_related_embodied_emissions(ee_database_path=sys_ee_database_path,
                                                         gebaeudekategorie=config['building category'],
                                                         energy_reference_area=config['energy reference area'],
                                                         heizsystem=config['heating system'],
                                                         heat_emission_system=config['heat emission system'],
                                                         heat_distribution=config['heat distribution'],
-                                                        nominal_heating_power=config_heating_power,
+                                                        nominal_heating_power=nominal_heating_power_stat[config_index],
                                                         dhw_heizsystem=None,
                                                         cooling_system = config['cooling system'],
                                                         cold_emission_system = config['cold emission'],
-                                                        nominal_cooling_power=config_cooling_power,
+                                                        nominal_cooling_power=nominal_cooling_power_stat[config_index],
                                                         pv_area=config['PV area'],
                                                         pv_type=config['PV type'],
-                                                        pv_efficiency = config['PV efficiency'])
+                                                        pv_efficiency=config['PV efficiency'])
 
+    embodied_systems_emissions_performance_matrix_dyn[config_index] = annualized_embodied_system_emissions = \
+        eec.calculate_system_related_embodied_emissions(ee_database_path=sys_ee_database_path,
+                                                        gebaeudekategorie=config['building category'],
+                                                        energy_reference_area=config['energy reference area'],
+                                                        heizsystem=config['heating system'],
+                                                        heat_emission_system=config['heat emission system'],
+                                                        heat_distribution=config['heat distribution'],
+                                                        nominal_heating_power=nominal_heating_power_dyn[config_index],
+                                                        dhw_heizsystem=None,
+                                                        cooling_system=config['cooling system'],
+                                                        cold_emission_system=config['cold emission'],
+                                                        nominal_cooling_power=nominal_cooling_power_dyn[config_index],
+                                                        pv_area=config['PV area'],
+                                                        pv_type=config['PV type'],
+                                                        pv_efficiency=config['PV efficiency'])
 
 
     total_wall_area = np.array(config['wall areas'].split(" "), dtype=float).sum()
@@ -288,8 +296,6 @@ for config_index, config in configurations.iterrows():
                                          roof_type=config['roof type'])
 
 
-    embodied_systems_emissions_performance_matrix_stat[config_index] = annualized_embodied_system_emissions[0]
-    embodied_systems_emissions_performance_matrix_dyn[config_index] = annualized_embodied_system_emissions[1]
     embodied_envelope_emissions_performance_matrix[config_index] = annualized_embodied_emsissions_envelope
 
 
