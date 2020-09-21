@@ -157,7 +157,6 @@ for config_index, config in configurations.iterrows():
         Gebaeude_static.run_SIA_380_1(weather_data_sia)
         Gebaeude_static.run_ISO_52016_monthly(weather_data_sia)
 
-
         ## Gebäudedimensionen
         Gebaeude_static.heating_system = heizsystem
         Gebaeude_static.dhw_heating_system = dhw_heizsystem  ## Achtung, momentan ist der COP für DHW und für Heizung gleich.
@@ -186,7 +185,7 @@ for config_index, config in configurations.iterrows():
         Gebaeude_dyn.run_dynamic_emissions(emission_factor_source=electricity_factor_source,
                                            emission_factor_type=electricity_factor_type, grid_export_assumption="c")
 
-
+        Gebaeude_static.pv_peak_power = pv_area * pv_efficiency  # in kW (required for simplified Eigenverbrauchsabschätzung)
         Gebaeude_static.run_SIA_380_emissions(emission_factor_source=electricity_factor_source,
                                               emission_factor_type=electricity_factor_type, avg_ashp_cop=2.8)
 
@@ -209,7 +208,7 @@ for config_index, config in configurations.iterrows():
 
             nominal_heating_power_dyn[config_index] = Gebaeude_dyn.nominal_heating_power  # in W
             nominal_cooling_power_dyn[config_index] = abs(Gebaeude_dyn.nominal_cooling_power)  # in W
-            print(nominal_cooling_power_dyn)
+
 
         else:
             pass
