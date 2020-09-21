@@ -199,17 +199,18 @@ for config_index, config in configurations.iterrows():
         if scenario_index == 0:
             Gebaeude_static.run_heating_sizing_384_201(weatherfile_path)
             nominal_heating_power_stat[config_index] = Gebaeude_static.nominal_heating_power  # in W
-            print(nominal_heating_power_stat)
 
             Gebaeude_static.run_cooling_sizing()
             nominal_cooling_power_stat[config_index] = Gebaeude_static.nominal_cooling_power # in W
-            print(nominal_cooling_power_stat)
+
 
             Gebaeude_dyn.run_heating_sizing()
             Gebaeude_dyn.run_cooling_sizing()
 
             nominal_heating_power_dyn[config_index] = Gebaeude_dyn.nominal_heating_power  # in W
-            nominal_cooling_power_dyn[config_index] = Gebaeude_dyn.nominal_cooling_power  # in W
+            nominal_cooling_power_dyn[config_index] = abs(Gebaeude_dyn.nominal_cooling_power)  # in W
+            print(nominal_cooling_power_dyn)
+
         else:
             pass
 
@@ -259,7 +260,7 @@ for config_index, config in configurations.iterrows():
                                                         nominal_cooling_power=nominal_cooling_power_stat[config_index],
                                                         pv_area=config['PV area'],
                                                         pv_type=config['PV type'],
-                                                        pv_efficiency=config['PV efficiency'])
+                                                        pv_efficiency=config['PV efficiency'])/energiebezugsflache
 
     embodied_systems_emissions_performance_matrix_dyn[config_index] = annualized_embodied_system_emissions = \
         eec.calculate_system_related_embodied_emissions(ee_database_path=sys_ee_database_path,
@@ -275,7 +276,7 @@ for config_index, config in configurations.iterrows():
                                                         nominal_cooling_power=nominal_cooling_power_dyn[config_index],
                                                         pv_area=config['PV area'],
                                                         pv_type=config['PV type'],
-                                                        pv_efficiency=config['PV efficiency'])
+                                                        pv_efficiency=config['PV efficiency'])/energiebezugsflache
 
 
     total_wall_area = np.array(config['wall areas'].split(" "), dtype=float).sum()
@@ -293,7 +294,7 @@ for config_index, config in configurations.iterrows():
                                          total_window_area=total_window_area,
                                          window_type=config['window type'],
                                          total_roof_area=total_roof_area,
-                                         roof_type=config['roof type'])
+                                         roof_type=config['roof type'])/energiebezugsflache
 
 
     embodied_envelope_emissions_performance_matrix[config_index] = annualized_embodied_emsissions_envelope

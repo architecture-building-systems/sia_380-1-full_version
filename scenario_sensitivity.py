@@ -5,6 +5,7 @@ import data_prep as dp
 
 import simulation_engine as se
 import simulation_engine_dynamic as sime
+import embodied_emissions_calculation as eec
 
 from SALib.sample import saltelli
 from SALib.analyze import sobol
@@ -16,6 +17,8 @@ if __name__ == '__main__':
     Im this first part of the code, building, its location and all the related systems are defined.
     """
 
+    sys_ee_database_path = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\embodied_emissions_systems.xlsx"
+    env_ee_database_path = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\embodied_emissions_envelope.xlsx"
 
     gebaeudekategorie_sia = 1.1
     regelung = "andere"  # oder "Referenzraum" oder "andere"
@@ -37,11 +40,20 @@ if __name__ == '__main__':
     anlagennutzungsgrad_wrg = 0.0
     infiltration_volume_flow = 0.15
     heizsystem = "ASHP"
+    heat_emission_system = "floor heating"
+    heat_distribution_system = "hydronic"
     dhw_heizsystem = heizsystem  ## This is currently a limitation of the RC Model. Automatically the same!
     cooling_system = "GSHP"  # Only affects dynamic calculation. Static does not include cooling
     pv_performance_ratio = 0.8
     pv_area = energiebezugsflache  # m2, can be directly linked with roof size
     pv_tilt = 30  # in degrees
+    pv_type = "m-Si"
+
+    wall_type = "UBA_EnEV_wall_stb"
+    window_type = "UBA_EnEV_window"
+    roof_type = "UBA_EnEV_roof_stb"
+
+
 
     ## LCA angaben
 
@@ -64,11 +76,11 @@ if __name__ == '__main__':
                    [20.0, 30.0],
                    [0.5, 2.5]]}  # Heating system ## Abklären, ob dies so gemacht werden kann für diskretisierte Variablen.
     # "Natural Gas":0.249, "Wood":0.020, "Pellets":0.048, "GSHP_CH_mix":0.055, "ASHP_CH_mix":0.076, "GSHP_EU_mix":0.207, "ASHP_EU_mix":0.285
-    param_values = saltelli.sample(problem, 120)
+    param_values = saltelli.sample(problem, 150)
 
 
     number_to_climate = {1: r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\Zürich-hour_historic.epw",
-                         2: r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\Zürich-2040-A1B.epw",
+                         2: r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\Zürich-2030-A2.epw",
                          3: r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\Zürich-2070-A1B.epw",
                          4: r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\Zürich-2070-B1.epw"}
 
@@ -107,13 +119,17 @@ if __name__ == '__main__':
                             [u_windows, u_windows, u_windows, u_windows],
                             [g_windows, g_windows, g_windows, g_windows]],
                            dtype=object)  # dtype=object is necessary because there are different data types
+        total_window_area = windows[1].sum()
 
         # walls: [[Areas], [U-values]] zuvor waren es 4 x 412.5
         walls = np.array([[281.0, 281.0, 281.0, 281.0],
                           [u_walls, u_walls, u_walls, u_walls]])
+        total_wall_area = walls[0].sum()
+
 
         # roof: [[Areas], [U-values]]
         roof = np.array([[506], [u_roof]])
+        total_roof_area = roof[1].sum()
 
         # floor to ground (for now) [[Areas],[U-values],[b-values]]
         floor = np.array([[506], [u_floor], [b_floor]])
@@ -137,7 +153,23 @@ if __name__ == '__main__':
         Gebaeude_static.run_SIA_380_emissions(emission_factor_source=electricity_factor_source,
                                               emission_factor_type=electricity_factor_type, avg_ashp_cop=2.8)
 
-        ### Stündliche Berechnungen:
+        Gebaeude_static.run_heating_sizing_384_201(weatherfile_path)
+        Gebaeude_static.run_cooling_sizing()
+
+        systems_emissions_stat = eec.calculate_system_related_embodied_emissions(ee_database_path=sys_ee_database_path,
+                                                                                 gebaeudekategorie=gebaeudekategorie_sia,
+                                                                                 energy_reference_area=energiebezugsflache,
+                                                                                 heizsystem=heizsystem,
+                                                                                 heat_emission_system=heat_emission_system,
+                                                                                 heat_distribution=heat_distribution_system,
+                                                                                 nominal_heating_power=Gebaeude_static.nominal_heating_power,
+                                                                                 dhw_heizsystem=None,
+                                                                                 cooling_system=cooling_system,
+                                                                                 cold_emission_system=heat_emission_system,
+                                                                                 nominal_cooling_power=Gebaeude_static.nominal_cooling_power,
+                                                                                 pv_area=pv_area,
+                                                                                 pv_type=pv_type,
+                                                                                 pv_efficiency=pv_efficiency)
 
         ### Stündliche Berechnungen:
 
@@ -156,6 +188,32 @@ if __name__ == '__main__':
         Gebaeude_dyn.run_dynamic_emissions(emission_factor_source=electricity_factor_source,
                                            emission_factor_type=electricity_factor_type, grid_export_assumption="c")
 
+        Gebaeude_dyn.run_heating_sizing()
+        Gebaeude_static.run_cooling_sizing()
+
+        systems_emissions_dyn = eec.calculate_system_related_embodied_emissions(ee_database_path=sys_ee_database_path,
+                                                                                gebaeudekategorie=gebaeudekategorie_sia,
+                                                                                energy_reference_area=energiebezugsflache,
+                                                                                heizsystem=heizsystem,
+                                                                                heat_emission_system=heat_emission_system,
+                                                                                heat_distribution=heat_distribution_system,
+                                                                                nominal_heating_power=Gebaeude_static.nominal_heating_power,
+                                                                                dhw_heizsystem=None,
+                                                                                cooling_system=cooling_system,
+                                                                                cold_emission_system=heat_emission_system,
+                                                                                nominal_cooling_power=Gebaeude_static.nominal_cooling_power,
+                                                                                pv_area=pv_area,
+                                                                                pv_type=pv_type,
+                                                                                pv_efficiency=pv_efficiency)
+
+
+        envelope_emissions = eec.calculate_envelope_emissions(database_path=env_ee_database_path,
+                                                              total_wall_area=total_wall_area,
+                                                              wall_type=wall_type,
+                                                              total_window_area=total_window_area,
+                                                              window_type=window_type,
+                                                              total_roof_area=total_roof_area,
+                                                              roof_type=roof_type)
 
         # Y[i] = Gebaeude_static.heizwarmebedarf.sum()
         # Z[i] = (Gebaeude_dyn.heating_demand/energiebezugsflache/1000).sum()

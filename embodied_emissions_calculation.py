@@ -139,11 +139,11 @@ def calculate_envelope_emissions(database_path, total_wall_area, wall_type, tota
 
     window_embodied_per_area = database['GWP[kgCO2eq/m2]'][window_type]
     window_lifetime = database['lifetime'][window_type]
-    window_embodied = window_embodied_per_area * total_window_area
+    window_embodied = window_embodied_per_area * total_window_area/window_lifetime
 
     roof_embodied_per_area = database['GWP[kgCO2eq/m2]'][roof_type]
     roof_lifetime = database['lifetime'][roof_type]
-    roof_embodied = roof_embodied_per_area * total_roof_area
+    roof_embodied = roof_embodied_per_area * total_roof_area/roof_lifetime
 
     return wall_embodied + window_embodied + roof_embodied   # in total GHG emissions per year (kgCO2eq/a)
 

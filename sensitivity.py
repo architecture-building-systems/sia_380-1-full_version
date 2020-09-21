@@ -29,25 +29,31 @@ if __name__=='__main__':
     electricity_factor_type = "annual"  # Can be "annual", "monthly", "hourly" (Hourly will only work for hourly model and
     # source: empa_ac )
 
+    u_wall_values = {"SIA_ziel":0.10, "EnEV":0.25, "KfW55":0.14, "alt":0.4 }
+    u_window_values = {"SIA_ziel":0.90, "EnEV":1.3, "KfW55":0.9, "alt":1.5 }
 
-
+    wall_materialisation = {1:"UBA_EnEV_wall_stb", 2:"UBA_EnEV_wall_wood", 3:"UBA_KfW_55_wall_stb",
+                            4:"UBA_KfW_55_wall_wood"}
+    window_materialisation = {1:"UBA_EnEV_window", 2:"UBA_KfW_55_window"}
 
 
     ### Generate Samples
     problem = {
         'num_vars':8,
-        'names':['u_opaque', 'u_glazing', 'g_windows', 'PV area', 'thermal_mass',
-                 'pv_effieicncy', 'eta_g', 'heating system'],
-        'bounds':[[0.12, 0.4],  # u_walls
-                  [0.75, 2.0],  # u_windows
+        'names':['envelope type', 'g_windows', 'PV area', 'thermal_mass',
+                 'heat recovery', 'heating system', "wall material", "window  material"],
+        'bounds':[[0.5, 4.5],  # envelope
                   [0.2, 0.8],  # g_windows
                   [0.0, 506.0],  # PV area from 0 to full roof
                   [0.03, 0.15],  # waermespeicherfaehigkeit pro EBF
-                  [0.10, 0.30],  # pv_efficiency
                   [0.0, 0.70],  # eta g, heat recovery efficiency
-                  [0.5, 4.5]]}   # Heating system ## Abklären, ob dies so gemacht werden kann für diskretisierte Variablen.
+                  [0.5, 4.5],   # Heating system ## Abklären, ob dies so gemacht werden kann für diskretisierte Variablen.
+                  [0.5, 4.5],  # wall_materialisation (at the moment stb/eps and holz/zellulose
+                  [0.5, 2.5]]}  # window materialisation (at the moment, Kunststoff, 2 oder 3fach Verglasung)
+
+
     # "Natural Gas":0.249, "Wood":0.020, "Pellets":0.048, "GSHP_CH_mix":0.055, "ASHP_CH_mix":0.076, "GSHP_EU_mix":0.207, "ASHP_EU_mix":0.285
-    param_values = saltelli.sample(problem, 250)
+    param_values = saltelli.sample(problem, 150)
     gebaeudekategorie_sia = 1.1
     regelung = "andere"  # oder "Referenzraum" oder "andere"
     hohe_uber_meer = 435.0  # Eingabe
@@ -61,12 +67,14 @@ if __name__=='__main__':
     b_floor = 0.4
     heating_setpoint = "SIA"
     cooling_setpoint = "SIA"
+    pv_efficiency = 0.2
     pv_azimuth = 180.0 # south
     pv_type = "m-Si"
+    pv_performance_ratio = 0.8
+    pv_tilt = 30  # in degrees
 
-    wall_type =  "UBA_KfW_55_wall_stb"
-    window_type = "UBA_KfW_55_window"
-    roof_type = "UBA_KfW_55_roof_stb"
+    # window_type = "UBA_KfW_55_window"
+    # roof_type = "UBA_KfW_55_roof_stb"
 
     weatherfile_path = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\Zürich-hour_historic.epw"
     weather_data_sia = dp.epw_to_sia_irrad(weatherfile_path)
@@ -77,23 +85,32 @@ if __name__=='__main__':
     ### Run Model
     Y = np.zeros([param_values.shape[0]])
     Z = np.zeros([param_values.shape[0]])
+    emb_stat = np.zeros([param_values.shape[0]])
+    emb_dyn = np.zeros([param_values.shape[0]])
     for i, X in enumerate(param_values):
 
-        u_floor = u_roof = u_walls = X[0]
-        u_windows = X[1]
-        g_windows = X[2]
-        pv_area = X[3]
-        warmespeicherfahigkeit_pro_EBF = X[4]
-        pv_efficiency = X[5]
-        anlagennutzungsgrad_wrg = X[6]
-        heating_system_number = np.round(X[7], 0)
+        envelope_number = np.round(X[0],0)
+        number_to_envelope = {1:"SIA_ziel", 2:"EnEV", 3:"KfW55", 4:"alt"}
+        u_floor = u_roof = u_walls = u_wall_values[number_to_envelope[envelope_number]]
+        u_windows = u_window_values[number_to_envelope[envelope_number]]
+        g_windows = X[1]
+        pv_area = X[2]
+        warmespeicherfahigkeit_pro_EBF = X[3]
+        anlagennutzungsgrad_wrg = X[4]
+        heating_system_number = np.round(X[5], 0)
         number_to_system = {1:"ASHP", 2:"electric", 3:"Pellets", 4:"GSHP"}
-
         heizsystem = number_to_system[heating_system_number]
         dhw_heizsystem = heizsystem  ## This is currently a limitation of the RC Model. Automatically the same!
-        cooling_system = "GSHP"  # Only affects dynamic calculation. Static does not include cooling
-        pv_performance_ratio = 0.8
-        pv_tilt = 30  # in degrees
+
+        cooling_system = "GSHP"
+
+        materialisation_no = np.round(X[6], 0)
+        wall_type = wall_materialisation[materialisation_no]
+        roof_type = wall_materialisation[materialisation_no]
+
+        window_type_no = np.round(X[7], 0)
+        window_type = window_materialisation[window_type_no]
+
 
         ## Bauteile:
         # Windows: [[Orientation],[Areas],[U-value],[g-value]]
@@ -142,7 +159,7 @@ if __name__=='__main__':
         Gebaeude_static.run_heating_sizing_384_201(weatherfile_path)
         Gebaeude_static.run_cooling_sizing()
 
-        systems_emissions = eec.calculate_system_related_embodied_emissions(ee_database_path=sys_ee_database_path,
+        systems_emissions_stat = eec.calculate_system_related_embodied_emissions(ee_database_path=sys_ee_database_path,
                                                         gebaeudekategorie=gebaeudekategorie_sia,
                                                         energy_reference_area=energiebezugsflache,
                                                         heizsystem=heizsystem,
@@ -158,25 +175,40 @@ if __name__=='__main__':
                                                         pv_efficiency=pv_efficiency)
 
 
-
-
-
         ### Stündliche Berechnungen:
 
-        # Gebaeude_dyn = sime.Sim_Building(gebaeudekategorie_sia, regelung, windows, walls, roof, floor,
-        #                                  energiebezugsflache,
-        #                                  anlagennutzungsgrad_wrg, infiltration_volume_flow, ventilation_volume_flow,
-        #                                  warmespeicherfahigkeit_pro_EBF,
-        #                                  korrekturfaktor_luftungs_eff_f_v, hohe_uber_meer, heizsystem, cooling_system,
-        #                                  dhw_heizsystem, heating_setpoint, cooling_setpoint, area_per_person)
+        Gebaeude_dyn = sime.Sim_Building(gebaeudekategorie_sia, regelung, windows, walls, roof, floor,
+                                         energiebezugsflache,
+                                         anlagennutzungsgrad_wrg, infiltration_volume_flow, ventilation_volume_flow,
+                                         warmespeicherfahigkeit_pro_EBF,
+                                         korrekturfaktor_luftungs_eff_f_v, hohe_uber_meer, heizsystem, cooling_system,
+                                         dhw_heizsystem, heating_setpoint, cooling_setpoint, area_per_person)
+        #
+        Gebaeude_dyn.pv_production = pv_yield_hourly
 
-        # Gebaeude_dyn.pv_production = pv_yield_hourly
+        Gebaeude_dyn.run_rc_simulation(weatherfile_path=weatherfile_path,
+                                       occupancy_path=occupancy_path)
+        Gebaeude_dyn.run_SIA_electricity_demand(occupancy_path)
+        Gebaeude_dyn.run_dynamic_emissions(emission_factor_source=electricity_factor_source,
+                                           emission_factor_type=electricity_factor_type, grid_export_assumption="c")
 
-        # Gebaeude_dyn.run_rc_simulation(weatherfile_path=weatherfile_path,
-        #                                occupancy_path=occupancy_path)
-        # Gebaeude_dyn.run_SIA_electricity_demand(occupancy_path)
-        # Gebaeude_dyn.run_dynamic_emissions(emission_factor_source=electricity_factor_source,
-        #                                    emission_factor_type=electricity_factor_type, grid_export_assumption="c")
+        Gebaeude_dyn.run_heating_sizing()
+        Gebaeude_static.run_cooling_sizing()
+
+        systems_emissions_dyn = eec.calculate_system_related_embodied_emissions(ee_database_path=sys_ee_database_path,
+                                                                            gebaeudekategorie=gebaeudekategorie_sia,
+                                                                            energy_reference_area=energiebezugsflache,
+                                                                            heizsystem=heizsystem,
+                                                                            heat_emission_system=heat_emission_system,
+                                                                            heat_distribution=heat_distribution_system,
+                                                                            nominal_heating_power=Gebaeude_static.nominal_heating_power,
+                                                                            dhw_heizsystem=None,
+                                                                            cooling_system=cooling_system,
+                                                                            cold_emission_system=heat_emission_system,
+                                                                            nominal_cooling_power=Gebaeude_static.nominal_cooling_power,
+                                                                            pv_area=pv_area,
+                                                                            pv_type=pv_type,
+                                                                            pv_efficiency=pv_efficiency)
 
         # Y[i] = Gebaeude_1.heizwarmebedarf.sum()  #kWh/m2a
         # Y[i] = Gebaeude_static.heizwarmebedarf.sum()
@@ -190,8 +222,20 @@ if __name__=='__main__':
                                          total_roof_area=total_roof_area,
                                          roof_type=roof_type)
 
-        Y[i] = Gebaeude_static.operational_emissions.sum() + systems_emissions + envelope_emissions
-        # Z[i] = (Gebaeude_dyn.operational_emissions/energiebezugsflache/1000).sum()
+
+        Y[i] = systems_emissions_stat/energiebezugsflache + envelope_emissions/energiebezugsflache + Gebaeude_static.operational_emissions.sum()
+        emb_stat[i] = systems_emissions_stat/energiebezugsflache + envelope_emissions/energiebezugsflache
+
+        Z[i] = (Gebaeude_dyn.operational_emissions/energiebezugsflache/1000).sum() + envelope_emissions/energiebezugsflache +systems_emissions_dyn/energiebezugsflache
+        emb_dyn[i] = envelope_emissions/energiebezugsflache +systems_emissions_dyn/energiebezugsflache
+
+
+    pd.DataFrame(param_values).to_excel(r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\sensitivity\param_values.xlsx")
+    pd.DataFrame(Y).to_excel(r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\sensitivity\Y.xlsx")
+    pd.DataFrame(Z).to_excel(r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\sensitivity\Z.xlsx")
+    pd.DataFrame(emb_stat).to_excel(r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\sensitivity\emb_stat.xlsx")
+    pd.DataFrame(emb_dyn).to_excel(r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\sensitivity\emb_dyn.xlsx")
+
 
     print("sobol analysis...")
     Si = sobol.analyze(problem, Y, parallel=True, n_processors=6 )
@@ -218,7 +262,7 @@ if __name__=='__main__':
     plt.title("Monatliche Berechnung")
     plt.show()
 
-    quit()
+
 
     print("sobol analysis...")
     Si = sobol.analyze(problem, Z, parallel=True, n_processors=6 )
