@@ -153,6 +153,7 @@ if __name__=='__main__':
         Gebaeude_static.cooling_system = cooling_system  # Diese Definitionens sollten verschoben werden zur definition des Objekts
         Gebaeude_static.run_dhw_demand()
         Gebaeude_static.run_SIA_electricity_demand(occupancy_path)
+        Gebaeude_static.pv_peak_power = pv_area * pv_efficiency  # kW
         Gebaeude_static.run_SIA_380_emissions(emission_factor_source=electricity_factor_source,
                                               emission_factor_type=electricity_factor_type, avg_ashp_cop=2.8)
 

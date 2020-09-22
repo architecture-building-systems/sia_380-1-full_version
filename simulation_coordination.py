@@ -25,11 +25,24 @@ embodied_systems_dyn_performance_path = r"C:\Users\walkerl\Documents\code\sia_38
 embodied_envelope_performance_path = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\embodied_envelope" \
                                      r"_UBA.xlsx"
 
+dyn_heat_path = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\heat_demand" \
+                                         r"_UBA_hourly.xlsx"
+dyn_cold_path = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\cooling_demand" \
+                                         r"_UBA_hourly.xlsx"
+stat_heat_path = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\heat_demand" \
+                                         r"_UBA_monthly.xlsx"
+stat_cold_path = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\cooling_demand" \
+                                         r"_UBA_monthly.xlsx"
+
 scenarios = pd.read_excel(scenarios_path)
 configurations = pd.read_excel(configurations_path, index_col="Configuration", skiprows=[1])
 
 emission_performance_matrix_dyn = np.empty((len(configurations.index), len(scenarios.index)))
 emission_performance_matrix_stat = np.empty((len(configurations.index), len(scenarios.index)))
+heating_demand_dyn = np.empty((len(configurations.index), len(scenarios.index)))
+heating_demand_stat = np.empty((len(configurations.index), len(scenarios.index)))
+cooling_demand_dyn = np.empty((len(configurations.index), len(scenarios.index)))
+cooling_demand_stat = np.empty((len(configurations.index), len(scenarios.index)))
 
 nominal_heating_power_stat = np.empty(len(configurations.index))
 nominal_cooling_power_stat = np.empty(len(configurations.index))
@@ -191,7 +204,12 @@ for config_index, config in configurations.iterrows():
 
 
         emission_performance_matrix_dyn[config_index, scenario_index] = Gebaeude_dyn.operational_emissions.sum()/1000.0
+        heating_demand_dyn[config_index, scenario_index] = Gebaeude_dyn.heating_demand.sum()/1000.0
+        cooling_demand_dyn[config_index, scenario_index] = Gebaeude_dyn.cooling_demand.sum()/1000.0
+
         emission_performance_matrix_stat[config_index, scenario_index] = Gebaeude_static.operational_emissions.sum()
+        heating_demand_stat[config_index, scenario_index] = Gebaeude_static.heizwarmebedarf.sum()
+        cooling_demand_stat[config_index, scenario_index] = Gebaeude_static.monthly_cooling_demand.sum()
 
 
         # This means that Scenario 0 needs to be the reference (design) scenario.
@@ -221,6 +239,14 @@ pd.DataFrame(emission_performance_matrix_dyn, index=configurations.index, column
          performance_matrix_path_hourly)
 pd.DataFrame(emission_performance_matrix_stat, index=configurations.index, columns=scenarios.index).to_excel(
          performance_matrix_path_monthly)
+
+pd.DataFrame(heating_demand_dyn, index=configurations.index, columns=scenarios.index).to_excel(dyn_heat_path)
+pd.DataFrame(cooling_demand_dyn, index=configurations.index, columns=scenarios.index).to_excel(dyn_cold_path)
+
+pd.DataFrame(heating_demand_stat, index=configurations.index, columns=scenarios.index).to_excel(stat_heat_path)
+pd.DataFrame(cooling_demand_stat, index=configurations.index, columns=scenarios.index).to_excel(stat_cold_path)
+
+
 
 
 ###################################### EMBODIED EMISSIONS ##############################################################
