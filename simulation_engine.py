@@ -51,6 +51,7 @@ class Building(object):
         self.pv_production = None  # This input is currently implemented as Wh (!)
         self.nominal_heating_power = None
         self.nominal_cooling_power = None
+        self.pv_peak_power = None # in kW
 
 
     def run_SIA_380_1(self, weather_data_sia):
@@ -586,8 +587,12 @@ class Building(object):
 
         self.electricity_demand += (self.heating_elec + self.dhw_elec + self.cooling_elec)
 
-        # This way of net metering is a very agregated and propably not suitable way to do it.
-        self.net_electricity_demand = self.electricity_demand - pv_prod_month
+        electricity_demand_for_self_consumption = self.electricity_demand * self.energy_reference_area
+
+        # Divide by zero because result comes in percentage
+        sc_factors = dp.estimate_self_consumption(electricity_demand_for_self_consumption, self.pv_peak_power)/100
+
+        self.net_electricity_demand = self.electricity_demand - (sc_factors * pv_prod_month)
 
 
         ## Calculate operational impact:
