@@ -129,7 +129,7 @@ def calculate_system_related_embodied_emissions(ee_database_path, gebaeudekatego
 
 
 def calculate_envelope_emissions(database_path, total_wall_area, wall_type, total_window_area,
-                                 window_type, total_roof_area, roof_type):
+                                 window_type, total_roof_area, roof_type, energy_reference_area, floor_type):
 
     database = pd.read_excel(database_path, index_col="Name")
 
@@ -145,7 +145,12 @@ def calculate_envelope_emissions(database_path, total_wall_area, wall_type, tota
     roof_lifetime = database['lifetime'][roof_type]
     roof_embodied = roof_embodied_per_area * total_roof_area/roof_lifetime
 
-    return wall_embodied + window_embodied + roof_embodied   # in total GHG emissions per year (kgCO2eq/a)
+    floor_embodied_per_area = database['GWP[kgCO2eq/m2'][floor_type]
+    floor_lifetime = database['lifetime'][floor_type]
+    floor_embodied = floor_embodied_per_area * energy_reference_area / floor_lifetime
+
+    return wall_embodied + window_embodied + roof_embodied + floor_embodied
+    # in total GHG emissions per year (kgCO2eq/a)
 
 
 

@@ -153,8 +153,7 @@ for config_index, config in configurations.iterrows():
         """
 
         ## PV calculation
-        # pv yield in kWh for each hour
-        #TODO check if the further functions also use kWh
+        # pv yield in Wh for each hour
         pv_yield_hourly = dp.photovoltaic_yield_hourly(pv_azimuth, pv_tilt, pv_efficiency, pv_performance_ratio, pv_area,
                                       weatherfile_path)
 
@@ -184,7 +183,7 @@ for config_index, config in configurations.iterrows():
                                        korrekturfaktor_luftungs_eff_f_v, hohe_uber_meer, heizsystem, cooling_system,
                                        dhw_heizsystem, heating_setpoint, cooling_setpoint, area_per_person)
 
-        Gebaeude_dyn.pv_production = pv_yield_hourly
+        Gebaeude_dyn.pv_production = pv_yield_hourly  # in kWh (! ACHTUNG, RC immer in Wh !)
 
         Gebaeude_dyn.run_rc_simulation(weatherfile_path=weatherfile_path,
                                      occupancy_path=occupancy_path)
@@ -203,9 +202,11 @@ for config_index, config in configurations.iterrows():
                                               emission_factor_type=electricity_factor_type, avg_ashp_cop=2.8)
 
 
-        emission_performance_matrix_dyn[config_index, scenario_index] = Gebaeude_dyn.operational_emissions.sum()/1000.0
-        heating_demand_dyn[config_index, scenario_index] = Gebaeude_dyn.heating_demand.sum()/1000.0
-        cooling_demand_dyn[config_index, scenario_index] = Gebaeude_dyn.cooling_demand.sum()/1000.0
+
+        emission_performance_matrix_dyn[config_index, scenario_index] = Gebaeude_dyn.operational_emissions.sum()/energiebezugsflache
+
+        heating_demand_dyn[config_index, scenario_index] = Gebaeude_dyn.heating_demand.sum()/1000.0/energiebezugsflache
+        cooling_demand_dyn[config_index, scenario_index] = Gebaeude_dyn.cooling_demand.sum()/1000.0/energiebezugsflache
 
         emission_performance_matrix_stat[config_index, scenario_index] = Gebaeude_static.operational_emissions.sum()
         heating_demand_stat[config_index, scenario_index] = Gebaeude_static.heizwarmebedarf.sum()
@@ -319,7 +320,9 @@ for config_index, config in configurations.iterrows():
                                          total_window_area=total_window_area,
                                          window_type=config['window type'],
                                          total_roof_area=total_roof_area,
-                                         roof_type=config['roof type'])/energiebezugsflache
+                                         roof_type=config['roof type'],
+                                         energy_reference_area=energiebezugsflache,
+                                         floor_type=config['floor type'])/energiebezugsflache
 
 
     embodied_envelope_emissions_performance_matrix[config_index] = annualized_embodied_emsissions_envelope
