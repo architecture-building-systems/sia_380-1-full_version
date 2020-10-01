@@ -304,7 +304,6 @@ class Sim_Building(object):
         self.net_electricity_demand = net_electricity_demand
 
 
-
         self.fossil_emissions = np.empty(8760)
         self.electricity_emissions = np.empty(8760)
 
