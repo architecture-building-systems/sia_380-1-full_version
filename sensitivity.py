@@ -53,7 +53,7 @@ if __name__=='__main__':
 
 
     # "Natural Gas":0.249, "Wood":0.020, "Pellets":0.048, "GSHP_CH_mix":0.055, "ASHP_CH_mix":0.076, "GSHP_EU_mix":0.207, "ASHP_EU_mix":0.285
-    param_values = saltelli.sample(problem, 150)
+    param_values = saltelli.sample(problem, 160)
     gebaeudekategorie_sia = 1.1
     regelung = "andere"  # oder "Referenzraum" oder "andere"
     hohe_uber_meer = 435.0  # Eingabe
@@ -110,6 +110,8 @@ if __name__=='__main__':
 
         window_type_no = np.round(X[7], 0)
         window_type = window_materialisation[window_type_no]
+
+        floor_type = "UBA_all_stb"
 
 
         ## Bauteile:
@@ -221,14 +223,19 @@ if __name__=='__main__':
                                          total_window_area=total_window_area,
                                          window_type=window_type,
                                          total_roof_area=total_roof_area,
-                                         roof_type=roof_type)
+                                         roof_type=roof_type,
+                                                              energy_reference_area=energiebezugsflache,
+                                                              floor_type=floor_type)
 
 
         Y[i] = systems_emissions_stat/energiebezugsflache + envelope_emissions/energiebezugsflache + Gebaeude_static.operational_emissions.sum()
         emb_stat[i] = systems_emissions_stat/energiebezugsflache + envelope_emissions/energiebezugsflache
 
-        Z[i] = (Gebaeude_dyn.operational_emissions/energiebezugsflache/1000).sum() + envelope_emissions/energiebezugsflache +systems_emissions_dyn/energiebezugsflache
-        emb_dyn[i] = envelope_emissions/energiebezugsflache +systems_emissions_dyn/energiebezugsflache
+        # Z[i] = (Gebaeude_dyn.operational_emissions/energiebezugsflache/1000).sum() + envelope_emissions/energiebezugsflache +systems_emissions_dyn/energiebezugsflache
+        # emb_dyn[i] = envelope_emissions/energiebezugsflache +systems_emissions_dyn/energiebezugsflache
+        Z[i] = (
+                           Gebaeude_dyn.operational_emissions / energiebezugsflache).sum() + envelope_emissions / energiebezugsflache + systems_emissions_dyn / energiebezugsflache
+        emb_dyn[i] = envelope_emissions / energiebezugsflache + systems_emissions_dyn / energiebezugsflache
 
 
     pd.DataFrame(param_values).to_excel(r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\sensitivity\param_values.xlsx")
