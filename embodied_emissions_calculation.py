@@ -129,7 +129,7 @@ def calculate_system_related_embodied_emissions(ee_database_path, gebaeudekatego
 
 
 def calculate_envelope_emissions(database_path, total_wall_area, wall_type, total_window_area,
-                                 window_type, total_roof_area, roof_type):
+                                 window_type, total_roof_area, roof_type, energy_reference_area, floor_type):
 
     database = pd.read_excel(database_path, index_col="Name")
 
@@ -145,7 +145,12 @@ def calculate_envelope_emissions(database_path, total_wall_area, wall_type, tota
     roof_lifetime = database['lifetime'][roof_type]
     roof_embodied = roof_embodied_per_area * total_roof_area/roof_lifetime
 
-    return wall_embodied + window_embodied + roof_embodied   # in total GHG emissions per year (kgCO2eq/a)
+    floor_embodied_per_area = database['GWP[kgCO2eq/m2]'][floor_type]
+    floor_lifetime = database['lifetime'][floor_type]
+    floor_embodied = floor_embodied_per_area * energy_reference_area / floor_lifetime
+
+    return wall_embodied + window_embodied + roof_embodied + floor_embodied
+    # in total GHG emissions per year (kgCO2eq/a)
 
 
 
@@ -153,48 +158,4 @@ def calculate_envelope_emissions(database_path, total_wall_area, wall_type, tota
 
 
 if __name__ == "__main__":
-
-    systems_database_path = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\embodied_emissions_systems.xlsx"
-    envelope_database_path = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\embodied_emissions_envelope.xlsx"
-
-    gebaeudekategorie = 1
-    era = 250.0  #m2
-    heizsystem = "ASHP"
-    heat_emission_system = "floor heating"
-    normheizleistung = 8000 #W
-    dhw_heizsystem = heizsystem
-    heat_distribution = "hydronic"
-
-
-    cooling_system = "ASHP"
-    cooling_power = normheizleistung
-    cold_emission_system = "floor heating"
-    cooling_power = np.array([5000.0, 8000.0])  # W
-
-
-    pv_area = 50.0  # m2
-    pv_type = "m-Si"
-    pv_efficiency = 0.18
-
-    total_wall_area = 500.0  # m2
-    wall_type = "Betonwand, Wärmedämmung mit Lattenrost, Verkleidung Steinwolle 0.25m insulation thickness"
-
-    total_window_area = 100.0  # m2
-    window_type = "Holzflügelfenster 3-fach ESG"
-
-    total_roof_area = 200.0  # m2
-    roof_type = "Betonwand, Wärmedämmung mit Lattenrost, Verkleidung Steinwolle 0.25m insulation thickness" # Hier ist für die Programmierphase eine Wand eingegeben.
-
-
-    a = embodied_emissions_of_systems = calculate_system_related_embodied_emissions(systems_database_path, gebaeudekategorie, era,
-                                                                     heizsystem, heat_emission_system, heat_distribution,
-                                                                     normheizleistung,
-                                                                     dhw_heizsystem, cooling_system, cold_emission_system,
-                                                                     cooling_power,  pv_area, pv_type, pv_efficiency)
-
-
-    b = embodied_emissions_of_envelope = calculate_envelope_emissions(envelope_database_path, total_wall_area, wall_type,
-                                                                  total_window_area, window_type, total_roof_area, roof_type)
-
-    print(a)
-    print(b)
+    pass
