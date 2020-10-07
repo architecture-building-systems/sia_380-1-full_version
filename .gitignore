@@ -1,0 +1,20 @@
+# Reult files
+
+#files die ich lokal zwischenspeichere
+data/Zwischenspeichern/
+
+
+#Resultate
+data/cooling_demand_UBA_hourly.xlsx
+data/cooling_demand_UBA_monthly.xlsx
+data/embodied_envelope_UBA.xlsx
+data/embodied_systems_UBA_hourly.xlsx
+data/embodied_systems_UBA_monthly.xlsx
+data/heat_demand_UBA_hourly.xlsx
+data/heat_demand_UBA_monthly.xlsx
+data/performance_matrix_UBA_hourly.xlsx
+data/performance_matrix_UBA_monthly.xlsx
+data/sc_ratio.xlsx
+data/scenarios_UBA.xlsx
+data/walls.xlsx
+
