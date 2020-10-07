@@ -33,6 +33,7 @@ stat_heat_path = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\h
                                          r"_UBA_monthly.xlsx"
 stat_cold_path = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\cooling_demand" \
                                          r"_UBA_monthly.xlsx"
+sc_ratio_path = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\sc_ratio.xlsx"
 
 scenarios = pd.read_excel(scenarios_path)
 configurations = pd.read_excel(configurations_path, index_col="Configuration", skiprows=[1])
@@ -48,6 +49,9 @@ nominal_heating_power_stat = np.empty(len(configurations.index))
 nominal_cooling_power_stat = np.empty(len(configurations.index))
 nominal_heating_power_dyn = np.empty(len(configurations.index))
 nominal_cooling_power_dyn = np.empty(len(configurations.index))
+
+annual_self_consumption_ratios_dyn = np.empty((len(configurations.index), len(scenarios.index)))
+annual_electricity_consumption = np.empty((len(configurations.index), len(scenarios.index)))
 
 # LCA angaben
 
@@ -208,10 +212,13 @@ for config_index, config in configurations.iterrows():
         heating_demand_dyn[config_index, scenario_index] = Gebaeude_dyn.heating_demand.sum()/1000.0/energiebezugsflache
         cooling_demand_dyn[config_index, scenario_index] = Gebaeude_dyn.cooling_demand.sum()/1000.0/energiebezugsflache
 
+
         emission_performance_matrix_stat[config_index, scenario_index] = Gebaeude_static.operational_emissions.sum()
         heating_demand_stat[config_index, scenario_index] = Gebaeude_static.heizwarmebedarf.sum()
         cooling_demand_stat[config_index, scenario_index] = Gebaeude_static.monthly_cooling_demand.sum()
 
+        annual_self_consumption_ratios_dyn[config_index, scenario_index] = dp.calculate_self_consumption(Gebaeude_dyn.electricity_demand, pv_yield_hourly)
+        annual_electricity_consumption[config_index, scenario_index] = Gebaeude_dyn.electricity_demand.sum()
 
         # This means that Scenario 0 needs to be the reference (design) scenario.
         if scenario_index == 0:
@@ -240,6 +247,8 @@ pd.DataFrame(emission_performance_matrix_dyn, index=configurations.index, column
          performance_matrix_path_hourly)
 pd.DataFrame(emission_performance_matrix_stat, index=configurations.index, columns=scenarios.index).to_excel(
          performance_matrix_path_monthly)
+
+pd.DataFrame(annual_self_consumption_ratios_dyn, index=configurations.index, columns=scenarios.index).to_excel(sc_ratio_path)
 
 pd.DataFrame(heating_demand_dyn, index=configurations.index, columns=scenarios.index).to_excel(dyn_heat_path)
 pd.DataFrame(cooling_demand_dyn, index=configurations.index, columns=scenarios.index).to_excel(dyn_cold_path)

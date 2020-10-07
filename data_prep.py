@@ -580,15 +580,15 @@ def estimate_self_consumption(electricity_demand, pv_peak_power):
         monthly_sc[monthly_sc >=95] = 95.0
         monthly_sc[monthly_sc <= 5] = 5.0
 
-        print(monthly_sc)
 
     return monthly_sc
 
 
 def calculate_self_consumption(hourly_demand, hourly_production):
 
-    self_consumption = hourly_production - hourly_demand
-    self_consumption[self_consumption < 0.0] = 0.0
+    self_consumption = np.empty(len(hourly_demand))
+    for hour in range(len(hourly_demand)):
+        self_consumption[hour] = min(hourly_production[hour], hourly_demand[hour])
     self_consumption_ratio = self_consumption.sum()/hourly_production.sum()
     return self_consumption_ratio
 
