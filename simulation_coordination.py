@@ -331,7 +331,7 @@ for config_index, config in configurations.iterrows():
                                          total_roof_area=total_roof_area,
                                          roof_type=config['roof type'],
                                          energy_reference_area=energiebezugsflache,
-                                         floor_type=config['floor type'])/energiebezugsflache
+                                         floor_type=config['ceiling_type'])/energiebezugsflache
 
 
     embodied_envelope_emissions_performance_matrix[config_index] = annualized_embodied_emsissions_envelope
