@@ -2,7 +2,7 @@ import os
 import pandas as pd
 from itertools import product
 
-main_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+main_path = os.path.abspath(os.path.dirname(__file__))
 
 options_path = os.path.join(main_path, 'data', 'scenario_options.xlsx')
 scenarios_path = os.path.join(main_path, 'data', 'scenarios.xlsx')
