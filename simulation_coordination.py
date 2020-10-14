@@ -13,7 +13,7 @@ import time
 Im this first part of the code, building, its location and all the related systems are defined.
 """
 
-main_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+main_path = os.path.abspath(os.path.dirname(__file__))
 
 # Filepaths for input files
 scenarios_path = os.path.join(main_path, 'data', 'scenarios.xlsx')
@@ -92,7 +92,7 @@ for config_index, config in configurations.iterrows():
     """
     heizsystem = config['heating system']  # zb"ASHP"
     dhw_heizsystem = heizsystem ## This is currently a limitation of the RC Model. Automatically the same!
-    cooling_system = config['cooling system']  # Only affects dynamic calculation. Static does not include cooling
+    cooling_system = config['cooling system']
     pv_efficiency = config['PV efficiency']
     pv_performance_ratio = config['PV performance ratio']
     pv_area = config['PV area']  # m2, can be directly linked with roof size
@@ -169,14 +169,14 @@ for config_index, config in configurations.iterrows():
                                  warmespeicherfahigkeit_pro_EBF, korrekturfaktor_luftungs_eff_f_v, hohe_uber_meer,
                                       heating_setpoint, cooling_setpoint, area_per_person)
 
-        Gebaeude_static.pv_production = pv_yield_hourly
-        Gebaeude_static.run_SIA_380_1(weather_data_sia)
-        Gebaeude_static.run_ISO_52016_monthly(weather_data_sia)
-
-        ## Gebäudedimensionen
         Gebaeude_static.heating_system = heizsystem
         Gebaeude_static.dhw_heating_system = dhw_heizsystem  ## Achtung, momentan ist der COP für DHW und für Heizung gleich.
         Gebaeude_static.cooling_system = cooling_system  # Diese Definitionens sollten verschoben werden zur definition des Objekts
+
+
+        Gebaeude_static.pv_production = pv_yield_hourly
+        Gebaeude_static.run_SIA_380_1(weather_data_sia)
+        Gebaeude_static.run_ISO_52016_monthly(weather_data_sia)
         Gebaeude_static.run_dhw_demand()
 
         Gebaeude_static.run_SIA_electricity_demand(occupancy_path)
@@ -331,7 +331,7 @@ for config_index, config in configurations.iterrows():
                                          total_roof_area=total_roof_area,
                                          roof_type=config['roof type'],
                                          energy_reference_area=energiebezugsflache,
-                                         floor_type=config['ceiling_type'])/energiebezugsflache
+                                         floor_type=config['ceiling type'])/energiebezugsflache
 
 
     embodied_envelope_emissions_performance_matrix[config_index] = annualized_embodied_emsissions_envelope
