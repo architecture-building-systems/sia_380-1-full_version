@@ -53,6 +53,7 @@ class Sim_Building(object):
         self.longitude = None
         self.latitude = None
 
+
         ### RC Simulator inputs (derive from other inputs as much as possible)
         ## So far the lighting load is still hard coded because it is not looked at and I don't know the source.
         lighting_load = 11.7  # [W/m2] (source?)
@@ -77,12 +78,21 @@ class Sim_Building(object):
         self.thermal_capacitance_per_floor_area = self.warmespeicherfahigkeit_pro_ebf
         self.t_set_heating = heating_setpoint
         self.t_set_cooling = cooling_setpoint
-        self.max_cooling_energy_per_floor_area = -np.inf
-        self.max_heating_energy_per_floor_area = np.inf
+
         self.dhw_supply_temperature = 60  # deg C fixed and hard coded
 
         self.dhw_heating_system = dhw_heating_system
         self.pv_production = None
+
+        if cooling_system == 'None' or None:
+            self.max_cooling_energy_per_floor_area = 0.0
+        else:
+            self.max_cooling_energy_per_floor_area = -np.inf
+
+        if heating_system == 'None' or None:
+            self.max_heating_energy_per_floor_area = 0.0
+        else:
+            self.max_heating_energy_per_floor_area = np.inf
 
 
     def run_rc_simulation(self, weatherfile_path, occupancy_path, cooling_setpoint=None):

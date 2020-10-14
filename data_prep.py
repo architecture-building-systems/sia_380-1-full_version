@@ -557,7 +557,7 @@ def photovoltaic_yield_hourly(pv_azimuth, pv_tilt, stc_efficiency, performance_r
     return hourly_yield.to_numpy()
 
 
-def estimate_self_consumption(electricity_demand, pv_peak_power):
+def estimate_self_consumption(electricity_demand, pv_peak_power, building_category):
     """
     Source: https://pvspeicher.htw-berlin.de/wp-content/uploads/2015/05/HTW-Berlin-Solarspeicherstudie.pdf BILD 16
     These plots were analyzed and translated into the formula used below with a logarithmic assumption
@@ -565,20 +565,29 @@ def estimate_self_consumption(electricity_demand, pv_peak_power):
     :param electricity_demand: monthly value in Wh
     :param pv_prod_month: monthly value in Wh
     :param pv_peak_power: one value in kW
-    :return:
+    :return: monthly self consumption values in %
     """
     if pv_peak_power == 0:
-        monthly_sc = np.repeat(1.0,12)
+        monthly_sc = np.repeat(100.0,12)
+
+    elif int(building_category) == 1:
+        monthly_stoc = (pv_peak_power / 12) / (electricity_demand / 1000)
+        monthly_sc = (0.12 + 0.67 * np.exp(-0.52*monthly_stoc))*100.0
+
+    elif int(building_category) == 2:
+        monthly_stoc = (pv_peak_power / 12) / (electricity_demand / 1000)
+        monthly_sc = (0.12 + 0.92 * np.exp(-1.64*monthly_stoc))*100.0
+
 
     else:
 
         # Factor 1/12 because source is calculated on annual basis
-        monthly_stoc = (pv_peak_power/12)/(electricity_demand/1000)
-        monthly_sc = 32.0 - 25.45 * np.log(monthly_stoc)
-
+        monthly_stoc = (pv_peak_power / 12) / (electricity_demand / 1000)
+        monthly_sc = (0.12 + 0.92 * np.exp(-1.64 * monthly_stoc))*100.0
+        print("No self consumption model available for this building category. Office model is chosen.")
         # This maximises self consumption at 95% and the pure calculation could go above 100% (!)
-        monthly_sc[monthly_sc >=95] = 95.0
-        monthly_sc[monthly_sc <= 5] = 5.0
+    monthly_sc[monthly_sc >=95] = 95.0
+    monthly_sc[monthly_sc <= 5] = 5.0
 
 
     return monthly_sc

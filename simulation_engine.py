@@ -310,7 +310,13 @@ class Building(object):
         self.solare_eintrage = solare_eintrage
         self.totale_warmeeintrage = totale_warmeeintrage
         self.genutzte_warmeeintrage = genutzte_warmeeintrage
-        self.heizwarmebedarf = heizwarmebedarf
+
+        if self.heating_system == 'None' or None:
+            self.heizwarmebedarf = np.repeat(0.0, 12)
+        else:
+            self.heizwarmebedarf = heizwarmebedarf
+
+
 
 
     def run_ISO_52016_monthly(self, weather_data_sia, cooling_setpoint=None):
@@ -521,7 +527,11 @@ class Building(object):
         self.iso_transmission_losses = q_c_tr_ztc_m/self.energy_reference_area
         self.iso_solar_gains = q_hc_sol_wi/self.energy_reference_area
         self.iso_internal_gains =  q_hc_int_dir_ztc_m / self.energy_reference_area
-        self.monthly_cooling_demand = q_c_nd_ztc_m/self.energy_reference_area
+
+        if self.cooling_system == 'None' or None:
+            self.monthly_cooling_demand = np.repeat(0.0, 12)
+        else:
+            self.monthly_cooling_demand = q_c_nd_ztc_m/self.energy_reference_area
 
 
     def run_dhw_demand(self):
