@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import simulation_engine as se
 import simulation_engine_dynamic as sime
@@ -11,33 +12,32 @@ import time
 ###################################### SYSTEM DEFINITION ###############################################################
 Im this first part of the code, building, its location and all the related systems are defined.
 """
-scenarios_path = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\scenarios_UBA.xlsx"
-configurations_path = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\configurations_UBA.xlsx"
-performance_matrix_path_hourly = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\performance_matrix_U" \
-                                 r"BA_hourly.xlsx"
-performance_matrix_path_monthly = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\performance_matrix_U" \
-                                  r"BA_monthly.xlsx"
 
-embodied_systems_stat_performance_path = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\embodied_systems" \
-                                         r"_UBA_monthly.xlsx"
-embodied_systems_dyn_performance_path = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\embodied_systems" \
-                                        r"_UBA_hourly.xlsx"
-embodied_envelope_performance_path = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\embodied_envelope" \
-                                     r"_UBA.xlsx"
+main_path = os.path.abspath(os.path.dirname(__file__))
 
-dyn_heat_path = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\heat_demand" \
-                                         r"_UBA_hourly.xlsx"
-dyn_cold_path = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\cooling_demand" \
-                                         r"_UBA_hourly.xlsx"
-stat_heat_path = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\heat_demand" \
-                                         r"_UBA_monthly.xlsx"
-stat_cold_path = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\cooling_demand" \
-                                         r"_UBA_monthly.xlsx"
-sc_ratio_path = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\sc_ratio.xlsx"
+# Filepaths for input files
+scenarios_path = os.path.join(main_path, 'data', 'scenarios.xlsx')
+configurations_path = os.path.join(main_path, 'data', 'configurations.xlsx')
+
+# Filepaths for result files:
+performance_matrix_path_hourly = os.path.join(main_path, 'data', 'operational_emissions_hourly.xlsx')
+performance_matrix_path_monthly = os.path.join(main_path, 'data', 'operational_emissions_monthly.xlsx')
+embodied_systems_stat_performance_path = os.path.join(main_path, 'data', 'embodied_systems_monthly.xlsx')
+embodied_systems_dyn_performance_path = os.path.join(main_path, 'data', 'embodied_systems_hourly.xlsx')
+embodied_envelope_performance_path = os.path.join(main_path, 'data', 'embodied_envelope.xlsx')
+
+dyn_heat_path = os.path.join(main_path, 'data', 'heat_demand_hourly.xlsx')
+dyn_cold_path = os.path.join(main_path, 'data', 'cooling_demand_hourly.xlsx')
+stat_heat_path = os.path.join(main_path, 'data', 'heat_demand_monthly.xlsx')
+stat_cold_path = os.path.join(main_path, 'data', 'cooling_demand_monthly.xlsx')
+
+sc_ratio_path = os.path.join(main_path, 'data', 'sc_ratio_hourly.xlsx')
+econ_dyn_path = os.path.join(main_path, 'data', 'gross_electricity_consumption.xlsx')
+
+
 
 scenarios = pd.read_excel(scenarios_path)
 configurations = pd.read_excel(configurations_path, index_col="Configuration", skiprows=[1])
-
 emission_performance_matrix_dyn = np.empty((len(configurations.index), len(scenarios.index)))
 emission_performance_matrix_stat = np.empty((len(configurations.index), len(scenarios.index)))
 heating_demand_dyn = np.empty((len(configurations.index), len(scenarios.index)))
@@ -51,7 +51,7 @@ nominal_heating_power_dyn = np.empty(len(configurations.index))
 nominal_cooling_power_dyn = np.empty(len(configurations.index))
 
 annual_self_consumption_ratios_dyn = np.empty((len(configurations.index), len(scenarios.index)))
-annual_electricity_consumption = np.empty((len(configurations.index), len(scenarios.index)))
+annual_electricity_consumption_dyn = np.empty((len(configurations.index), len(scenarios.index)))
 
 # LCA angaben
 
@@ -92,7 +92,7 @@ for config_index, config in configurations.iterrows():
     """
     heizsystem = config['heating system']  # zb"ASHP"
     dhw_heizsystem = heizsystem ## This is currently a limitation of the RC Model. Automatically the same!
-    cooling_system = config['cooling system']  # Only affects dynamic calculation. Static does not include cooling
+    cooling_system = config['cooling system']
     pv_efficiency = config['PV efficiency']
     pv_performance_ratio = config['PV performance ratio']
     pv_area = config['PV area']  # m2, can be directly linked with roof size
@@ -169,14 +169,14 @@ for config_index, config in configurations.iterrows():
                                  warmespeicherfahigkeit_pro_EBF, korrekturfaktor_luftungs_eff_f_v, hohe_uber_meer,
                                       heating_setpoint, cooling_setpoint, area_per_person)
 
-        Gebaeude_static.pv_production = pv_yield_hourly
-        Gebaeude_static.run_SIA_380_1(weather_data_sia)
-        Gebaeude_static.run_ISO_52016_monthly(weather_data_sia)
-
-        ## Gebäudedimensionen
         Gebaeude_static.heating_system = heizsystem
         Gebaeude_static.dhw_heating_system = dhw_heizsystem  ## Achtung, momentan ist der COP für DHW und für Heizung gleich.
         Gebaeude_static.cooling_system = cooling_system  # Diese Definitionens sollten verschoben werden zur definition des Objekts
+
+
+        Gebaeude_static.pv_production = pv_yield_hourly
+        Gebaeude_static.run_SIA_380_1(weather_data_sia)
+        Gebaeude_static.run_ISO_52016_monthly(weather_data_sia)
         Gebaeude_static.run_dhw_demand()
 
         Gebaeude_static.run_SIA_electricity_demand(occupancy_path)
@@ -218,7 +218,7 @@ for config_index, config in configurations.iterrows():
         cooling_demand_stat[config_index, scenario_index] = Gebaeude_static.monthly_cooling_demand.sum()
 
         annual_self_consumption_ratios_dyn[config_index, scenario_index] = dp.calculate_self_consumption(Gebaeude_dyn.electricity_demand, pv_yield_hourly)
-        annual_electricity_consumption[config_index, scenario_index] = Gebaeude_dyn.electricity_demand.sum()
+        annual_electricity_consumption_dyn[config_index, scenario_index] = Gebaeude_dyn.electricity_demand.sum()
 
         # This means that Scenario 0 needs to be the reference (design) scenario.
         if scenario_index == 0:
@@ -249,7 +249,7 @@ pd.DataFrame(emission_performance_matrix_stat, index=configurations.index, colum
          performance_matrix_path_monthly)
 
 pd.DataFrame(annual_self_consumption_ratios_dyn, index=configurations.index, columns=scenarios.index).to_excel(sc_ratio_path)
-
+pd.DataFrame(annual_electricity_consumption_dyn, index=configurations.index, columns=scenarios.index).to_excel(econ_dyn_path)
 pd.DataFrame(heating_demand_dyn, index=configurations.index, columns=scenarios.index).to_excel(dyn_heat_path)
 pd.DataFrame(cooling_demand_dyn, index=configurations.index, columns=scenarios.index).to_excel(dyn_cold_path)
 
@@ -331,7 +331,7 @@ for config_index, config in configurations.iterrows():
                                          total_roof_area=total_roof_area,
                                          roof_type=config['roof type'],
                                          energy_reference_area=energiebezugsflache,
-                                         floor_type=config['floor type'])/energiebezugsflache
+                                         floor_type=config['ceiling type'])/energiebezugsflache
 
 
     embodied_envelope_emissions_performance_matrix[config_index] = annualized_embodied_emsissions_envelope

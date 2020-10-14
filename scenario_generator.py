@@ -1,9 +1,11 @@
+import os
 import pandas as pd
-import numpy as np
 from itertools import product
 
-options_path = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\scenario_options.xlsx"
-scenarios_path = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\scenarios.xlsx"
+main_path = os.path.abspath(os.path.dirname(__file__))
+
+options_path = os.path.join(main_path, 'data', 'scenario_options.xlsx')
+scenarios_path = os.path.join(main_path, 'data', 'scenarios.xlsx')
 
 options = pd.read_excel(options_path)
 

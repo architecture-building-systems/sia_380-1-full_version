@@ -240,7 +240,7 @@ def translate_system_sia_to_rc(system):
     system_dictionary = {'Oil':supply_system.OilBoilerNew, 'Natural Gas':supply_system.OilBoilerNew ,
                          'Wood':supply_system.OilBoilerMed , 'Pellets':supply_system.OilBoilerNew,
                          'GSHP':supply_system.HeatPumpWater, 'ASHP':supply_system.HeatPumpAir,
-                         'electric':supply_system.ElectricHeating}
+                         'electric':supply_system.ElectricHeating, 'None':supply_system.DirectHeater}
     return system_dictionary[system]
 
 def hourly_to_monthly(hourly_array):
