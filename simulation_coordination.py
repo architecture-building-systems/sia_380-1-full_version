@@ -10,7 +10,8 @@ import time
 
 """
 ###################################### SYSTEM DEFINITION ###############################################################
-Im this first part of the code, building, its location and all the related systems are defined.
+In this first part, all the input files are located, Output filepaths are given and empty arrays are prepared to store
+the outputs.
 """
 
 main_path = os.path.abspath(os.path.dirname(__file__))
@@ -38,8 +39,6 @@ stat_cold_path = os.path.join(main_path, 'data', 'cooling_demand_monthly.xlsx')
 # sc_ratio_path = os.path.join(main_path, 'data', 'sc_ratio_hourly.xlsx')
 # econ_dyn_path = os.path.join(main_path, 'data', 'gross_electricity_consumption.xlsx')
 
-
-
 scenarios = pd.read_excel(scenarios_path)
 configurations = pd.read_excel(configurations_path, index_col="Configuration", skiprows=[1])
 emission_performance_matrix_dyn = np.empty((len(configurations.index), len(scenarios.index)))
@@ -58,7 +57,6 @@ nominal_cooling_power_dyn = np.empty(len(configurations.index))
 # annual_electricity_consumption_dyn = np.empty((len(configurations.index), len(scenarios.index)))
 
 # LCA angaben
-
 electricity_factor_type = "annual"  # Can be "annual", "monthly", "hourly" (Hourly will only work for hourly model and
                                      # source: empa_ac )
 
@@ -68,6 +66,14 @@ electricity_factor_type = "annual"  # Can be "annual", "monthly", "hourly" (Hour
 for config_index, config in configurations.iterrows():
 
 
+    """
+    Here the building parameters are extracted for each configuration and stored an the respective simulation variables.
+    Currently some values that are not being used as input factors are defined in hard code.
+    TODO: Remove hard coded variables when needed in system definition (e.g anlagenutzungsgrad_wrg)
+    
+    The building envelope is defined according to a single zone simulation model and the systems are specified according
+    to the input file. The iteration object "config" represents one line of the configuration file.
+    """
     ## Erforderliche Nutzereingaben:
     gebaeudekategorie_sia = config["building category"]
     regelung = "andere"  # oder "Referenzraum" oder "andere"
@@ -92,7 +98,7 @@ for config_index, config in configurations.iterrows():
     ## Systeme
     """
     Choice: Oil, Natural Gas, Wood, Pellets, GSHP, ASHP, electric
-    Thes ystem choice is translated to a similar system available in the RC Simulator
+    Thes system choice is translated to a similar system available in the RC Simulator
     """
     heizsystem = config['heating system']  # zb"ASHP"
     dhw_heizsystem = heizsystem ## This is currently a limitation of the RC Model. Automatically the same!
@@ -126,9 +132,17 @@ for config_index, config in configurations.iterrows():
     # floor to ground (for now) [[Areas],[U-values],[b-values]]
     floor = np.array([[config["floor area"]], [u_floor], [b_floor]])
 
+    #This print helps keeping track of the simulation progress.
     print("Configuration %s prepared" %config_index)
 
     for scenario_index, scenario in scenarios.iterrows():
+
+        """
+        This loop goes through all the scenarios which are defined in the scenario file. (Each scenario is one line)
+        Here, further, scenario-dependent, system variables are defined. Basically, if one definition should be 
+        considered as a scenario rather than a configuration, it can simply be moved here and the input files can be 
+        adapted accordingly.
+        """
 
         start=time.time()
 
@@ -142,22 +156,22 @@ for config_index, config in configurations.iterrows():
         electricity_factor_source = scenario['emission source']
 
         weather_data_sia = dp.epw_to_sia_irrad(weatherfile_path)
-        infiltration_volume_flow = infiltration_volume_flow_planned * scenario['infiltration volume flow factor']  # This accounts for improper construction/tightness
-        # print("weather to SIA")
-        # print(time.time() - intermediate)
-        # intermediate = time.time()
+        infiltration_volume_flow = infiltration_volume_flow_planned * scenario['infiltration volume flow factor']
+        # This accounts for improper construction/tightness
 
         """
-        ###################################### SYSTEM SIMULATION ###############################################################
+        ###################################### SYSTEM SIMULATION #######################################################
         In this part the performance simulation is happening in three steps:
             1. An hourly time series for PV yield ist calculated
-            2. A demand time series for DHW is calculated
-            3. A demand time series for room heating is calculated
-            4. A demand time series for room cooling is calculated (at the moment only for dynamic model)
-            5. Operational emissions based on final electricity demand and other heat sources is calculated in the respective
-               model time resolution.
+            2. The building objects are defined according to SIA for static and according to RC simulator for dynamic
+            3. room heating and cooling demand is calculated
+            4. dhw demand is calculated
+            5. Electricity demand is calculated
+            5. Operational emissions based on final electricity demand and other heat sources is calculated in the
+               respective model time resolution.
+            6. In scenario 0 which is the base/design scenario, the heating and cooling system are sized.
         
-        These steps are either carried out in the dynamic or in the static model. This is chosen above.       
+        This simulation is carried out in a monthly and an hourly time resolution.    
         """
 
         ## PV calculation
@@ -173,9 +187,10 @@ for config_index, config in configurations.iterrows():
                                  warmespeicherfahigkeit_pro_EBF, korrekturfaktor_luftungs_eff_f_v, hohe_uber_meer,
                                       heating_setpoint, cooling_setpoint, area_per_person)
 
+        # TODO: These definitions should be part of the object definition above.
         Gebaeude_static.heating_system = heizsystem
-        Gebaeude_static.dhw_heating_system = dhw_heizsystem  ## Achtung, momentan ist der COP für DHW und für Heizung gleich.
-        Gebaeude_static.cooling_system = cooling_system  # Diese Definitionens sollten verschoben werden zur definition des Objekts
+        Gebaeude_static.dhw_heating_system = dhw_heizsystem  # Achtung, momentan ist der COP für DHW und Heizung gleich.
+        Gebaeude_static.cooling_system = cooling_system
 
 
         Gebaeude_static.pv_production = pv_yield_hourly
@@ -254,31 +269,55 @@ pd.DataFrame(emission_performance_matrix_stat, index=configurations.index, colum
 
 # pd.DataFrame(annual_self_consumption_ratios_dyn, index=configurations.index, columns=scenarios.index).to_excel(sc_ratio_path)
 # pd.DataFrame(annual_electricity_consumption_dyn, index=configurations.index, columns=scenarios.index).to_excel(econ_dyn_path)
+
 pd.DataFrame(heating_demand_dyn, index=configurations.index, columns=scenarios.index).to_excel(dyn_heat_path)
 pd.DataFrame(cooling_demand_dyn, index=configurations.index, columns=scenarios.index).to_excel(dyn_cold_path)
 
 pd.DataFrame(heating_demand_stat, index=configurations.index, columns=scenarios.index).to_excel(stat_heat_path)
 pd.DataFrame(cooling_demand_stat, index=configurations.index, columns=scenarios.index).to_excel(stat_cold_path)
 
-
+"""
+Here the dynamic simulation is completed. 
+TODO: At some point it makes would probably make sense to separate the code here or at least store the heating/cooling
+dimensioning into a file and read it back. Sometimes the simulation crashes here after 99% of the simulation time. This
+sucks...
+"""
 
 
 ###################################### EMBODIED EMISSIONS ##############################################################
-""" The embodied emissions only need to be calculated per Configuration. They are assumed to only come into the calculation
-at the beginning of the life cycle. This means, that for now, they are not dependent on the scenarios."""
+""" The embodied emissions only need to be calculated per Configuration. They are assumed to only come into 
+the calculation at the beginning of the life cycle. This means, that for now, they are not dependent on the 
+scenarios. (only scenario 0)
+
+Codewise it is important to see that here it is no longer possible to call the created building objects. Data has to be
+recollected from the configuration file.
+"""
 
 embodied_systems_emissions_performance_matrix_stat = np.empty(len(configurations.index))
 embodied_systems_emissions_performance_matrix_dyn = np.empty(len(configurations.index))
 embodied_envelope_emissions_performance_matrix = np.empty(len(configurations.index))
 
+"""
+###################################### SYSTEM SIMULATION #######################################################
+In this part the embodied simulation is happening in two steps:
+    1. Systems emissions are looked at depending on the sizing from above for both models
+    2. The envelope (and intermal thermal mass) related embodied emissions are calculated.
+    
+This part of the simulation is pure data lookup and simple operations. It is therefore time-wise not relevant in the 
+whole simulation process.    
+"""
+
 for config_index, config in configurations.iterrows():
+    """
+    For the embodied emisisons a single loop through the configurations is enough.
+    """
 
     energiebezugsflache = config['energy reference area']  # m2
 
     ## Systeme
     """
     Choice: Oil, Natural Gas, Wood, Pellets, GSHP, ASHP, electric
-    Thes ystem choice is translated to a similar system available in the RC Simulator
+    The system choice is translated to a similar system available in the RC Simulator
     """
 
     embodied_systems_emissions_performance_matrix_stat[config_index] = \
@@ -336,6 +375,11 @@ for config_index, config in configurations.iterrows():
 
     embodied_envelope_emissions_performance_matrix[config_index] = annualized_embodied_emsissions_envelope
 
+
+"""
+Last but not least, all the created dataframes from the embodied part are stored in the file locations given in the 
+very beginning of the code.
+"""
 
 pd.DataFrame(embodied_systems_emissions_performance_matrix_stat, index=configurations.index).to_excel(
     embodied_systems_stat_performance_path)
