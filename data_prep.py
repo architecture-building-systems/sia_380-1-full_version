@@ -9,51 +9,12 @@ sys.path.insert(1, r"C:\Users\walkerl\Documents\code\RC_BuildingSimulator\rc_sim
 import supply_system
 import time
 
-
-
-def embodied_emissions_heat_generation_kbob_per_kW(system_type):
-    """
-    This function takes a heat generation system type and returns the respective embodied emissions per kW of installed
-    power.
-    --> this function is very basic and needs to be improved.
-    :param system_type: string of gshp, ashp, electric heater
-    :return: float, embodied kgCO2 equivalent per kW of installed power
-    """
-
-    ## Define embodied emissions: # In a later stage this could be included in the RC model "supply_system.py file"
-    if system_type == "gshp":
-        coeq = 272.5 #kg/kW [KBOB 2016]
-    elif system_type == "ashp":
-        coeq = 363.75 #kg/kW [KBOB 2016]
-
-    elif system_type == "electric heater":
-        coeq = 7.2/5.0  #kg/kW [ecoinvent auxiliary heating unit production, electric, 5kW]
-
-    else:
-        print("Embodied emissions for this system type are not defined")
-        pass
-
-    return coeq
-
-def embodied_emissions_borehole_per_m():
-
-    coeq_borehole = 28.1 #kg/m[KBOB 2016]
-
-    return coeq_borehole
-
-def embodied_emissions_heat_emission_system_per_m2(em_system_type):
-
-    if em_system_type == "underfloor heating":
-        coeq_underfloor_heating = 5.06 #kg/m2 [KBOB]
-
-    return coeq_underfloor_heating
-
-def embodied_emissions_pv_per_kW():
-    coeq_pv = 2080 # kg/kWp [KBOB 2016]
-    return coeq_pv
-
 def sia_standardnutzungsdaten(category):
-
+    """
+    :param
+    category: string that specifies which SIA standardnutzungsdaten should be returned
+    :return: dictionary of specified parameter for all building categories
+    """
 
     if category == 'room_temperature_heating':
         return {1: 20., 2: 20., 3: 20., 4: 20., 5: 20., 6: 20, 7: 20, 8: 22, 9: 18, 10: 18, 11: 18,
@@ -87,12 +48,11 @@ def sia_standardnutzungsdaten(category):
 
     elif category == 'reduction_factor_for_electricity':
         return {1: 0.7, 2: 0.7, 3: 0.9, 4: 0.9, 5: 0.8, 6: 0.7, 7: 0.8, 8: 0.7, 9: 0.9, 10: 0.9, 11: 0.9,
-                              12: 0.7}  # 380-1 Tab13
+                12: 0.7}  # 380-1 Tab13
 
     elif category == 'effective_air_flow':
         return {1: 0.7, 2: 0.7, 3: 0.7, 4: 0.7, 5: 0.7, 6: 1.2, 7: 1.0, 8: 1.0, 9: 0.7, 10: 0.3, 11: 0.7,
                          12: 0.7}  # 380-1 Tab14
-    # aussenluft_strome = {1: 2.1}  # UBA-Vergleichsstudie
     else:
         print('You are trying to look up data from SIA that are not implemented')
 
@@ -100,7 +60,7 @@ def electric_appliances_sia(energy_reference_area, type=1, value="standard"):
     """
     This function calculates the use of electric appliances according to SIA 2024
     :param energy_reference_area: float, m2, energy reference area of the room/building
-    :param type: int, use type according to SIA2024
+    :param type: int, use type according to SIA2024 (Gebaudekategorie)
     :param value: str, reference value according to SIA choice of "standard", "ziel" and "bestand"
     :return: np.array of hourly electricity demand for appliances in Wh
     """
@@ -114,26 +74,19 @@ def electric_appliances_sia(energy_reference_area, type=1, value="standard"):
         demand_profile = max_hourly[value] * np.repeat(
             [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.2, 0.6, 0.8, 1.0, 0.8, 0.4, 0.6, 1.0, 0.8, 0.6, 0.2, 0.1, 0.1, 0.1,
              0.1, 0.1, 0.1], 365)
-
     else:
         print("No demand schedule for electrical appliances has been defined for this case.")
 
     return demand_profile * energy_reference_area #Wh
 
-# def build_yearly_emission_factors(export_assumption="c"):
-#
-#     choice = "TEF" + export_assumption
-#     emissions_df = pd.read_excel(r"C:\Users\walkerl\Documents\code\proof_of_concept\data\emission_factors_AC.xlsx",
-#                                  index="Time")
-#     emissions_df = emissions_df.set_index('Time')
-#     emissions_df.resample('Y').mean()
-#     #swiss
-#     hourly_emission_factor = np.repeat(emissions_df.resample('Y').mean()[choice].to_numpy(), 8760)/1000.0 #kgCO2eq/kWh
-#
-#     return hourly_emission_factor
 
 def build_yearly_emission_factors(source, type="annual", export_assumption="c"):
-
+    """
+    :param source: string, currently the choices are SIA and eu. empa_ac should not yet be used
+    :param type: string, only necessary for empa_ac
+    :param export_assumption: string, only necessary for empa_ac
+    :return: numpy array of length 8760 with the dimension kgCO2eq/kWh
+    """
 
     if source =="SIA":
         #SIA has a constant factor, the type therefore does not matter
@@ -168,6 +121,11 @@ def build_yearly_emission_factors(source, type="annual", export_assumption="c"):
 
 
 def build_grid_emission_hourly(export_assumption="c"):
+    """
+    DO NOT USE THIS YET
+    :param export_assumption:
+    :return:
+    """
     emissions_df = pd.read_excel(r"C:\Users\walkerl\Documents\code\proof_of_concept\data\emission_factors_AC.xlsx")
     choice="TEF"+export_assumption
     hourly_emission_factors = emissions_df[choice].to_numpy()/1000.0
@@ -176,9 +134,9 @@ def build_grid_emission_hourly(export_assumption="c"):
 def fossil_emission_factors(system_type):
     """
      for now, wood and pellets are listed in these are also combustion based systems
-     TODO: omit fossils and maybe only include pellets
-    :param system_type:
-    :return:
+    :param system_type: string that describes the combustion based heating system
+    :return: np array for 8760 hours of the year with emission factor for delivered energy according to SIA in
+    kgCO2eq/kWh. The factors are, however constant over the year.
     """
     treibhausgaskoeffizient = {"Oil": 0.319, "Natural Gas": 0.249, "Wood": 0.020, "Pellets": 0.048}
     #kgCO2/kWh SIA380 2015 Anhang C Tab 5
@@ -189,8 +147,8 @@ def fossil_emission_factors(system_type):
 def extract_wall_data(filepath, name="Betonwand, Wärmedämmung mit Lattenrost, Verkleidung", area=0,
                                type="GWP[kgCO2eq/m2]", ):
     """
-    MAKE SURE TO HAVE THE RIGHT DIMENSIONS IN YOUR SOURCE FILE AND IN YOUR CALCULATION
-    THIS FUNCTION HAS TO BE EXTENDED AND CONSOLIDATED
+    THIS FUNCTION WAS WRITTEN TO GET DATA FROM BAUTEILKATALOG... THE WEBSITE IS OFFLINE
+    TODO: Remove function or finish it if Bauteilkatalog shows up again.
     :param filepath:
     :param name:
     :param area:
@@ -211,31 +169,14 @@ def extract_wall_data(filepath, name="Betonwand, Wärmedämmung mit Lattenrost, 
         ## This way always the 0.18 version is chosen.
 
 
-def extract_decarbonization_factor(grid_decarbonization_path, grid_decarbonization_until, grid_decarbonization_type,
-                                   from_year, to_year):
-
-    decarb_factors = pd.read_excel(grid_decarbonization_path, sheet_name=str(grid_decarbonization_until),
-                                   header=[6,7], index_col=0)[grid_decarbonization_type]['Factor'].loc[from_year:to_year]
-
-    return decarb_factors.to_numpy()
-
-### This shows how to use the function:
-# grid_decarbonization_until = 2050  # Choose from 2050, 2060 and 2080
-# grid_decarbonization_type = 'linear'  # Choose from 'linear', exponential, quadratic, constant
-# grid_decarbonization_path = r'C:\Users\walkerl\Documents\code\proof_of_concept\data\future_decarbonization\Decarbonization sceanrios.xlsx'
-# from_year = 2019
-# to_year = 2080
-#
-# extract_decarbonization_factor(grid_decarbonization_until, grid_decarbonization_type, from_year, to_year)
-
-
 def translate_system_sia_to_rc(system):
     """
     These can be adapted if needed. At the moment all the combustion based systems are chosen to be new oil Boilers.
     This makes sense for the energy calculations. For the emission calculations the respective emission factors are
     chosen as "fossil emission factors" making it add up in the end.
-    :param system:
-    :return:
+    TODO: Maybe there is a better way to do this? However it works fine for now.
+    :param system: string with heating or cooling system
+    :return: rc supply system object
     """
     system_dictionary = {'Oil':supply_system.OilBoilerNew, 'Natural Gas':supply_system.OilBoilerNew ,
                          'Wood':supply_system.OilBoilerMed , 'Pellets':supply_system.OilBoilerNew,
@@ -245,9 +186,9 @@ def translate_system_sia_to_rc(system):
 
 def hourly_to_monthly(hourly_array):
     """
-    This function sums up hourly values to monthly values
-    :param hourly_array:
-    :return:
+    This function sums up hourly values to monthly values.
+    :param hourly_array: hourly np.array with 8760 entries
+    :return: monthly array with 12 entries that sum up the respective hour¨ly values.
     """
     hours_per_month = np.array([31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31])*24
     monthly_values = np.empty(12)
@@ -261,9 +202,9 @@ def hourly_to_monthly(hourly_array):
 
 def hourly_to_monthly_average(hourly_array):
     """
-    This function sums up hourly values to monthly values
-    :param hourly_array:
-    :return:
+    This function averages hourly values to monthly values
+    :param hourly_array: hourly np.array with 8760 entries
+    :return: monthly array with 12 entries that show the average of the hourly values.
     """
     hours_per_month = np.array([31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31])*24
     monthly_values = np.empty(12)
@@ -277,7 +218,7 @@ def hourly_to_monthly_average(hourly_array):
 
 def sia_electricity_per_erf_hourly(occupancy_path, gebaeudekategorie_sia):
         """
-        This function distributes the electricity demand of SIA380-1 according tooccupancy schedules of SIA2024
+        This function distributes the electricity demand of SIA380-1 according to occupancy schedules of SIA2024
         It is questionable if this is correct but probably a good first approximation.
         :param occupancy_path: the same occupancy path used for the RC model according to SIA 2024 where monthly and
         weekly schedules are combined.
@@ -298,6 +239,11 @@ def sia_electricity_per_erf_hourly(occupancy_path, gebaeudekategorie_sia):
         return occupancy_factor * elektrizitatsbedarf[int(gebaeudekategorie_sia)]
 
 def sia_annaul_dhw_demand(gebaeudekategorie_sia):
+    """
+    TODO: Move this function into the SIA standard values function
+    :param gebaeudekategorie_sia:
+    :return:
+    """
 
     ### Datenbanken: Werte von SIA 380 2015
     annual_dhw_demand = {1.1: 19.8, 1.2: 13.5, 2.1: 39.5, 2.2: 0., 3.1: 3.6, 3.2: 3.6, 3.3: 0.0, 3.4: 0.0, 4.1: 5.3,
@@ -313,7 +259,9 @@ def epw_to_sia_irrad(epw_path, model="isotropic"):
     """
     THIS FUNCTION DOES NOT WORK PROPERLY WHEN COMPARED TO METEONORM SIA DATA.
     ESPECIALLY THE DIFFUSE MODEL SHOULD BE CHANGED TO PEREZ
-    :param epw_path:
+    :param epw_path: string of filepath
+    :param model: Choice of sky model used for transformation. "isotropic" will work with all epw files perez sky
+                    can produce errors.
     :return: dictionary for SIA compatible irradiation data. Dicitonary filled with numpy arrays of floats. Output in
     MJ as in SIA 2028.
     """
@@ -402,6 +350,13 @@ def epw_to_sia_irrad(epw_path, model="isotropic"):
 
 
 def calc_sun_position(latitude_deg, longitude_deg):
+    """
+    Calculate the sun position for a certain place on earth.
+    :param latitude_deg: float, location latitude in degrees
+    :param longitude_deg: float, location longitude in degrees
+    :return: tuple of two numpy arrays with the solar position for every hour of the year in deg according to the
+            convention that north is 0/360° for azimuth
+    """
 
     # Set the date in UTC based off the hour of year and the year itself
     start_of_year = datetime.datetime(2019, 1, 1, 0, 0, 0, 0)
@@ -449,6 +404,14 @@ def calc_sun_position(latitude_deg, longitude_deg):
 
 
 def calc_sun_position_II(latitude_deg, longitude_deg, year, hoy):
+    """
+    TODO: I don't think this function is still in use. Check it and remove if possible.
+    :param latitude_deg:
+    :param longitude_deg:
+    :param year:
+    :param hoy:
+    :return:
+    """
 
     # Set the date in UTC based off the hour of year and the year itself
     start_of_year = datetime.datetime(year, 1, 1, 0, 0, 0, 0)
@@ -476,7 +439,6 @@ def calc_sun_position_II(latitude_deg, longitude_deg, year, hoy):
     # higher altitude
     hour_angle_deg = (15 * (12 - solar_time))
 
-    start = time.time()
     ## zenith in radians!!
     zenith_rad = pvlib.solarposition.solar_zenith_analytical(latitude=math.radians(latitude_deg),
                                                           hourangle=math.radians(hour_angle_deg),
@@ -494,6 +456,12 @@ def calc_sun_position_II(latitude_deg, longitude_deg, year, hoy):
 
 
 def read_location_from_epw(epw_path):
+    """
+    This function reads the longitude and latitude from an epw file. This is used so that the actual location of a
+    building is not needed as an extra input.
+    :param epw_path: string of epw path
+    :return: tuple of longitude and latitude in degreees
+    """
     epw_data = pvlib.iotools.read_epw(epw_path, coerce_year=None)
     longitude = epw_data[1]['longitude']
     latitude = epw_data[1]['latitude']
@@ -501,26 +469,25 @@ def read_location_from_epw(epw_path):
 
 def string_orientation_to_angle(string_orientation):
     """
-    This function follows the good convention. N=0°, S = 180°, E = 90°
+    This function follows the good convention. N=0°, S = 180°, E = 90°. It can be used to translate the string
+    inputs used in SIA to degrees used in RC or other parts of the code
     :param string_orientation:
-    :return:
+    :return:float, degrees
     """
     translation = {"N":0., 'NE':45., 'E':90., 'SE':135.0, 'S':180., 'SW':225.0, 'W':270, 'NW':315.0}
     return translation[string_orientation]
 
 def photovoltaic_yield_hourly(pv_azimuth, pv_tilt, stc_efficiency, performance_ratio, pv_area,
                               epw_path, model="isotropic"):
-
     """
-    This function returns the hourly PV yield of a photovoltaic system in Wh
-    :param pv_azimuth:
-    :param pv_tilt:
-    :param stc_efficiency:
-    :param performance_ratio:
-    :param pv_area:
-    :param epw_path:
-    :param model:
-    :return: hourly yield in Wh
+    :param pv_azimuth: angle or array of angles with north convention (N=0/360)
+    :param pv_tilt: tilt or arrays of tilt of the pv array 0deg = horizontal
+    :param stc_efficiency: pv module efficiency from data sheet (stc = standard test conditions)
+    :param performance_ratio: a fixed percentage that describes the quality of the system
+    :param pv_area: area in m2
+    :param epw_path: string with filepath to the respective weatherfile of the location
+    :param model: string of sky model: can for example be "isotropic", "perez" This influences the diffuse radiation.
+    :return: np.array with hourly yield values in [Wh] !make sure to use Wh as the output.
     """
     epw_labels = ['year', 'month', 'day', 'hour', 'minute', 'datasource', 'drybulb_C', 'dewpoint_C', 'relhum_percent',
                   'atmos_Pa', 'exthorrad_Whm2', 'extdirrad_Whm2', 'horirsky_Whm2', 'glohorrad_Whm2',
@@ -562,6 +529,8 @@ def estimate_self_consumption(electricity_demand, pv_peak_power, building_catego
     Source: https://pvspeicher.htw-berlin.de/wp-content/uploads/2015/05/HTW-Berlin-Solarspeicherstudie.pdf BILD 16
     These plots were analyzed and translated into the formula used below with a logarithmic assumption
     This function should not be used in all geographic locations(!) Use for Swiss or German context
+    UPDATE: A new curve has been made for residential and office buildings that match the SIA but have been
+            exponentially fitted from an own model creation.
     :param electricity_demand: monthly value in Wh
     :param pv_prod_month: monthly value in Wh
     :param pv_peak_power: one value in kW
@@ -594,6 +563,12 @@ def estimate_self_consumption(electricity_demand, pv_peak_power, building_catego
 
 
 def calculate_self_consumption(hourly_demand, hourly_production):
+    """
+    This function simply calculates the self consumption based on simulation results for demand and solar production.
+    :param hourly_demand: np.array of hourly values
+    :param hourly_production: np.array of hourly values
+    :return: float, annual value.
+    """
 
     self_consumption = np.empty(len(hourly_demand))
     for hour in range(len(hourly_demand)):
