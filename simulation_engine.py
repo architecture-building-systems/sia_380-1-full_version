@@ -600,7 +600,8 @@ class Building(object):
         electricity_demand_for_self_consumption = self.electricity_demand * self.energy_reference_area
 
         # Divide by zero because result comes in percentage
-        sc_factors = dp.estimate_self_consumption(electricity_demand_for_self_consumption, self.pv_peak_power)/100
+        sc_factors = dp.estimate_self_consumption(electricity_demand_for_self_consumption, self.pv_peak_power,
+                                                  self.gebaeudekategorie_sia)/100
 
         self.net_electricity_demand = self.electricity_demand - (sc_factors * pv_prod_month)
 

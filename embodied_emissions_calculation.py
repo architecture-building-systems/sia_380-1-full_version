@@ -8,19 +8,26 @@ def calculate_system_related_embodied_emissions(ee_database_path, gebaeudekatego
                                                 cooling_system, cold_emission_system, nominal_cooling_power,
                                                 pv_area, pv_type, pv_efficiency):
     """
-    :param ee_database_path: string filepath
-    :param heizsystem: string
-    :param nominal_heating_power: float in W for nominal heat power
-    :param dhw_heizsystem:
-    :param cooling_system:
-    :param heat_emission_system:
-    :param pv_area:
-    :param pv_type:
-    :param total_wall_area:
-    :param wall_type:
-    :param total_window_area:
-    :param window_type:
-    :return: embodied emissions of energy systems, so far without ventilation.
+    This function is used to calculate the annualized embodied emissions of the considered building systems. A database
+    file is called that includes impact and lifetime values. Further the system sizing has to be known for some power
+    based components. Other components are sized directly from the energy reference area.
+    Currently included: heat/cold production, heat/cold distribution, heat/cold emission
+    TODO: possibly add electrical systems plus ventilation
+    :param ee_database_path: string, database path where the system's impact and lifetimes are stored (xlsx file)
+    :param gebaeudekategorie: float/int of SIA building category
+    :param energy_reference_area: float
+    :param heizsystem: string of the heating system type
+    :param heat_emission_system: string of heat emission system
+    :param heat_distribution: string of heat distribution system
+    :param nominal_heating_power: float [W] heating sizing. MAKE SURE TO USE CORRECT DIMENSION
+    :param dhw_heizsystem: string dhw heating system (currently not used, assumed to be the heating system)
+    :param cooling_system: string of cooling system
+    :param cold_emission_system: string of cold emission system
+    :param nominal_cooling_power: [W] float cooling sizing. MAKE SURE TO USE CORRECT DIMENSION
+    :param pv_area: m2 float/int
+    :param pv_type: string of pv type as in database
+    :param pv_efficiency: stc efficiency is required for m2 to kWp transformation
+    :return: embodied emissions for building systems
     """
 
     database = pd.read_excel(ee_database_path, index_col="Name")
@@ -129,7 +136,21 @@ def calculate_system_related_embodied_emissions(ee_database_path, gebaeudekatego
 
 
 def calculate_envelope_emissions(database_path, total_wall_area, wall_type, total_window_area,
-                                 window_type, total_roof_area, roof_type, energy_reference_area, floor_type):
+                                 window_type, total_roof_area, roof_type, energy_reference_area, ceiling_type):
+    """
+    This function calculate the embodied emissions of the building envelope based on the input database and the given
+    geometrical values (Ausmass). The database includes values per respective dimension and lifetime.
+    :param database_path: string, filepath to envelope database
+    :param total_wall_area: float, m2
+    :param wall_type: string, wall type that can be found in database
+    :param total_window_area: float, m2
+    :param window_type: string, window type that can be found in database
+    :param total_roof_area: float, m2
+    :param roof_type: string, roof type that can be found in database
+    :param energy_reference_area: m2 energy reference area
+    :param ceiling_type: string, ceiling type for intermediate floors
+    :return:
+    """
 
     database = pd.read_excel(database_path, index_col="Name")
 
@@ -145,8 +166,8 @@ def calculate_envelope_emissions(database_path, total_wall_area, wall_type, tota
     roof_lifetime = database['lifetime'][roof_type]
     roof_embodied = roof_embodied_per_area * total_roof_area/roof_lifetime
 
-    floor_embodied_per_area = database['GWP[kgCO2eq/m2]'][floor_type]
-    floor_lifetime = database['lifetime'][floor_type]
+    floor_embodied_per_area = database['GWP[kgCO2eq/m2]'][ceiling_type]
+    floor_lifetime = database['lifetime'][ceiling_type]
     floor_embodied = floor_embodied_per_area * energy_reference_area / floor_lifetime
 
     return wall_embodied + window_embodied + roof_embodied + floor_embodied
