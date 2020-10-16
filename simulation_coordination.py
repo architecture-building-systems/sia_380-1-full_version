@@ -19,6 +19,10 @@ main_path = os.path.abspath(os.path.dirname(__file__))
 scenarios_path = os.path.join(main_path, 'data', 'scenarios.xlsx')
 configurations_path = os.path.join(main_path, 'data', 'configurations.xlsx')
 
+# Filepaths to databases:
+sys_ee_database_path = os.path.join(main_path, 'data', 'embodied_emissions_systems.xlsx')
+env_ee_database_path = os.path.join(main_path, 'data', 'embodied_emissions_envelope.xlsx')
+
 # Filepaths for result files:
 performance_matrix_path_hourly = os.path.join(main_path, 'data', 'operational_emissions_hourly.xlsx')
 performance_matrix_path_monthly = os.path.join(main_path, 'data', 'operational_emissions_monthly.xlsx')
@@ -269,10 +273,6 @@ embodied_envelope_emissions_performance_matrix = np.empty(len(configurations.ind
 
 for config_index, config in configurations.iterrows():
 
-
-
-    sys_ee_database_path = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\embodied_emissions_systems.xlsx"
-    env_ee_database_path = r"C:\Users\walkerl\Documents\code\sia_380-1-full_version\data\embodied_emissions_envelope.xlsx"
     energiebezugsflache = config['energy reference area']  # m2
 
     ## Systeme
