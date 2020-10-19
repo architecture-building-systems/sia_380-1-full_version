@@ -19,6 +19,9 @@ class Building(object):
                  thermal_storage_capacity_per_floor_area,
                  korrekturfaktor_luftungs_eff_f_v,
                  height_above_sea,
+                 heizsystem,
+                 dhw_heizsystem,
+                 cooling_system,
                  heating_setpoint="SIA",
                  cooling_setpoint="SIA",
                  area_per_person="SIA"):
@@ -39,19 +42,18 @@ class Building(object):
         self.heating_setpoint= heating_setpoint
         self.cooling_setpoint= cooling_setpoint
         self.area_per_person= area_per_person
-
+        self.heating_system = heizsystem
+        self.cooling_system = cooling_system
+        self.dhw_heating_system = dhw_heizsystem
 
         # Further optional attributes:
-        self.heating_system = None
-        self.cooling_system = None
         self.electricity_demand = None
         self.electricity_mix = None
         self.dhw_demand = None  # np.array of monthly values per energy reference area [kWh/(m2*month)]
-        self.dhw_heating_system = None
         self.pv_production = None  # This input is currently implemented as Wh (!)
         self.nominal_heating_power = None
         self.nominal_cooling_power = None
-        self.pv_peak_power = None # in kW
+        self.pv_peak_power = None  # in kW
 
 
     def run_SIA_380_1(self, weather_data_sia):

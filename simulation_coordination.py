@@ -36,8 +36,8 @@ dyn_cold_path = os.path.join(main_path, 'data', 'cooling_demand_hourly.xlsx')
 stat_heat_path = os.path.join(main_path, 'data', 'heat_demand_monthly.xlsx')
 stat_cold_path = os.path.join(main_path, 'data', 'cooling_demand_monthly.xlsx')
 
-# sc_ratio_path = os.path.join(main_path, 'data', 'sc_ratio_hourly.xlsx')
-# econ_dyn_path = os.path.join(main_path, 'data', 'gross_electricity_consumption.xlsx')
+sc_ratio_path = os.path.join(main_path, 'data', 'sc_ratio_hourly.xlsx')
+econ_dyn_path = os.path.join(main_path, 'data', 'gross_electricity_consumption.xlsx')
 
 scenarios = pd.read_excel(scenarios_path)
 configurations = pd.read_excel(configurations_path, index_col="Configuration", skiprows=[1])
@@ -53,8 +53,8 @@ nominal_cooling_power_stat = np.empty(len(configurations.index))
 nominal_heating_power_dyn = np.empty(len(configurations.index))
 nominal_cooling_power_dyn = np.empty(len(configurations.index))
 
-# annual_self_consumption_ratios_dyn = np.empty((len(configurations.index), len(scenarios.index)))
-# annual_electricity_consumption_dyn = np.empty((len(configurations.index), len(scenarios.index)))
+annual_self_consumption_ratios_dyn = np.empty((len(configurations.index), len(scenarios.index)))
+annual_electricity_consumption_dyn = np.empty((len(configurations.index), len(scenarios.index)))
 
 # LCA angaben
 electricity_factor_type = "annual"  # Can be "annual", "monthly", "hourly" (Hourly will only work for hourly model and
@@ -183,14 +183,10 @@ for config_index, config in configurations.iterrows():
         ## heating demand and emission calculation
 
         Gebaeude_static = se.Building(gebaeudekategorie_sia, regelung, windows, walls, roof, floor, energiebezugsflache,
-                                 anlagennutzungsgrad_wrg, infiltration_volume_flow, ventilation_volume_flow,
-                                 warmespeicherfahigkeit_pro_EBF, korrekturfaktor_luftungs_eff_f_v, hohe_uber_meer,
-                                      heating_setpoint, cooling_setpoint, area_per_person)
-
-        # TODO: These definitions should be part of the object definition above.
-        Gebaeude_static.heating_system = heizsystem
-        Gebaeude_static.dhw_heating_system = dhw_heizsystem  # Achtung, momentan ist der COP für DHW und Heizung gleich.
-        Gebaeude_static.cooling_system = cooling_system
+                                      anlagennutzungsgrad_wrg, infiltration_volume_flow, ventilation_volume_flow,
+                                      warmespeicherfahigkeit_pro_EBF, korrekturfaktor_luftungs_eff_f_v, hohe_uber_meer,
+                                      heizsystem, dhw_heizsystem, cooling_system, heating_setpoint, cooling_setpoint,
+                                      area_per_person)
 
 
         Gebaeude_static.pv_production = pv_yield_hourly
@@ -236,8 +232,8 @@ for config_index, config in configurations.iterrows():
         heating_demand_stat[config_index, scenario_index] = Gebaeude_static.heizwarmebedarf.sum()
         cooling_demand_stat[config_index, scenario_index] = Gebaeude_static.monthly_cooling_demand.sum()
 
-        # annual_self_consumption_ratios_dyn[config_index, scenario_index] = dp.calculate_self_consumption(Gebaeude_dyn.electricity_demand, pv_yield_hourly)
-        # annual_electricity_consumption_dyn[config_index, scenario_index] = Gebaeude_dyn.electricity_demand.sum()
+        annual_self_consumption_ratios_dyn[config_index, scenario_index] = dp.calculate_self_consumption(Gebaeude_dyn.electricity_demand, pv_yield_hourly)
+        annual_electricity_consumption_dyn[config_index, scenario_index] = Gebaeude_dyn.electricity_demand.sum()
 
         # This means that Scenario 0 needs to be the reference (design) scenario.
         if scenario_index == 0:
@@ -267,8 +263,8 @@ pd.DataFrame(emission_performance_matrix_dyn, index=configurations.index, column
 pd.DataFrame(emission_performance_matrix_stat, index=configurations.index, columns=scenarios.index).to_excel(
          performance_matrix_path_monthly)
 
-# pd.DataFrame(annual_self_consumption_ratios_dyn, index=configurations.index, columns=scenarios.index).to_excel(sc_ratio_path)
-# pd.DataFrame(annual_electricity_consumption_dyn, index=configurations.index, columns=scenarios.index).to_excel(econ_dyn_path)
+pd.DataFrame(annual_self_consumption_ratios_dyn, index=configurations.index, columns=scenarios.index).to_excel(sc_ratio_path)
+pd.DataFrame(annual_electricity_consumption_dyn, index=configurations.index, columns=scenarios.index).to_excel(econ_dyn_path)
 
 pd.DataFrame(heating_demand_dyn, index=configurations.index, columns=scenarios.index).to_excel(dyn_heat_path)
 pd.DataFrame(cooling_demand_dyn, index=configurations.index, columns=scenarios.index).to_excel(dyn_cold_path)
@@ -370,7 +366,7 @@ for config_index, config in configurations.iterrows():
                                          total_roof_area=total_roof_area,
                                          roof_type=config['roof type'],
                                          energy_reference_area=energiebezugsflache,
-                                         floor_type=config['ceiling type'])/energiebezugsflache
+                                         ceiling_type=config['ceiling type'])/energiebezugsflache
 
 
     embodied_envelope_emissions_performance_matrix[config_index] = annualized_embodied_emsissions_envelope
