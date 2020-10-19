@@ -545,14 +545,14 @@ def estimate_self_consumption(electricity_demand, pv_peak_power, building_catego
 
     elif int(building_category) == 2:
         monthly_stoc = (pv_peak_power / 12) / (electricity_demand / 1000)
-        monthly_sc = (0.12 + 0.92 * np.exp(-1.64*monthly_stoc))*100.0
+        monthly_sc = (0.17 + 0.68 * np.exp(-0.79*monthly_stoc))*100.0
 
 
     else:
 
         # Factor 1/12 because source is calculated on annual basis
         monthly_stoc = (pv_peak_power / 12) / (electricity_demand / 1000)
-        monthly_sc = (0.12 + 0.92 * np.exp(-1.64 * monthly_stoc))*100.0
+        monthly_sc = (0.17 + 0.68 * np.exp(-0.79 * monthly_stoc))*100.0
         print("No self consumption model available for this building category. Office model is chosen.")
         # This maximises self consumption at 95% and the pure calculation could go above 100% (!)
     monthly_sc[monthly_sc >=95] = 95.0
