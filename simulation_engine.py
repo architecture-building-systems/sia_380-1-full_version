@@ -395,7 +395,7 @@ class Building(object):
         rho_a_c_a = (1220 - 0.14 * self.hohe_uber_meer)
 
         # 6.6.6.2 Dieser Faktor ist gleich 1 unter der Annahme, dass mit Aussenlufttemperatur gelüftet wird
-        # Überprüfen, inwiefern dies mit SIA380 kompatibel ist bzw. WRG/KRG möglich wäre.
+        # TODO: Überprüfen, inwiefern dies mit SIA380 kompatibel ist bzw. WRG/KRG möglich wäre.
         b_ve_c_m = 1
 
         # 6.6.6.2 gemittelter Luftvolumenstrom in [m3/s] nach relevanten Normen
@@ -601,7 +601,7 @@ class Building(object):
 
         electricity_demand_for_self_consumption = self.electricity_demand * self.energy_reference_area
 
-        # Divide by zero because result comes in percentage
+        # Divide by 100 because result comes in percentage
         sc_factors = dp.estimate_self_consumption(electricity_demand_for_self_consumption, self.pv_peak_power,
                                                   self.gebaeudekategorie_sia)/100
 
