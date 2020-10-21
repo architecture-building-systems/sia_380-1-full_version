@@ -88,7 +88,7 @@ def calculate_system_related_embodied_emissions(ee_database_path, gebaeudekatego
         heat_distribution_lifetime = 1.0  # to avoid division by zero
 
     else:
-        heat_distribution_per_area = database['Value'][heat_distribution]  # this data is in kgCO2eq/kW
+        heat_distribution_embodied_per_area = database['Value'][heat_distribution]  # this data is in kgCO2eq/kW
         heat_distribution_lifetime = database['lifetime'][heat_distribution]
 
     embodied_heat_distribution = heat_distribution_embodied_per_area * energy_reference_area / heat_distribution_lifetime
