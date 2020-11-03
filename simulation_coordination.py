@@ -107,9 +107,11 @@ for config_index, config in configurations.iterrows():
     cooling_system = config['cooling system']
     pv_efficiency = config['PV efficiency']
     pv_performance_ratio = config['PV performance ratio']
-    pv_area = config['PV area']  # m2, can be directly linked with roof size
-    pv_tilt = config['PV tilt']  # in degrees
-    pv_azimuth = config['PV azimuth']  # The north=0 convention applies
+
+    pv_area = np.array(str(config['PV area']).split(" "), dtype=float)  # m2, can be directly linked with roof size
+    pv_tilt = np.array(str(config['PV tilt']).split(" "), dtype=float)  # in degrees
+    pv_azimuth = np.array(str(config['PV azimuth']).split(" "), dtype=float) # The north=0 convention applies
+
     wall_areas = np.array(config['wall areas'].split(" "), dtype=float)
     window_areas = np.array(config['window areas'].split(" "), dtype=float)
     window_orientations = np.array(config['window orientations'].split(" "), dtype=str)
@@ -180,8 +182,10 @@ for config_index, config in configurations.iterrows():
 
         ## PV calculation
         # pv yield in Wh for each hour
-        pv_yield_hourly = dp.photovoltaic_yield_hourly(pv_azimuth, pv_tilt, pv_efficiency, pv_performance_ratio, pv_area,
-                                      weatherfile_path)
+        pv_yield_hourly = np.empty(8760)
+        for pv_number in range(len(pv_area)):
+            pv_yield_hourly += dp.photovoltaic_yield_hourly(pv_azimuth[pv_number], pv_tilt[pv_number], pv_efficiency,
+                                                           pv_performance_ratio, pv_area[pv_number], weatherfile_path)
 
 
         ## heating demand and emission calculation
@@ -221,7 +225,7 @@ for config_index, config in configurations.iterrows():
         Gebaeude_dyn.run_dynamic_emissions(emission_factor_source=electricity_factor_source,
                                            emission_factor_type=electricity_factor_type, grid_export_assumption="c")
 
-        Gebaeude_static.pv_peak_power = pv_area * pv_efficiency  # in kW (required for simplified Eigenverbrauchsabschätzung)
+        Gebaeude_static.pv_peak_power = pv_area.sum() * pv_efficiency  # in kW (required for simplified Eigenverbrauchsabschätzung)
         Gebaeude_static.run_SIA_380_emissions(emission_factor_source=electricity_factor_source,
                                               emission_factor_type=electricity_factor_type, avg_ashp_cop=2.8)
 
@@ -333,7 +337,7 @@ for config_index, config in configurations.iterrows():
                                                         cooling_system = config['cooling system'],
                                                         cold_emission_system = config['cold emission'],
                                                         nominal_cooling_power=nominal_cooling_power_stat[config_index],
-                                                        pv_area=config['PV area'],
+                                                        pv_area=np.array(str(config['PV area']).split(" "), dtype=float).sum(),
                                                         pv_type=config['PV type'],
                                                         pv_efficiency=config['PV efficiency'])/energiebezugsflache
 
@@ -349,7 +353,7 @@ for config_index, config in configurations.iterrows():
                                                         cooling_system=config['cooling system'],
                                                         cold_emission_system=config['cold emission'],
                                                         nominal_cooling_power=nominal_cooling_power_dyn[config_index],
-                                                        pv_area=config['PV area'],
+                                                        pv_area=np.array(str(config['PV area']).split(" "), dtype=float).sum(),
                                                         pv_type=config['PV type'],
                                                         pv_efficiency=config['PV efficiency'])/energiebezugsflache
 
