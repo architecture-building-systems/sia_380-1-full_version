@@ -185,8 +185,9 @@ for config_index, config in configurations.iterrows():
 
         Gebaeude_static = se.Building(gebaeudekategorie_sia, regelung, windows, walls, roof, floor, energiebezugsflache,
                                       anlagennutzungsgrad_wrg, infiltration_volume_flow, ventilation_volume_flow,
-                                      warmespeicherfahigkeit_pro_EBF, korrekturfaktor_luftungs_eff_f_v, hohe_uber_meer,
-                                      heizsystem, dhw_heizsystem, cooling_system, heating_setpoint, cooling_setpoint,
+                                      increased_ventilation_volume_flow, warmespeicherfahigkeit_pro_EBF,
+                                      korrekturfaktor_luftungs_eff_f_v, hohe_uber_meer, heizsystem, dhw_heizsystem,
+                                      cooling_system, heating_setpoint, cooling_setpoint,
                                       area_per_person)
 
 

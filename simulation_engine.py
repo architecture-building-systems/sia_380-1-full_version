@@ -16,6 +16,7 @@ class Building(object):
                  heat_recovery_nutzungsgrad,
                  infiltration_volume_flow,
                  ventilation_volume_flow,
+                 ventilation_volume_flow_increased,
                  thermal_storage_capacity_per_floor_area,
                  korrekturfaktor_luftungs_eff_f_v,
                  height_above_sea,
@@ -36,6 +37,7 @@ class Building(object):
         self.anlagennutzungsgrad_wrg = heat_recovery_nutzungsgrad  # One value, float
         self.q_inf = infiltration_volume_flow
         self.ventilation_volume_flow = ventilation_volume_flow
+        self.ventilation_volume_flow_increased = ventilation_volume_flow_increased
         self.warmespeicherfahigkeit_pro_ebf = thermal_storage_capacity_per_floor_area # One value, float
         self.korrekturfaktor_luftungs_eff_f_v = korrekturfaktor_luftungs_eff_f_v
         self.hohe_uber_meer = height_above_sea
@@ -352,6 +354,11 @@ class Building(object):
         else:
             aussenluft_strome = {int(self.gebaeudekategorie_sia):self.ventilation_volume_flow+self.q_inf}
 
+        if self.ventilation_volume_flow_increased == "SIA":
+            aussenluft_strome_increased = dp.sia_standardnutzungsdaten('effective_air_flow')
+        else:
+            aussenluft_strome_increased = {int(self.gebaeudekategorie_sia):self.ventilation_volume_flow_increased+self.q_inf}
+
         if self.area_per_person == "SIA":
             personenflachen = dp.sia_standardnutzungsdaten('area_per_person')
         else:
@@ -456,21 +463,9 @@ class Building(object):
 
         # 6.6.6.2 gemittelter Luftvolumenstrom in [m3/s] nach relevanten Normen
         # das Objekt hat aussenluft strome in m3 pro stunde und EBF angegeben, deshalb hier die Korrekturen
-        q_v_hc_m = np.repeat(aussenluft_strome[int(self.gebaeudekategorie_sia)] * self.energy_reference_area /3600, 12)
-        q_v_hc_increased = 3*0.0216666667
-        print("Transmission losses:")
-        print(q_c_tr_ztc_m)
-        print("Total gains")
-        print(q_c_gn_ztc_m)
-        print("Difference")
-        print(q_c_gn_ztc_m-q_c_tr_ztc_m)
-        print(np.where((q_c_gn_ztc_m-q_c_tr_ztc_m)>0))
+        q_v_hc_m = np.repeat(aussenluft_strome[int(self.gebaeudekategorie_sia)] * self.energy_reference_area /3600., 12)
+        q_v_hc_increased = aussenluft_strome_increased[int(self.gebaeudekategorie_sia)] *self.energy_reference_area/3600.
         q_v_hc_m[np.where((q_c_gn_ztc_m - q_c_tr_ztc_m) > 0)]=q_v_hc_increased
-
-        print(q_v_hc_m)
-
-        # q_v_hc_m = np.array([0.02166667, 0.02166667, 0.02166667, 0.02166667*ab, 0.02166667*ab, 0.02166667*ab, 0.02166667*ab,
-        #                      0.02166667*ab, 0.02166667*ab, 0.02166667, 0.02166667, 0.02166667])
         # np.array
 
         # 6.6.6.2 Dieser Wert kann als 1.0 angenommen werden, sofern nicht anders definiert
