@@ -19,6 +19,7 @@ main_path = os.path.abspath(os.path.dirname(__file__))
 # Filepaths for input files
 scenarios_path = os.path.join(main_path, 'data', 'scenarios.xlsx')
 configurations_path = os.path.join(main_path, 'data', 'configurations.xlsx')
+translation_path = os.path.join(main_path, 'data', 'translation_file.xlsx')
 
 # Filepaths to databases:
 sys_ee_database_path = os.path.join(main_path, 'data', 'embodied_emissions_systems.xlsx')
@@ -41,6 +42,7 @@ econ_dyn_path = os.path.join(main_path, 'data', 'gross_electricity_consumption.x
 
 scenarios = pd.read_excel(scenarios_path)
 configurations = pd.read_excel(configurations_path, index_col="Configuration", skiprows=[1])
+translations = pd.read_excel(translation_path)
 emission_performance_matrix_dyn = np.empty((len(configurations.index), len(scenarios.index)))
 emission_performance_matrix_stat = np.empty((len(configurations.index), len(scenarios.index)))
 heating_demand_dyn = np.empty((len(configurations.index), len(scenarios.index)))
@@ -75,7 +77,6 @@ for config_index, config in configurations.iterrows():
     to the input file. The iteration object "config" represents one line of the configuration file.
     """
     ## Erforderliche Nutzereingaben:
-    gebaeudekategorie_sia = config["building category"]
     regelung = "andere"  # oder "Referenzraum" oder "andere"
     hohe_uber_meer = config['altitude']# Eingabe
     energiebezugsflache = config['energy reference area']  # m2
@@ -150,7 +151,9 @@ for config_index, config in configurations.iterrows():
         print("Calculating Scenario %s" %(scenario_index))
 
         weatherfile_path = scenario["weatherfile"]
-        occupancy_path = scenario['occupancy schedule']
+        gebaeudekategorie_sia = scenario["building use type"]
+        # There should be an easier version to get this value out of the file! TODO: Simplify
+        occupancy_path = translations[translations['building use type'] == gebaeudekategorie_sia]['occupancy schedule'].to_numpy()[0]
         heating_setpoint = scenario['heating setpoint']  # give a number in deC or select "SIA" to follow the SIA380-1 code
         cooling_setpoint = scenario['cooling setpoint']  # give a number in deC or select "SIA" to follow the SIA380-1 code
 

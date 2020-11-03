@@ -544,7 +544,6 @@ class Building(object):
             self.monthly_cooling_demand = np.repeat(0.0, 12)
         else:
             self.monthly_cooling_demand = q_c_nd_ztc_m/self.energy_reference_area
-        print(self.monthly_cooling_demand)
 
     def run_dhw_demand(self):
         """
