@@ -2,6 +2,11 @@ import os
 import pandas as pd
 from itertools import product
 
+"""
+This file is used to sample scenarios from the given scenario approaches. At the moment the full factorial approach is 
+used, meaning that all possible combinations are "built". At a later stage a smarter way of sampling can be introduced.
+"""
+
 main_path = os.path.abspath(os.path.dirname(__file__))
 
 options_path = os.path.join(main_path, 'data', 'scenario_options.xlsx')
