@@ -22,6 +22,7 @@ class Sim_Building(object):
                  heat_recovery_nutzungsgrad,
                  infiltration_volume_flow,
                  ventilation_volume_flow,
+                 increased_ventilation_volume_flow,
                  thermal_storage_capacity_per_floor_area,
                  korrekturfaktor_luftungs_eff_f_v,
                  height_above_sea,
@@ -41,8 +42,9 @@ class Sim_Building(object):
         self.floor = floor  # np.array of floowrs with |area|u-value|b-value|
         self.energy_reference_area = energy_reference_area  # One value, float
         self.anlagennutzungsgrad_wrg = heat_recovery_nutzungsgrad  # One value, float
-        self.q_inf = infiltration_volume_flow
-        self.ventilation_volume_flow = ventilation_volume_flow
+        self.q_inf = infiltration_volume_flow  # m3/m2h
+        self.ventilation_volume_flow = ventilation_volume_flow  # m3/m2h
+        self.increased_ventilation_volume_flow = increased_ventilation_volume_flow  # m3/m2h
         self.warmespeicherfahigkeit_pro_ebf = thermal_storage_capacity_per_floor_area
         self.korrekturfaktor_luftungs_eff_f_v = korrekturfaktor_luftungs_eff_f_v
         self.hohe_uber_meer = height_above_sea
@@ -73,6 +75,7 @@ class Sim_Building(object):
         self.u_opaque = ((self.walls[0]*self.walls[1]).sum() + (self.roof[0]*self.roof[1]).sum() + (self.floor[0]*self.floor[1]).sum()) / (self.walls[0].sum() + self.roof[0].sum() + self.floor[0].sum())  # weighted average of walls u-values
         self.u_windows = (self.windows[1]*self.windows[2]).sum() /self.window_area # weighted average of window u-values for thermal calculation
         self.ach_vent = None
+        self.ach_vent_high = self.increased_ventilation_volume_flow / self.room_height
         self.ach_infl = self.q_inf / self.room_height  # Umrechnung von m3/(h*m2) in 1/h
         self.ventilation_efficiency = self.anlagennutzungsgrad_wrg
         self.thermal_capacitance_per_floor_area = self.warmespeicherfahigkeit_pro_ebf
@@ -161,6 +164,7 @@ class Sim_Building(object):
                           u_walls=self.u_opaque,  # average u_value of opaque surfaces that make up external_envelope_area
                           u_windows=self.u_windows,
                           ach_vent=self.ach_vent,
+                          ach_vent_high = self.ach_vent_high,
                           ach_infl=self.ach_infl,
                           ventilation_efficiency=self.ventilation_efficiency,
                           thermal_capacitance_per_floor_area=self.thermal_capacitance_per_floor_area * 3600 * 1000,  # Comes as kWh/m2K and needs to be J/m2K

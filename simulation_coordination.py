@@ -19,6 +19,7 @@ main_path = os.path.abspath(os.path.dirname(__file__))
 # Filepaths for input files
 scenarios_path = os.path.join(main_path, 'data', 'scenarios.xlsx')
 configurations_path = os.path.join(main_path, 'data', 'configurations.xlsx')
+translation_path = os.path.join(main_path, 'data', 'translation_file.xlsx')
 
 # Filepaths to databases:
 sys_ee_database_path = os.path.join(main_path, 'data', 'embodied_emissions_systems.xlsx')
@@ -41,6 +42,7 @@ econ_dyn_path = os.path.join(main_path, 'data', 'gross_electricity_consumption.x
 
 scenarios = pd.read_excel(scenarios_path)
 configurations = pd.read_excel(configurations_path, index_col="Configuration", skiprows=[1])
+translations = pd.read_excel(translation_path)
 emission_performance_matrix_dyn = np.empty((len(configurations.index), len(scenarios.index)))
 emission_performance_matrix_stat = np.empty((len(configurations.index), len(scenarios.index)))
 heating_demand_dyn = np.empty((len(configurations.index), len(scenarios.index)))
@@ -75,7 +77,6 @@ for config_index, config in configurations.iterrows():
     to the input file. The iteration object "config" represents one line of the configuration file.
     """
     ## Erforderliche Nutzereingaben:
-    gebaeudekategorie_sia = config["building category"]
     regelung = "andere"  # oder "Referenzraum" oder "andere"
     hohe_uber_meer = config['altitude']# Eingabe
     energiebezugsflache = config['energy reference area']  # m2
@@ -84,6 +85,7 @@ for config_index, config in configurations.iterrows():
     korrekturfaktor_luftungs_eff_f_v = 1.0  # zwischen 0.8 und 1.2 gemäss SIA380-1 Tab 24
     infiltration_volume_flow_planned = config['infiltration volume flow']  # Gemäss SIA 380-1 2016 3.5.5 soll 0.15m3/(hm2) verwendet werden. Korrigenda anschauen
     ventilation_volume_flow = config['ventilation volume flow'] # give a number in m3/(hm2) or select "SIA" to follow SIA380-1 code
+    increased_ventilation_volume_flow = config['increased ventilation volume flow'] # give a number in m3/hm2, this volume flow is used when cooling with outside air is possible
     area_per_person = config['area per person']  # give a number or select "SIA" to follow the SIA380-1 code (typical for MFH 40)
 
 
@@ -105,9 +107,11 @@ for config_index, config in configurations.iterrows():
     cooling_system = config['cooling system']
     pv_efficiency = config['PV efficiency']
     pv_performance_ratio = config['PV performance ratio']
-    pv_area = config['PV area']  # m2, can be directly linked with roof size
-    pv_tilt = config['PV tilt']  # in degrees
-    pv_azimuth = config['PV azimuth']  # The north=0 convention applies
+
+    pv_area = np.array(str(config['PV area']).split(" "), dtype=float)  # m2, can be directly linked with roof size
+    pv_tilt = np.array(str(config['PV tilt']).split(" "), dtype=float)  # in degrees
+    pv_azimuth = np.array(str(config['PV azimuth']).split(" "), dtype=float) # The north=0 convention applies
+
     wall_areas = np.array(config['wall areas'].split(" "), dtype=float)
     window_areas = np.array(config['window areas'].split(" "), dtype=float)
     window_orientations = np.array(config['window orientations'].split(" "), dtype=str)
@@ -149,7 +153,9 @@ for config_index, config in configurations.iterrows():
         print("Calculating Scenario %s" %(scenario_index))
 
         weatherfile_path = scenario["weatherfile"]
-        occupancy_path = scenario['occupancy schedule']
+        gebaeudekategorie_sia = scenario["building use type"]
+        # There should be an easier version to get this value out of the file! TODO: Simplify
+        occupancy_path = translations[translations['building use type'] == gebaeudekategorie_sia]['occupancy schedule'].to_numpy()[0]
         heating_setpoint = scenario['heating setpoint']  # give a number in deC or select "SIA" to follow the SIA380-1 code
         cooling_setpoint = scenario['cooling setpoint']  # give a number in deC or select "SIA" to follow the SIA380-1 code
 
@@ -176,16 +182,19 @@ for config_index, config in configurations.iterrows():
 
         ## PV calculation
         # pv yield in Wh for each hour
-        pv_yield_hourly = dp.photovoltaic_yield_hourly(pv_azimuth, pv_tilt, pv_efficiency, pv_performance_ratio, pv_area,
-                                      weatherfile_path)
+        pv_yield_hourly = np.empty(8760)
+        for pv_number in range(len(pv_area)):
+            pv_yield_hourly += dp.photovoltaic_yield_hourly(pv_azimuth[pv_number], pv_tilt[pv_number], pv_efficiency,
+                                                           pv_performance_ratio, pv_area[pv_number], weatherfile_path)
 
 
         ## heating demand and emission calculation
 
         Gebaeude_static = se.Building(gebaeudekategorie_sia, regelung, windows, walls, roof, floor, energiebezugsflache,
                                       anlagennutzungsgrad_wrg, infiltration_volume_flow, ventilation_volume_flow,
-                                      warmespeicherfahigkeit_pro_EBF, korrekturfaktor_luftungs_eff_f_v, hohe_uber_meer,
-                                      heizsystem, dhw_heizsystem, cooling_system, heating_setpoint, cooling_setpoint,
+                                      increased_ventilation_volume_flow, warmespeicherfahigkeit_pro_EBF,
+                                      korrekturfaktor_luftungs_eff_f_v, hohe_uber_meer, heizsystem, dhw_heizsystem,
+                                      cooling_system, heating_setpoint, cooling_setpoint,
                                       area_per_person)
 
 
@@ -198,7 +207,7 @@ for config_index, config in configurations.iterrows():
 
         Gebaeude_dyn = sime.Sim_Building(gebaeudekategorie_sia, regelung, windows, walls, roof, floor, energiebezugsflache,
                                        anlagennutzungsgrad_wrg, infiltration_volume_flow, ventilation_volume_flow,
-                                       warmespeicherfahigkeit_pro_EBF,
+                                         increased_ventilation_volume_flow, warmespeicherfahigkeit_pro_EBF,
                                        korrekturfaktor_luftungs_eff_f_v, hohe_uber_meer, heizsystem, cooling_system,
                                        dhw_heizsystem, heating_setpoint, cooling_setpoint, area_per_person)
 
@@ -216,7 +225,7 @@ for config_index, config in configurations.iterrows():
         Gebaeude_dyn.run_dynamic_emissions(emission_factor_source=electricity_factor_source,
                                            emission_factor_type=electricity_factor_type, grid_export_assumption="c")
 
-        Gebaeude_static.pv_peak_power = pv_area * pv_efficiency  # in kW (required for simplified Eigenverbrauchsabschätzung)
+        Gebaeude_static.pv_peak_power = pv_area.sum() * pv_efficiency  # in kW (required for simplified Eigenverbrauchsabschätzung)
         Gebaeude_static.run_SIA_380_emissions(emission_factor_source=electricity_factor_source,
                                               emission_factor_type=electricity_factor_type, avg_ashp_cop=2.8)
 
@@ -328,7 +337,7 @@ for config_index, config in configurations.iterrows():
                                                         cooling_system = config['cooling system'],
                                                         cold_emission_system = config['cold emission'],
                                                         nominal_cooling_power=nominal_cooling_power_stat[config_index],
-                                                        pv_area=config['PV area'],
+                                                        pv_area=np.array(str(config['PV area']).split(" "), dtype=float).sum(),
                                                         pv_type=config['PV type'],
                                                         pv_efficiency=config['PV efficiency'])/energiebezugsflache
 
@@ -344,7 +353,7 @@ for config_index, config in configurations.iterrows():
                                                         cooling_system=config['cooling system'],
                                                         cold_emission_system=config['cold emission'],
                                                         nominal_cooling_power=nominal_cooling_power_dyn[config_index],
-                                                        pv_area=config['PV area'],
+                                                        pv_area=np.array(str(config['PV area']).split(" "), dtype=float).sum(),
                                                         pv_type=config['PV type'],
                                                         pv_efficiency=config['PV efficiency'])/energiebezugsflache
 

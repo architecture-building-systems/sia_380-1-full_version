@@ -541,7 +541,7 @@ def estimate_self_consumption(electricity_demand, pv_peak_power, building_catego
 
     elif int(building_category) == 1:
         monthly_stoc = (pv_peak_power / 12) / (electricity_demand / 1000)
-        monthly_sc = (0.12 + 0.67 * np.exp(-0.52*monthly_stoc))*100.0
+        monthly_sc = (0.12 + 0.92 * np.exp(-1.64*monthly_stoc))*100.0
 
     elif int(building_category) == 2:
         monthly_stoc = (pv_peak_power / 12) / (electricity_demand / 1000)
@@ -570,10 +570,13 @@ def calculate_self_consumption(hourly_demand, hourly_production):
     :return: float, annual value.
     """
 
-    self_consumption = np.empty(len(hourly_demand))
-    for hour in range(len(hourly_demand)):
-        self_consumption[hour] = min(hourly_production[hour], hourly_demand[hour])
-    self_consumption_ratio = self_consumption.sum()/hourly_production.sum()
+    if hourly_production.sum() == 0:
+        self_consumption_ratio = 1
+    else:
+        self_consumption = np.empty(len(hourly_demand))
+        for hour in range(len(hourly_demand)):
+            self_consumption[hour] = min(hourly_production[hour], hourly_demand[hour])
+        self_consumption_ratio = self_consumption.sum()/hourly_production.sum()
     return self_consumption_ratio
 
 
