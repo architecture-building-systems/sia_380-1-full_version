@@ -320,9 +320,6 @@ class Building(object):
         else:
             self.heizwarmebedarf = heizwarmebedarf
 
-
-
-
     def run_ISO_52016_monthly(self, weather_data_sia, cooling_setpoint=None):
 
         """
@@ -554,6 +551,8 @@ class Building(object):
         self.dhw_demand = np.repeat(dp.sia_annaul_dhw_demand(self.gebaeudekategorie_sia) / 12.0, 12)
         # monthly kWh/energy_reference area --> this way is simplified and needs to be done according to 384/2
 
+
+
     def run_SIA_380_emissions(self, emission_factor_source, emission_factor_type, avg_gshp_cop=3.8, avg_ashp_cop=2.8):
         """
         Beachte: Die SIA Norm kennt keinen flexiblen Strommix. Soll das Stromprodukt ausgewählt werden können,
@@ -571,7 +570,6 @@ class Building(object):
         # self.pv_production is total PV production in Wh and has to be normalized and divided by 1000 for the SIA
         # framework because it comes in Wh
         pv_prod_month = dp.hourly_to_monthly(self.pv_production)/self.energy_reference_area/1000.0
-
 
         ### Bestimmung Elektrizitätsbedarf pro EBF:
         self.electricity_demand = self.app_light_other_electricity_monthly_demand
@@ -615,7 +613,6 @@ class Building(object):
                                                   self.gebaeudekategorie_sia)/100
 
         self.net_electricity_demand = self.electricity_demand - (sc_factors * pv_prod_month)
-
 
         ## Calculate operational impact:
         self.fossil_heating_emissions = np.empty(12)

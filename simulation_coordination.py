@@ -182,12 +182,10 @@ for config_index, config in configurations.iterrows():
 
         ## PV calculation
         # pv yield in Wh for each hour
-        pv_yield_hourly = np.empty(8760)
+        pv_yield_hourly = np.zeros(8760)
         for pv_number in range(len(pv_area)):
             pv_yield_hourly += dp.photovoltaic_yield_hourly(pv_azimuth[pv_number], pv_tilt[pv_number], pv_efficiency,
                                                            pv_performance_ratio, pv_area[pv_number], weatherfile_path)
-
-
         ## heating demand and emission calculation
 
         Gebaeude_static = se.Building(gebaeudekategorie_sia, regelung, windows, walls, roof, floor, energiebezugsflache,
@@ -311,6 +309,7 @@ In this part the embodied simulation is happening in two steps:
 This part of the simulation is pure data lookup and simple operations. It is therefore time-wise not relevant in the 
 whole simulation process.    
 """
+quit()
 
 for config_index, config in configurations.iterrows():
     """
@@ -324,6 +323,7 @@ for config_index, config in configurations.iterrows():
     Choice: Oil, Natural Gas, Wood, Pellets, GSHP, ASHP, electric
     The system choice is translated to a similar system available in the RC Simulator
     """
+    print(scenarios.iloc[0])
 
     embodied_systems_emissions_performance_matrix_stat[config_index] = \
         eec.calculate_system_related_embodied_emissions(ee_database_path=sys_ee_database_path,
