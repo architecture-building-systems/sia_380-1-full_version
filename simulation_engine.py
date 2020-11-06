@@ -18,11 +18,14 @@ class Building(object):
                  ventilation_volume_flow,
                  ventilation_volume_flow_increased,
                  thermal_storage_capacity_per_floor_area,
+                 heat_pump_efficiency,
                  korrekturfaktor_luftungs_eff_f_v,
                  height_above_sea,
                  heizsystem,
                  dhw_heizsystem,
                  cooling_system,
+                 heat_emission_system,
+                 cold_emission_system,
                  heating_setpoint="SIA",
                  cooling_setpoint="SIA",
                  area_per_person="SIA"):
@@ -47,6 +50,11 @@ class Building(object):
         self.heating_system = heizsystem
         self.cooling_system = cooling_system
         self.dhw_heating_system = dhw_heizsystem
+        self.heat_emission_system = heat_emission_system
+        self.cold_emission_system = cold_emission_system
+        self.heating_supply_temperature = dp.lookup_supply_temperatures_according_to_rc(self.heat_emission_system)[0]
+        self.cooling_supply_temperature = dp.lookup_supply_temperatures_according_to_rc(self.cold_emission_system)[1]
+        self.heat_pump_efficiency = heat_pump_efficiency
 
         # Further optional attributes:
         self.electricity_demand = None
@@ -320,9 +328,6 @@ class Building(object):
         else:
             self.heizwarmebedarf = heizwarmebedarf
 
-
-
-
     def run_ISO_52016_monthly(self, weather_data_sia, cooling_setpoint=None):
 
         """
@@ -554,7 +559,8 @@ class Building(object):
         self.dhw_demand = np.repeat(dp.sia_annaul_dhw_demand(self.gebaeudekategorie_sia) / 12.0, 12)
         # monthly kWh/energy_reference area --> this way is simplified and needs to be done according to 384/2
 
-    def run_SIA_380_emissions(self, emission_factor_source, emission_factor_type, avg_gshp_cop=3.8, avg_ashp_cop=2.8):
+
+    def run_SIA_380_emissions(self, emission_factor_source, emission_factor_type, weather_data_sia):
         """
         Beachte: Die SIA Norm kennt keinen flexiblen Strommix. Soll das Stromprodukt ausgewählt werden können,
         müssten hiere noch weitere Anpassungen durchgeführt werden.
@@ -572,16 +578,22 @@ class Building(object):
         # framework because it comes in Wh
         pv_prod_month = dp.hourly_to_monthly(self.pv_production)/self.energy_reference_area/1000.0
 
-
         ### Bestimmung Elektrizitätsbedarf pro EBF:
         self.electricity_demand = self.app_light_other_electricity_monthly_demand
         if self.heating_system == "GSHP":
-            self.heating_elec = self.heizwarmebedarf/avg_gshp_cop
-            self.dhw_elec = self.dhw_demand/avg_gshp_cop
+            gshp_cop_heating, gshp_cop_cooling = dp.calculate_monthly_gshp_cop(self.heating_supply_temperature,
+                                                                               self.cooling_supply_temperature,
+                                                                               12.0, self.heat_pump_efficiency)
+            self.heating_elec = self.heizwarmebedarf/gshp_cop_heating
+            self.dhw_elec = self.dhw_demand/gshp_cop_heating
 
         elif self.heating_system == "ASHP":
-            self.heating_elec = self.heizwarmebedarf/avg_ashp_cop
-            self.dhw_elec = self.dhw_demand / avg_ashp_cop
+            ashp_cop_heating, ashp_cop_cooling = dp.calculate_monthly_ashp_cop(self.heating_supply_temperature,
+                                                                               self.cooling_supply_temperature,
+                                                                               weather_data_sia,
+                                                                               self.heat_pump_efficiency)
+            self.heating_elec = self.heizwarmebedarf/ashp_cop_heating
+            self.dhw_elec = self.dhw_demand / ashp_cop_heating
 
         elif self.heating_system == "electric":
             self.heating_elec = self.heizwarmebedarf
@@ -593,11 +605,17 @@ class Building(object):
 
         # same for cooling
         if self.cooling_system == "GSHP":
-            # The COP cooling is generally one lower than for heating.
-            self.cooling_elec = self.monthly_cooling_demand/(avg_gshp_cop-1.0)
+            gshp_cop_heating, gshp_cop_cooling = dp.calculate_monthly_gshp_cop(self.heating_supply_temperature,
+                                                                               self.cooling_supply_temperature,
+                                                                               12.0, self.heat_pump_efficiency)
+            self.cooling_elec = self.monthly_cooling_demand/gshp_cop_cooling
 
         elif self.cooling_system == "ASHP":
-            self.cooling_elec = self.monthly_cooling_demand/(avg_ashp_cop-1.0)
+            ashp_cop_heating, ashp_cop_cooling = dp.calculate_monthly_ashp_cop(self.heating_supply_temperature,
+                                                                               self.cooling_supply_temperature,
+                                                                               weather_data_sia,
+                                                                               self.heat_pump_efficiency)
+            self.cooling_elec = self.monthly_cooling_demand/ashp_cop_cooling
 
         elif self.cooling_system == "electric":
             print("Pure electric cooling is not a possible choice, simulation terminated")
@@ -615,7 +633,6 @@ class Building(object):
                                                   self.gebaeudekategorie_sia)/100
 
         self.net_electricity_demand = self.electricity_demand - (sc_factors * pv_prod_month)
-
 
         ## Calculate operational impact:
         self.fossil_heating_emissions = np.empty(12)

@@ -4,8 +4,6 @@ from building_physics import Building
 import numpy as np
 import pandas as pd
 import data_prep as dp
-import supply_system
-import emission_system
 from radiation import Location
 import pvlib
 import time
@@ -24,10 +22,13 @@ class Sim_Building(object):
                  ventilation_volume_flow,
                  increased_ventilation_volume_flow,
                  thermal_storage_capacity_per_floor_area,
+                 heat_pump_efficiency,
                  korrekturfaktor_luftungs_eff_f_v,
                  height_above_sea,
                  heating_system,
                  cooling_system,
+                 heat_emission_system,
+                 cold_emission_system,
                  dhw_heating_system,
                  heating_setpoint="SIA",
                  cooling_setpoint="SIA",
@@ -51,6 +52,9 @@ class Sim_Building(object):
         self.heating_system = heating_system
         self.cooling_system = cooling_system
         self.area_per_person = area_per_person
+
+        self.heat_emission_system = heat_emission_system
+        self.cold_emission_system = cold_emission_system
 
         self.longitude = None
         self.latitude = None
@@ -81,6 +85,7 @@ class Sim_Building(object):
         self.thermal_capacitance_per_floor_area = self.warmespeicherfahigkeit_pro_ebf
         self.t_set_heating = heating_setpoint
         self.t_set_cooling = cooling_setpoint
+        self.heat_pump_efficiency = heat_pump_efficiency
 
         self.dhw_supply_temperature = 60  # deg C fixed and hard coded
 
@@ -149,7 +154,14 @@ class Sim_Building(object):
         max_occupancy = self.energy_reference_area / personenflachen[int(self.gebaeudekategorie_sia)]
 
         heating_supply_system = dp.translate_system_sia_to_rc(self.heating_system)
+        # heating_supply_system.ss_heat_pump_efficiency = self.heat_pump_efficiency
+        # print(heating_supply_system.ss_heat_pump_efficiency)
         cooling_supply_system = dp.translate_system_sia_to_rc(self.cooling_system)
+        # cooling_supply_system.ss_heat_pump_efficiency = self.heat_pump_efficiency
+        # print(cooling_supply_system.ss_heat_pump_efficiency)
+        heat_emission_system = dp.translate_heat_emission_system(self.heat_emission_system)
+        cold_emission_system = dp.translate_heat_emission_system(self.cold_emission_system)
+
         self.annual_dhw_demand = dp.sia_annaul_dhw_demand(self.gebaeudekategorie_sia) * 1000  # Sia calculates in kWh, RC Simulator in Wh
 
         Office = Building(window_area=self.window_area,
@@ -174,9 +186,10 @@ class Sim_Building(object):
                           max_heating_energy_per_floor_area=self.max_heating_energy_per_floor_area,
                           heating_supply_system=heating_supply_system,
                           cooling_supply_system=cooling_supply_system,
-                          heating_emission_system=emission_system.FloorHeating,  # define this!
-                          cooling_emission_system=emission_system.AirConditioning,  # define this!
-                          dhw_supply_temperature=self.dhw_supply_temperature, )
+                          heating_emission_system=heat_emission_system,
+                          cooling_emission_system=cold_emission_system,
+                          dhw_supply_temperature=self.dhw_supply_temperature,
+                          heat_pump_efficiency = self.heat_pump_efficiency)
 
         ## Define occupancy
         occupancyProfile = pd.read_csv(occupancy_path)

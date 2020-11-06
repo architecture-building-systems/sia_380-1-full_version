@@ -7,6 +7,7 @@ import os
 import sys
 sys.path.insert(1, r"C:\Users\walkerl\Documents\code\RC_BuildingSimulator\rc_simulator")
 import supply_system
+import emission_system
 import time
 
 def sia_standardnutzungsdaten(category):
@@ -183,6 +184,55 @@ def translate_system_sia_to_rc(system):
                          'GSHP':supply_system.HeatPumpWater, 'ASHP':supply_system.HeatPumpAir,
                          'electric':supply_system.ElectricHeating, 'None':supply_system.DirectHeater}
     return system_dictionary[system]
+
+def translate_heat_emission_system(system):
+    """
+    Attention: supply temperatures are hardcoded in the RC simulator and need to agree with the ones chosen for
+    monthly calculations.
+    The system None has to be defined as not None for RC because the supply temperature flows into the heat demand
+    calculation. TODO: Check if this could be solved differently.
+    :param system: string with the heat emissions system
+    :return: rc emission system object
+    """
+    system_dictionary = {'air':emission_system.AirConditioning, 'radiator':emission_system.NewRadiators,
+                         'floor heating':emission_system.FloorHeating, 'ceiling heating':emission_system.FloorHeating,
+                         'None':emission_system.AirConditioning}
+
+    return system_dictionary[system]
+
+def lookup_supply_temperatures_according_to_rc(system):
+    """
+    Todo: Figure out how to deal with 'None'
+    :param system: string with the heat or cold emssion system
+    :return: tuple with (heating supply temperature, cooling supply temperature)
+    """
+    system_dictionary = {'air':(40., 6.), 'radiator':(50., 12.), 'floor heating':(40., 12.), 'ceiling heating':(40., 12.),
+                         'None':(40., 6.)} # The system 'air' is used for None
+
+    return system_dictionary[system]
+
+def calculate_monthly_ashp_cop(heat_supply_temp, cold_supply_temp, weather_data_sia, heat_pump_efficiency=0.55):
+
+    outside_temperature = weather_data_sia['temperature']
+    heating_delta_temp = heat_supply_temp-outside_temperature
+    heating_delta_temp[heating_delta_temp < 10.0] = 10.0
+    monthly_heating_cop = heat_pump_efficiency * (heat_supply_temp + 273.15) / heating_delta_temp
+    cooling_delta_temp = outside_temperature - cold_supply_temp
+    cooling_delta_temp[cooling_delta_temp < 10.0] = 10.0
+    monthly_cooling_cop = heat_pump_efficiency * (cold_supply_temp+273.15)/cooling_delta_temp
+
+    return monthly_heating_cop, monthly_cooling_cop
+
+def calculate_monthly_gshp_cop(heat_supply_temp, cold_supply_temp, ground_temperature=12, heat_pump_efficiency=0.55):
+    outside_temperature = ground_temperature
+    heating_delta_temp = max(10, heat_supply_temp-outside_temperature)
+
+    monthly_heating_cop = heat_pump_efficiency * (heat_supply_temp + 273.15) / heating_delta_temp
+
+    cooling_delta_temp = max(10, outside_temperature - cold_supply_temp)
+    monthly_cooling_cop = heat_pump_efficiency * (cold_supply_temp+273.15)/cooling_delta_temp
+
+    return monthly_heating_cop, monthly_cooling_cop
 
 def hourly_to_monthly(hourly_array):
     """
