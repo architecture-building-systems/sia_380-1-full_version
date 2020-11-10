@@ -103,7 +103,9 @@ for config_index, config in configurations.iterrows():
     Thes system choice is translated to a similar system available in the RC Simulator
     """
     heizsystem = config['heating system']  # zb"ASHP"
-    dhw_heizsystem = heizsystem ## This is currently a limitation of the RC Model. Automatically the same!
+    dhw_heizsystem = config['dhw heating system'] ## This is currently a limitation of the RC Model. Automatically the same!
+    if dhw_heizsystem == 'same':
+        dhw_heizsystem = heizsystem
     cooling_system = config['cooling system']
     heat_emission_system = config['heat emission system']
     cold_emission_system = config['cold emission system']
@@ -332,16 +334,21 @@ for config_index, config in configurations.iterrows():
     Choice: Oil, Natural Gas, Wood, Pellets, GSHP, ASHP, electric
     The system choice is translated to a similar system available in the RC Simulator
     """
+    heating_system = config['heating system']  # zb"ASHP"
+    dhw_heizsystem = config[
+        'dhw heating system']  ## This is currently a limitation of the RC Model. Automatically the same!
+    if dhw_heizsystem == 'same':
+        dhw_heizsystem = heizsystem
 
     embodied_systems_emissions_performance_matrix_stat[config_index] = \
         eec.calculate_system_related_embodied_emissions(ee_database_path=sys_ee_database_path,
                                                         gebaeudekategorie=scenarios.loc[0, 'building use type'],
                                                         energy_reference_area=config['energy reference area'],
-                                                        heizsystem=config['heating system'],
+                                                        heizsystem=heating_system,
                                                         heat_emission_system=config['heat emission system'],
                                                         heat_distribution=config['heat distribution'],
                                                         nominal_heating_power=nominal_heating_power_stat[config_index],
-                                                        dhw_heizsystem=None,
+                                                        dhw_heizsystem=dhw_heizsystem,
                                                         cooling_system = config['cooling system'],
                                                         cold_emission_system = config['cold emission system'],
                                                         nominal_cooling_power=nominal_cooling_power_stat[config_index],
@@ -357,7 +364,7 @@ for config_index, config in configurations.iterrows():
                                                         heat_emission_system=config['heat emission system'],
                                                         heat_distribution=config['heat distribution'],
                                                         nominal_heating_power=nominal_heating_power_dyn[config_index],
-                                                        dhw_heizsystem=None,
+                                                        dhw_heizsystem=dhw_heizsystem,
                                                         cooling_system=config['cooling system'],
                                                         cold_emission_system=config['cold emission system'],
                                                         nominal_cooling_power=nominal_cooling_power_dyn[config_index],
