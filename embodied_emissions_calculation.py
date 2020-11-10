@@ -75,7 +75,7 @@ def calculate_system_related_embodied_emissions(ee_database_path, gebaeudekatego
         if int(gebaeudekategorie) == 1:
             heat_distribution_embodied_per_area = database['Value']['hydronic heat distribution residential']
             heat_distribution_lifetime = database['lifetime']['hydronic heat distribution residential']
-        elif int(gebaeudekategorie) == 2:
+        elif int(gebaeudekategorie) == 3:
             heat_distribution_embodied_per_area = database['Value']['hydronic heat distribution office']
             heat_distribution_lifetime = database['lieftime']['hydronic heat distribution office']
         else:
