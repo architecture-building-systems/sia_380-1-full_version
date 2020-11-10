@@ -47,6 +47,14 @@ sc_ratio_monthly_path = os.path.join(main_path, results_folder, 'sc_ratio_monthl
 econ_dyn_path = os.path.join(main_path, results_folder, 'gross_electricity_consumption_hourly_calculation.xlsx')
 econ_stat_path = os.path.join(main_path, results_folder, 'gross_electricity_consumption_monthly_calculation.xlsx')
 
+heat_cop_stat_path = os.path.join(main_path, results_folder, 'weighted_heating_cop_monthly.xlsx')
+dhw_cop_stat_path = os.path.join(main_path, results_folder, 'weighted_dhw_cop_monthly.xlsx')
+cold_cop_stat_path = os.path.join(main_path, results_folder, 'weighted_cooling_cop_monthly.xlsx')
+heat_cop_dyn_path = os.path.join(main_path, results_folder, 'weighted_heating_cop_hourly.xlsx')
+dhw_cop_dyn_path = os.path.join(main_path, results_folder, 'weighted_dhw_cop_hourly.xlsx')
+cold_cop_dyn_path = os.path.join(main_path, results_folder, 'weighted_cooling_cop_hourly.xlsx')
+
+
 scenarios = pd.read_excel(scenarios_path)
 configurations = pd.read_excel(configurations_path, index_col="Configuration", skiprows=[1])
 translations = pd.read_excel(translation_path)
@@ -64,6 +72,12 @@ nominal_cooling_power_stat = np.empty(len(configurations.index))
 nominal_heating_power_dyn = np.empty(len(configurations.index))
 nominal_cooling_power_dyn = np.empty(len(configurations.index))
 
+annual_heating_cop_stat = np.empty((len(configurations.index), len(scenarios.index)))
+annual_dhw_cop_stat = np.empty((len(configurations.index), len(scenarios.index)))
+annual_cooling_cop_stat = np.empty((len(configurations.index), len(scenarios.index)))
+annual_heating_cop_dyn = np.empty((len(configurations.index), len(scenarios.index)))
+annual_dhw_cop_dyn = np.empty((len(configurations.index), len(scenarios.index)))
+annual_cooling_cop_dyn = np.empty((len(configurations.index), len(scenarios.index)))
 
 annual_pv_yield = np.empty((len(configurations.index), len(scenarios.index)))
 
@@ -277,6 +291,31 @@ for config_index, config in configurations.iterrows():
 
         annual_pv_yield[config_index, scenario_index] = pv_yield_hourly.sum()
 
+
+        # COPs for heating systems without a HP are =1
+        if heizsystem == "ASHP" or heizsystem == "GSHP":
+            annual_heating_cop_stat[config_index, scenario_index] = Gebaeude_static.heizwarmebedarf.sum()/ Gebaeude_static.heating_elec.sum()
+            annual_heating_cop_dyn[config_index, scenario_index] = Gebaeude_dyn.heating_demand.sum() / Gebaeude_dyn.heating_electricity_demand.sum()
+        else:
+            annual_heating_cop_stat[config_index, scenario_index] = 1.0
+            annual_heating_cop_dyn[config_index, scenario_index] = 1.0
+
+        if dhw_heizsystem == "ASHP" or dhw_heizsystem == "GSHP":
+            annual_dhw_cop_stat[config_index, scenario_index] = Gebaeude_static.dhw_demand.sum() / Gebaeude_static.dhw_elec.sum()
+            annual_dhw_cop_dyn[config_index, scenario_index] = Gebaeude_dyn.dhw_demand.sum() / Gebaeude_dyn.dhw_electricity_demand.sum()
+        else:
+            annual_dhw_cop_stat[config_index, scenario_index] = 1.0
+            annual_dhw_cop_dyn[config_index, scenario_index] = 1.0
+
+        if cooling_system == "ASHP" or dhw_heizsystem == "GSHP":
+            annual_cooling_cop_stat[config_index, scenario_index] = Gebaeude_static.monthly_cooling_demand.sum() / Gebaeude_static.cooling_elec.sum()
+            annual_cooling_cop_dyn[config_index, scenario_index] = Gebaeude_dyn.cooling_demand.sum()*-1. / Gebaeude_dyn.cooling_electricity_demand.sum()
+        else:
+            annual_cooling_cop_stat[config_index, scenario_index] = 1.0
+            annual_cooling_cop_dyn[config_index, scenario_index] = 1.0
+
+        print(annual_cooling_cop_dyn, annual_cooling_cop_stat)
+
         # This means that Scenario 0 needs to be the reference (design) scenario.
         if scenario_index == 0:
             Gebaeude_static.run_heating_sizing_384_201(weatherfile_path)
@@ -329,6 +368,16 @@ pd.DataFrame(cooling_demand_stat, index=configurations.index, columns=scenarios.
 
 # store annual pv yield
 pd.DataFrame(annual_pv_yield, index=configurations.index, columns=scenarios.index).to_excel(pv_prod_path)
+
+# store calculated cops
+pd.DataFrame(annual_heating_cop_stat, index=configurations.index, columns=scenarios.index).to_excel(heat_cop_stat_path)
+pd.DataFrame(annual_dhw_cop_stat, index=configurations.index, columns=scenarios.index).to_excel(dhw_cop_stat_path)
+pd.DataFrame(annual_cooling_cop_stat, index=configurations.index, columns=scenarios.index).to_excel(cold_cop_stat_path)
+pd.DataFrame(annual_heating_cop_dyn, index=configurations.index, columns=scenarios.index).to_excel(heat_cop_dyn_path)
+pd.DataFrame(annual_dhw_cop_dyn, index=configurations.index, columns=scenarios.index).to_excel(dhw_cop_dyn_path)
+pd.DataFrame(annual_cooling_cop_dyn, index=configurations.index, columns=scenarios.index).to_excel(cold_cop_dyn_path)
+
+
 
 """
 Here the dynamic simulation is completed. 

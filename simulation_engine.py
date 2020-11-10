@@ -602,7 +602,7 @@ class Building(object):
             self.heating_elec = self.heizwarmebedarf
 
         else:
-            self.heating_elec = 0.0
+            self.heating_elec = np.repeat(0.0, 12)
 
         # same for dhw
 
