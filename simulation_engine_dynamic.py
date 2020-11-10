@@ -99,6 +99,7 @@ class Sim_Building(object):
 
         if heating_system == 'None' or None:
             self.max_heating_energy_per_floor_area = 0.0
+            self.heating_system = dhw_heating_system
         else:
             self.max_heating_energy_per_floor_area = np.inf
 
@@ -154,15 +155,15 @@ class Sim_Building(object):
         max_occupancy = self.energy_reference_area / personenflachen[int(self.gebaeudekategorie_sia)]
 
         heating_supply_system = dp.translate_system_sia_to_rc(self.heating_system)
-        # heating_supply_system.ss_heat_pump_efficiency = self.heat_pump_efficiency
-        # print(heating_supply_system.ss_heat_pump_efficiency)
         cooling_supply_system = dp.translate_system_sia_to_rc(self.cooling_system)
-        # cooling_supply_system.ss_heat_pump_efficiency = self.heat_pump_efficiency
-        # print(cooling_supply_system.ss_heat_pump_efficiency)
         heat_emission_system = dp.translate_heat_emission_system(self.heat_emission_system)
         cold_emission_system = dp.translate_heat_emission_system(self.cold_emission_system)
 
         self.annual_dhw_demand = dp.sia_annaul_dhw_demand(self.gebaeudekategorie_sia) * 1000  # Sia calculates in kWh, RC Simulator in Wh
+        if self.dhw_heating_system == 'None' or None:
+            self.annual_dhw_demand = 0.0
+        else:
+            pass
 
         Office = Building(window_area=self.window_area,
                           external_envelope_area=self.external_envelope_area,  # opaque and glazed surfaces

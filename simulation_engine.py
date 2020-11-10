@@ -557,7 +557,11 @@ class Building(object):
         """
         ## Werte aus Datenbanken auslesen:
         self.dhw_demand = np.repeat(dp.sia_annaul_dhw_demand(self.gebaeudekategorie_sia) / 12.0, 12)
-        # monthly kWh/energy_reference area --> this way is simplified and needs to be done according to 384/2
+
+        if self.dhw_heating_system == 'None' or None:
+            self.dhw_demand = np.repeat(0.0,12)
+        else:
+            pass
 
 
     def run_SIA_380_emissions(self, emission_factor_source, emission_factor_type, weather_data_sia):
@@ -585,7 +589,6 @@ class Building(object):
                                                                                self.cooling_supply_temperature,
                                                                                12.0, self.heat_pump_efficiency)
             self.heating_elec = self.heizwarmebedarf/gshp_cop_heating
-            self.dhw_elec = self.dhw_demand/gshp_cop_heating
 
         elif self.heating_system == "ASHP":
             ashp_cop_heating, ashp_cop_cooling = dp.calculate_monthly_ashp_cop(self.heating_supply_temperature,
@@ -593,14 +596,30 @@ class Building(object):
                                                                                weather_data_sia,
                                                                                self.heat_pump_efficiency)
             self.heating_elec = self.heizwarmebedarf/ashp_cop_heating
-            self.dhw_elec = self.dhw_demand / ashp_cop_heating
 
         elif self.heating_system == "electric":
             self.heating_elec = self.heizwarmebedarf
-            self.dhw_elec = self.dhw_demand
 
         else:
             self.heating_elec = 0.0
+
+        # same for dhw
+
+        if self.dhw_heating_system == "GSHP":
+            # temp in hardcode should be ok
+            gshp_cop_dhw, gshp_cop_cooling = dp.calculate_monthly_gshp_cop(60.0, self.cooling_supply_temperature,
+                                                                               12.0, self.heat_pump_efficiency)
+            self.dhw_elec = self.dhw_demand/gshp_cop_dhw
+
+        elif self.dhw_heating_system == "ASHP":
+            ashp_cop_dhw, ashp_cop_cooling = dp.calculate_monthly_ashp_cop(60.0, self.cooling_supply_temperature,
+                                                                           weather_data_sia, self.heat_pump_efficiency)
+            self.dhw_elec = self.dhw_demand / ashp_cop_dhw
+
+        elif self.dhw_heating_system == "electric":
+            self.dhw_elec = self.dhw_demand
+
+        else:
             self.dhw_elec = 0.0
 
         # same for cooling
