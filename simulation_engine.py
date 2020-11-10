@@ -64,6 +64,7 @@ class Building(object):
         self.nominal_heating_power = None
         self.nominal_cooling_power = None
         self.pv_peak_power = None  # in kW
+        self.annual_self_consumption = None
 
 
     def run_SIA_380_1(self, weather_data_sia):
@@ -652,6 +653,8 @@ class Building(object):
                                                   self.gebaeudekategorie_sia)/100
 
         self.net_electricity_demand = self.electricity_demand - (sc_factors * pv_prod_month)
+
+        self.annual_self_consumption = (self.electricity_demand-self.net_electricity_demand).sum()/pv_prod_month.sum()
 
         ## Calculate operational impact:
         self.fossil_heating_emissions = np.empty(12)

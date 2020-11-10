@@ -15,7 +15,7 @@ the outputs.
 """
 
 main_path = os.path.abspath(os.path.dirname(__file__))
-
+results_folder = os.path.join(main_path, 'data', 'results')
 # Filepaths for input files
 scenarios_path = os.path.join(main_path, 'data', 'scenarios.xlsx')
 configurations_path = os.path.join(main_path, 'data', 'configurations.xlsx')
@@ -26,19 +26,26 @@ sys_ee_database_path = os.path.join(main_path, 'data', 'embodied_emissions_syste
 env_ee_database_path = os.path.join(main_path, 'data', 'embodied_emissions_envelope.xlsx')
 
 # Filepaths for result files:
-performance_matrix_path_hourly = os.path.join(main_path, 'data', 'operational_emissions_hourly.xlsx')
-performance_matrix_path_monthly = os.path.join(main_path, 'data', 'operational_emissions_monthly.xlsx')
-embodied_systems_stat_performance_path = os.path.join(main_path, 'data', 'embodied_systems_monthly.xlsx')
-embodied_systems_dyn_performance_path = os.path.join(main_path, 'data', 'embodied_systems_hourly.xlsx')
-embodied_envelope_performance_path = os.path.join(main_path, 'data', 'embodied_envelope.xlsx')
+performance_matrix_path_hourly = os.path.join(main_path, results_folder, 'operational_emissions_hourly.xlsx')
+performance_matrix_path_monthly = os.path.join(main_path, results_folder, 'operational_emissions_monthly.xlsx')
+embodied_systems_stat_performance_path = os.path.join(main_path, results_folder, 'embodied_systems_monthly.xlsx')
+embodied_systems_dyn_performance_path = os.path.join(main_path, results_folder, 'embodied_systems_hourly.xlsx')
+embodied_envelope_performance_path = os.path.join(main_path, results_folder, 'embodied_envelope.xlsx')
 
-dyn_heat_path = os.path.join(main_path, 'data', 'heat_demand_hourly.xlsx')
-dyn_cold_path = os.path.join(main_path, 'data', 'cooling_demand_hourly.xlsx')
-stat_heat_path = os.path.join(main_path, 'data', 'heat_demand_monthly.xlsx')
-stat_cold_path = os.path.join(main_path, 'data', 'cooling_demand_monthly.xlsx')
+dyn_heat_path = os.path.join(main_path, results_folder, 'heat_demand_hourly.xlsx')
+dyn_cold_path = os.path.join(main_path, results_folder, 'cooling_demand_hourly.xlsx')
+dyn_dhw_path = os.path.join(main_path, results_folder, 'dhw_demand_hourly.xlsx')
+stat_heat_path = os.path.join(main_path, results_folder, 'heat_demand_monthly.xlsx')
+stat_cold_path = os.path.join(main_path, results_folder, 'cooling_demand_monthly.xlsx')
+stat_dhw_path = os.path.join(main_path, results_folder, 'dhw_demand_monthly.xlsx')
 
-sc_ratio_path = os.path.join(main_path, 'data', 'sc_ratio_hourly.xlsx')
-econ_dyn_path = os.path.join(main_path, 'data', 'gross_electricity_consumption.xlsx')
+pv_prod_path = os.path.join(main_path, results_folder, 'pv_yield.xlsx')
+
+sc_ratio_hourly_path = os.path.join(main_path, results_folder, 'sc_ratio_hourly.xlsx')
+sc_ratio_monthly_path = os.path.join(main_path, results_folder, 'sc_ratio_monthly.xlsx')
+
+econ_dyn_path = os.path.join(main_path, results_folder, 'gross_electricity_consumption_hourly_calculation.xlsx')
+econ_stat_path = os.path.join(main_path, results_folder, 'gross_electricity_consumption_monthly_calculation.xlsx')
 
 scenarios = pd.read_excel(scenarios_path)
 configurations = pd.read_excel(configurations_path, index_col="Configuration", skiprows=[1])
@@ -47,6 +54,8 @@ emission_performance_matrix_dyn = np.empty((len(configurations.index), len(scena
 emission_performance_matrix_stat = np.empty((len(configurations.index), len(scenarios.index)))
 heating_demand_dyn = np.empty((len(configurations.index), len(scenarios.index)))
 heating_demand_stat = np.empty((len(configurations.index), len(scenarios.index)))
+dhw_demand_dyn = np.empty((len(configurations.index), len(scenarios.index)))
+dhw_demand_stat = np.empty((len(configurations.index), len(scenarios.index)))
 cooling_demand_dyn = np.empty((len(configurations.index), len(scenarios.index)))
 cooling_demand_stat = np.empty((len(configurations.index), len(scenarios.index)))
 
@@ -55,8 +64,14 @@ nominal_cooling_power_stat = np.empty(len(configurations.index))
 nominal_heating_power_dyn = np.empty(len(configurations.index))
 nominal_cooling_power_dyn = np.empty(len(configurations.index))
 
+
+annual_pv_yield = np.empty((len(configurations.index), len(scenarios.index)))
+
 annual_self_consumption_ratios_dyn = np.empty((len(configurations.index), len(scenarios.index)))
+annual_self_consumption_ratios_stat = np.empty((len(configurations.index), len(scenarios.index)))
+
 annual_electricity_consumption_dyn = np.empty((len(configurations.index), len(scenarios.index)))
+annual_electricity_consumption_stat = np.empty((len(configurations.index), len(scenarios.index)))
 
 # LCA angaben
 electricity_factor_type = "annual"  # Can be "annual", "monthly", "hourly" (Hourly will only work for hourly model and
@@ -244,14 +259,23 @@ for config_index, config in configurations.iterrows():
 
         heating_demand_dyn[config_index, scenario_index] = Gebaeude_dyn.heating_demand.sum()/1000.0/energiebezugsflache
         cooling_demand_dyn[config_index, scenario_index] = Gebaeude_dyn.cooling_demand.sum()/1000.0/energiebezugsflache
-
+        dhw_demand_dyn[config_index, scenario_index] = Gebaeude_dyn.dhw_demand.sum()/1000.0/energiebezugsflache
 
         emission_performance_matrix_stat[config_index, scenario_index] = Gebaeude_static.operational_emissions.sum()
         heating_demand_stat[config_index, scenario_index] = Gebaeude_static.heizwarmebedarf.sum()
         cooling_demand_stat[config_index, scenario_index] = Gebaeude_static.monthly_cooling_demand.sum()
+        dhw_demand_stat[config_index, scenario_index] = Gebaeude_static.dhw_demand.sum()
 
         annual_self_consumption_ratios_dyn[config_index, scenario_index] = dp.calculate_self_consumption(Gebaeude_dyn.electricity_demand, pv_yield_hourly)
-        annual_electricity_consumption_dyn[config_index, scenario_index] = Gebaeude_dyn.electricity_demand.sum()
+        annual_self_consumption_ratios_stat[config_index, scenario_index] = Gebaeude_static.annual_self_consumption
+
+        # This is the consumption before PV!! factor /1000 to transform to kWh [kWh]
+        annual_electricity_consumption_dyn[config_index, scenario_index] = Gebaeude_dyn.electricity_demand.sum()/1000.0
+        # This is the consumptio before PV!! The multiplication is necessary because the montly model does calculations
+        # with normalised values [kWh]
+        annual_electricity_consumption_stat[config_index, scenario_index] = Gebaeude_static.electricity_demand.sum()*energiebezugsflache
+
+        annual_pv_yield[config_index, scenario_index] = pv_yield_hourly.sum()
 
         # This means that Scenario 0 needs to be the reference (design) scenario.
         if scenario_index == 0:
@@ -276,19 +300,35 @@ for config_index, config in configurations.iterrows():
         end = time.time()
         print(end-start)
 
+# Store operational emissions
 pd.DataFrame(emission_performance_matrix_dyn, index=configurations.index, columns=scenarios.index).to_excel(
          performance_matrix_path_hourly)
 pd.DataFrame(emission_performance_matrix_stat, index=configurations.index, columns=scenarios.index).to_excel(
          performance_matrix_path_monthly)
 
-pd.DataFrame(annual_self_consumption_ratios_dyn, index=configurations.index, columns=scenarios.index).to_excel(sc_ratio_path)
+# store self consumption ratio
+pd.DataFrame(annual_self_consumption_ratios_dyn, index=configurations.index, columns=scenarios.index).to_excel(sc_ratio_hourly_path)
+pd.DataFrame(annual_self_consumption_ratios_stat, index=configurations.index, columns=scenarios.index).to_excel(sc_ratio_monthly_path)
+
+
+# store total electricity demand before PV
 pd.DataFrame(annual_electricity_consumption_dyn, index=configurations.index, columns=scenarios.index).to_excel(econ_dyn_path)
+pd.DataFrame(annual_electricity_consumption_stat, index=configurations.index, columns=scenarios.index).to_excel(econ_stat_path)
 
+# store room heat demand
 pd.DataFrame(heating_demand_dyn, index=configurations.index, columns=scenarios.index).to_excel(dyn_heat_path)
-pd.DataFrame(cooling_demand_dyn, index=configurations.index, columns=scenarios.index).to_excel(dyn_cold_path)
-
 pd.DataFrame(heating_demand_stat, index=configurations.index, columns=scenarios.index).to_excel(stat_heat_path)
+
+# store dhw heat demand
+pd.DataFrame(dhw_demand_dyn, index=configurations.index, columns=scenarios.index).to_excel(dyn_dhw_path)
+pd.DataFrame(dhw_demand_stat, index=configurations.index, columns=scenarios.index).to_excel(stat_dhw_path)
+
+#store room cooling demand
+pd.DataFrame(cooling_demand_dyn, index=configurations.index, columns=scenarios.index).to_excel(dyn_cold_path)
 pd.DataFrame(cooling_demand_stat, index=configurations.index, columns=scenarios.index).to_excel(stat_cold_path)
+
+# store annual pv yield
+pd.DataFrame(annual_pv_yield, index=configurations.index, columns=scenarios.index).to_excel(pv_prod_path)
 
 """
 Here the dynamic simulation is completed. 
