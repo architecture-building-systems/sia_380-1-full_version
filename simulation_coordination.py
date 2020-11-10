@@ -43,6 +43,8 @@ pv_prod_path = os.path.join(main_path, results_folder, 'pv_yield.xlsx')
 
 sc_ratio_hourly_path = os.path.join(main_path, results_folder, 'sc_ratio_hourly.xlsx')
 sc_ratio_monthly_path = os.path.join(main_path, results_folder, 'sc_ratio_monthly.xlsx')
+el_autarky_dyn_path = os.path.join(main_path, results_folder, 'el_autarky_hourly.xlsx')
+el_autarky_stat_path = os.path.join(main_path, results_folder, 'el_autarky_monthly.xlsx')
 
 econ_dyn_path = os.path.join(main_path, results_folder, 'gross_electricity_consumption_hourly_calculation.xlsx')
 econ_stat_path = os.path.join(main_path, results_folder, 'gross_electricity_consumption_monthly_calculation.xlsx')
@@ -83,6 +85,9 @@ annual_pv_yield = np.empty((len(configurations.index), len(scenarios.index)))
 
 annual_self_consumption_ratios_dyn = np.empty((len(configurations.index), len(scenarios.index)))
 annual_self_consumption_ratios_stat = np.empty((len(configurations.index), len(scenarios.index)))
+
+electrical_annual_autarky_dyn= np.empty((len(configurations.index), len(scenarios.index)))
+electrical_annual_autarky_stat = np.empty((len(configurations.index), len(scenarios.index)))
 
 annual_electricity_consumption_dyn = np.empty((len(configurations.index), len(scenarios.index)))
 annual_electricity_consumption_stat = np.empty((len(configurations.index), len(scenarios.index)))
@@ -276,6 +281,7 @@ for config_index, config in configurations.iterrows():
         dhw_demand_dyn[config_index, scenario_index] = Gebaeude_dyn.dhw_demand.sum()/1000.0/energiebezugsflache
 
         emission_performance_matrix_stat[config_index, scenario_index] = Gebaeude_static.operational_emissions.sum()
+
         heating_demand_stat[config_index, scenario_index] = Gebaeude_static.heizwarmebedarf.sum()
         cooling_demand_stat[config_index, scenario_index] = Gebaeude_static.monthly_cooling_demand.sum()
         dhw_demand_stat[config_index, scenario_index] = Gebaeude_static.dhw_demand.sum()
@@ -283,14 +289,20 @@ for config_index, config in configurations.iterrows():
         annual_self_consumption_ratios_dyn[config_index, scenario_index] = dp.calculate_self_consumption(Gebaeude_dyn.electricity_demand, pv_yield_hourly)
         annual_self_consumption_ratios_stat[config_index, scenario_index] = Gebaeude_static.annual_self_consumption
 
+        annual_pv_yield[config_index, scenario_index] = pv_yield_hourly.sum()
+
         # This is the consumption before PV!! factor /1000 to transform to kWh [kWh]
         annual_electricity_consumption_dyn[config_index, scenario_index] = Gebaeude_dyn.electricity_demand.sum()/1000.0
         # This is the consumptio before PV!! The multiplication is necessary because the montly model does calculations
         # with normalised values [kWh]
         annual_electricity_consumption_stat[config_index, scenario_index] = Gebaeude_static.electricity_demand.sum()*energiebezugsflache
 
-        annual_pv_yield[config_index, scenario_index] = pv_yield_hourly.sum()
-
+        electrical_annual_autarky_stat[config_index, scenario_index] = (Gebaeude_static.electricity_demand.sum()-
+                                           Gebaeude_static.net_electricity_demand.sum())/\
+                                          Gebaeude_static.electricity_demand.sum()
+        electrical_annual_autarky_dyn[config_index, scenario_index] = (Gebaeude_dyn.electricity_demand.sum() -
+                                           Gebaeude_dyn.net_electricity_demand.sum()) / \
+                                          Gebaeude_dyn.electricity_demand.sum()
 
         # COPs for heating systems without a HP are =1
         if heizsystem == "ASHP" or heizsystem == "GSHP":
@@ -313,8 +325,6 @@ for config_index, config in configurations.iterrows():
         else:
             annual_cooling_cop_stat[config_index, scenario_index] = 1.0
             annual_cooling_cop_dyn[config_index, scenario_index] = 1.0
-
-        print(annual_cooling_cop_dyn, annual_cooling_cop_stat)
 
         # This means that Scenario 0 needs to be the reference (design) scenario.
         if scenario_index == 0:
@@ -349,6 +359,10 @@ pd.DataFrame(emission_performance_matrix_stat, index=configurations.index, colum
 pd.DataFrame(annual_self_consumption_ratios_dyn, index=configurations.index, columns=scenarios.index).to_excel(sc_ratio_hourly_path)
 pd.DataFrame(annual_self_consumption_ratios_stat, index=configurations.index, columns=scenarios.index).to_excel(sc_ratio_monthly_path)
 
+# store electrical_autarky
+
+pd.DataFrame(electrical_annual_autarky_stat, index=configurations.index, columns=scenarios.index).to_excel(el_autarky_stat_path)
+pd.DataFrame(electrical_annual_autarky_dyn, index=configurations.index, columns=scenarios.index).to_excel(el_autarky_dyn_path)
 
 # store total electricity demand before PV
 pd.DataFrame(annual_electricity_consumption_dyn, index=configurations.index, columns=scenarios.index).to_excel(econ_dyn_path)
@@ -427,7 +441,7 @@ for config_index, config in configurations.iterrows():
     dhw_heizsystem = config[
         'dhw heating system']  ## This is currently a limitation of the RC Model. Automatically the same!
     if dhw_heizsystem == 'same':
-        dhw_heizsystem = heizsystem
+        dhw_heizsystem = heating_system
 
     embodied_systems_emissions_performance_matrix_stat[config_index] = \
         eec.calculate_system_related_embodied_emissions(ee_database_path=sys_ee_database_path,
