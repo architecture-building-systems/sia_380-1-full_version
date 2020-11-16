@@ -621,7 +621,7 @@ def calculate_self_consumption(hourly_demand, hourly_production):
     """
 
     if hourly_production.sum() == 0:
-        self_consumption_ratio = 1
+        self_consumption_ratio = 0
     else:
         self_consumption = np.empty(len(hourly_demand))
         for hour in range(len(hourly_demand)):

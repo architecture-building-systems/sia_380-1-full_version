@@ -655,7 +655,10 @@ class Building(object):
         # Achtung, hier kann net demand auch kleiner 0 sein;  pv_prod_month ist ebenfalls normalisiert bezüglich EBF
         self.net_electricity_demand = self.electricity_demand - (sc_factors * pv_prod_month)
 
-        self.annual_self_consumption = (self.electricity_demand-self.net_electricity_demand).sum()/pv_prod_month.sum()
+        if pv_prod_month.sum() > 0:
+            self.annual_self_consumption = (self.electricity_demand-self.net_electricity_demand).sum()/pv_prod_month.sum()
+        else:
+            self.annual_self_consumption = 0
 
         ## Calculate operational impact:
         self.fossil_heating_emissions = np.empty(12)
