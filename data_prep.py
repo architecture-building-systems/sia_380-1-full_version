@@ -207,7 +207,7 @@ def lookup_supply_temperatures_according_to_rc(system):
     :return: tuple with (heating supply temperature, cooling supply temperature)
     """
     system_dictionary = {'air':(40., 6.), 'radiator':(50., 12.), 'floor heating':(40., 12.), 'ceiling heating':(40., 12.),
-                         'None':(40., 6.)} # The system 'air' is used for None
+                         'None':(40., 6.), 'electric':(50, None)} # The system 'air' is used for None
 
     return system_dictionary[system]
 
