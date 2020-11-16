@@ -593,7 +593,7 @@ def estimate_self_consumption(electricity_demand, pv_peak_power, building_catego
         monthly_stoc = (pv_peak_power / 12) / (electricity_demand / 1000)
         monthly_sc = (0.12 + 0.92 * np.exp(-1.64*monthly_stoc))*100.0
 
-    elif int(building_category) == 2:
+    elif int(building_category) == 3:
         monthly_stoc = (pv_peak_power / 12) / (electricity_demand / 1000)
         monthly_sc = (0.17 + 0.68 * np.exp(-0.79*monthly_stoc))*100.0
 
