@@ -292,10 +292,10 @@ for config_index, config in configurations.iterrows():
         annual_pv_yield[config_index, scenario_index] = pv_yield_hourly.sum()
 
         # This is the consumption before PV!! factor /1000 to transform to kWh [kWh]
-        annual_electricity_consumption_dyn[config_index, scenario_index] = Gebaeude_dyn.electricity_demand.sum()/1000.0
+        annual_electricity_consumption_dyn[config_index, scenario_index] = Gebaeude_dyn.electricity_demand.sum()/1000.0 /energiebezugsflache
         # This is the consumptio before PV!! The multiplication is necessary because the montly model does calculations
         # with normalised values [kWh]
-        annual_electricity_consumption_stat[config_index, scenario_index] = Gebaeude_static.electricity_demand.sum()*energiebezugsflache
+        annual_electricity_consumption_stat[config_index, scenario_index] = Gebaeude_static.electricity_demand.sum()
 
         electrical_annual_autarky_stat[config_index, scenario_index] = (Gebaeude_static.electricity_demand.sum()-
                                            Gebaeude_static.net_electricity_demand.sum())/\
