@@ -229,6 +229,7 @@ def calculate_monthly_gshp_cop(heat_supply_temp, cold_supply_temp, ground_temper
 
     monthly_heating_cop = heat_pump_efficiency * (heat_supply_temp + 273.15) / heating_delta_temp
 
+
     cooling_delta_temp = max(10, outside_temperature - cold_supply_temp)
     monthly_cooling_cop = heat_pump_efficiency * (cold_supply_temp+273.15)/cooling_delta_temp
 
