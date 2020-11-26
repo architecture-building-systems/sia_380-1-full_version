@@ -1,5 +1,5 @@
 import sys
-sys.path.insert(1, r"C:\Users\walkerl\Documents\code\RC_BuildingSimulator\rc_simulator")
+sys.path.insert(1, r"C:\Users\LW_Simulation\Documents\RC_BuildingSimulator\rc_simulator")
 from building_physics import Building
 import numpy as np
 import pandas as pd
