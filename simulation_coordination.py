@@ -294,6 +294,7 @@ for config_index, config in configurations.iterrows():
         dhw_demand_dyn[config_index, scenario_index] = Gebaeude_dyn.dhw_demand.sum()/1000.0/energiebezugsflache
 
         emission_performance_matrix_stat[config_index, scenario_index] = Gebaeude_static.operational_emissions.sum()
+        emission_performance_matrix_stat_UBP[config_index, scenario_index] = Gebaeude_static.operational_emissions_UBP.sum()
 
         heating_demand_stat[config_index, scenario_index] = Gebaeude_static.heizwarmebedarf.sum()
         cooling_demand_stat[config_index, scenario_index] = Gebaeude_static.monthly_cooling_demand.sum()
@@ -462,8 +463,7 @@ for config_index, config in configurations.iterrows():
     if dhw_heizsystem == 'same':
         dhw_heizsystem = heating_system
 
-    embodied_systems_emissions_performance_matrix_stat[config_index] = \
-        eec.calculate_system_related_embodied_emissions(ee_database_path=sys_ee_database_path,
+    embodied_impact_stat = eec.calculate_system_related_embodied_emissions(ee_database_path=sys_ee_database_path,
                                                         gebaeudekategorie=scenarios.loc[0, 'building use type'],
                                                         energy_reference_area=config['energy reference area'],
                                                         heizsystem=heating_system,
@@ -477,6 +477,9 @@ for config_index, config in configurations.iterrows():
                                                         pv_area=np.array(str(config['PV area']).split(" "), dtype=float).sum(),
                                                         pv_type=config['PV type'],
                                                         pv_efficiency=config['PV efficiency'])/energiebezugsflache
+
+    embodied_systems_emissions_performance_matrix_stat[config_index] = embodied_impact_stat[0]
+    embodied_systems_emissions_performance_matrix_stat_UBP[config_index] = embodied_impact_stat[1]
 
     embodied_impact_dyn =  eec.calculate_system_related_embodied_emissions(ee_database_path=sys_ee_database_path,
                                                         gebaeudekategorie=scenarios.loc[0, 'building use type'],
@@ -516,18 +519,27 @@ for config_index, config in configurations.iterrows():
                                          ceiling_type=config['ceiling type'])/energiebezugsflache
 
 
-    embodied_envelope_emissions_performance_matrix[config_index] = annualized_embodied_emsissions_envelope
+    embodied_envelope_emissions_performance_matrix[config_index] = annualized_embodied_emsissions_envelope[0]
+    embodied_envelope_emissions_performance_matrix_UBP[config_index] = annualized_embodied_emsissions_envelope[1]
 
 
 """
 Last but not least, all the created dataframes from the embodied part are stored in the file locations given in the 
 very beginning of the code.
 """
-
+# GWP emissions
 pd.DataFrame(embodied_systems_emissions_performance_matrix_stat, index=configurations.index).to_excel(
     embodied_systems_stat_performance_path)
 pd.DataFrame(embodied_systems_emissions_performance_matrix_dyn, index=configurations.index).to_excel(
     embodied_systems_dyn_performance_path)
 pd.DataFrame(embodied_envelope_emissions_performance_matrix, index=configurations.index).to_excel(
     embodied_envelope_performance_path)
+
+# UBP emissions
+pd.DataFrame(embodied_systems_emissions_performance_matrix_stat_UBP, index=configurations.index).to_excel(
+    embodied_systems_stat_performance_path_UBP)
+pd.DataFrame(embodied_systems_emissions_performance_matrix_dyn_UBP, index=configurations.index).to_excel(
+    embodied_systems_dyn_performance_path_UBP)
+pd.DataFrame(embodied_envelope_emissions_performance_matrix_UBP, index=configurations.index).to_excel(
+    embodied_envelope_performance_path_UBP)
 

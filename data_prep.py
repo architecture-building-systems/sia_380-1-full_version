@@ -124,7 +124,7 @@ def build_yearly_emission_factors(source, type="annual", export_assumption="c"):
 
     return hourly_emission_factor
 
-def build_yearly_emission_factors_UBP(source_UBP):
+def build_yearly_emission_factors_UBP(source_UBP, type="annual", export_assumption="c"):
     """
     :param source_UBP: string, currently the choice is only KBOB
     :return: numpy array of length 8760 with the dimension kgCO2eq/kWh
@@ -133,6 +133,23 @@ def build_yearly_emission_factors_UBP(source_UBP):
     if source_UBP =="KBOB":
         #KBOB has a constant factor, the type therefore does not matter
         hourly_emission_factor_UBP = np.repeat(347000, 8760) / 1000.0  # UBP/kWh KBOB: 2009/1:2016 Verbrauchermix-CH
+
+    elif source == "empa_ac":
+
+
+        choice = "TEF" + export_assumption
+        emissions_df = pd.read_excel(r"C:\Users\walkerl\Documents\code\proof_of_concept\data\emission_factors_AC.xlsx",
+                                 index="Time")
+        emissions_df = emissions_df.set_index('Time')
+
+        if type == "annual":
+            hourly_emission_factor_UBP = np.repeat(emissions_df.resample('Y').mean()[choice].to_numpy(),
+                                           8760) / 1000.0  # UBP/kWh
+        if type=="monthly":
+            hourly_emission_factor_UBP = np.repeat(emissions_df.resample('M').mean()[choice].to_numpy(),
+                                           8760) / 1000.0  # UBP/kWh
+        if type=="hourly":
+            hourly_emission_factor_UBP = emissions_df[choice].to_numpy() / 1000.0
 
     else:
         quit("Emission factors for electricity could not be built. Simulation stopped")
