@@ -303,7 +303,7 @@ class Sim_Building(object):
 
         ### Too many ifs. TODO: simplify by adding into a single function or table.
         grid_emission_factors = dp.build_yearly_emission_factors(source=emission_factor_source, export_assumption=grid_export_assumption)
-        grid_emission_factors_UBP = dp.build_yearly_emission_factors_UBP(source=emission_factor_source_UBP,
+        grid_emission_factors_UBP = dp.build_yearly_emission_factors_UBP(source_UBP=emission_factor_source_UBP,
                                                                  export_assumption=grid_export_assumption)
 
         if self.heating_fossil_demand.any()>0:
