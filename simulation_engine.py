@@ -565,7 +565,7 @@ class Building(object):
             pass
 
 
-    def run_SIA_380_emissions(self, emission_factor_source, emission_factor_type, weather_data_sia):
+    def run_SIA_380_emissions(self, emission_factor_source, emission_factor_source_UBP, emission_factor_type, weather_data_sia):
         """
         Beachte: Die SIA Norm kennt keinen flexiblen Strommix. Soll das Stromprodukt ausgewählt werden können,
         müssten hiere noch weitere Anpassungen durchgeführt werden.
@@ -662,32 +662,42 @@ class Building(object):
 
         ## Calculate operational impact:
         self.fossil_heating_emissions = np.empty(12)
+        self.fossil_heating_emissions_UBP = np.empty(12)
         self.fossil_dhw_emissions = np.empty(12)
+        self.fossil_dhw_emissions_UBP = np.empty(12)
         self.electricity_emissions = np.empty(12)
+        self.electricity_emissions_UBP = np.empty(12)
 
 
-        # account for fossil heating emissions
+        # account for fossil heating emissions in GWP and UBP
         if self.heating_system in ["Oil", "Natural Gas", "Wood", "Pellets"]:
             self.fossil_heating_emissions = self.heizwarmebedarf * dp.fossil_emission_factors(self.heating_system).mean()
-
+            self.fossil_heating_emissions_UBP = self.heizwarmebedarf * dp.fossil_emission_factors_UBP(self.heating_system).mean()
         else:
             self.fossil_heating_emissions = 0.0
+            self.fossil_heating_emissions_UBP = 0.0
 
-        # account for fossil dhw emissions
+        # account for fossil dhw emissions in GWP and UBP
         if self.dhw_heating_system in ["Oil", "Natural Gas", "Wood", "Pellets"]:
             self.fossil_dhw_emissions = self.dhw_demand * dp.fossil_emission_factors(self.dhw_heating_system).mean()
-
+            self.fossil_dhw_emissions_UBP = self.dhw_demand * dp.fossil_emission_factors_UBP(self.dhw_heating_system).mean()
         else:
             self.fossil_dhw_emissions = 0.0
+            self.fossil_dhw_emissions_UBP = 0.0
 
-
-        # acount for net grid import emissions
-        self.grid_electricity_emissions = self.net_electricity_demand * dp.build_yearly_emission_factors(emission_factor_source, emission_factor_type).mean()
+        # account for net grid import emissions in GWP and UBP
+        self.grid_electricity_emissions = self.net_electricity_demand * dp.build_yearly_emission_factors(
+            emission_factor_source, emission_factor_type).mean()
         self.grid_electricity_emissions[self.grid_electricity_emissions < 0.0] = 0.0
+
+        self.grid_electricity_emissions_UBP = self.net_electricity_demand * dp.build_yearly_emission_factors_UBP(
+            emission_factor_source_UBP, emission_factor_type).mean()
+        self.grid_electricity_emissions_UBP[self.grid_electricity_emissions_UBP < 0.0] = 0.0
 
         self.operational_emissions = self.fossil_heating_emissions + self.fossil_dhw_emissions + \
                                      self.grid_electricity_emissions ## always make sure to be clear what these emissions include (see SIA 380)
-
+        self.operational_emissions_UBP = self.fossil_heating_emissions_UBP + self.fossil_dhw_emissions_UBP + \
+                                     self.grid_electricity_emissions_UBP ## always make sure to be clear what these emissions include (see SIA 380)
 
     def run_SIA_electricity_demand(self, occupancy_path):
         self.app_light_other_electricity_monthly_demand = dp.hourly_to_monthly(

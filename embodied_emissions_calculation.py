@@ -38,6 +38,9 @@ def calculate_system_related_embodied_emissions(ee_database_path, gebaeudekatego
     heater_embodied_per_kw = database['Value'][heizsystem]  # this data is in kgCO2eq/kW
     heater_lifetime = database['lifetime'][heizsystem]
     heater_embodied = heater_embodied_per_kw * nominal_heating_power/1000.0/heater_lifetime  # heating power comes in W
+    heater_embodied_per_kw_UBP = database['Value_UBP'][heizsystem] # this data is in UBP/kW
+    heater_embodied_UBP = heater_embodied_per_kw_UBP * nominal_heating_power/1000.0/heater_lifetime # heating power comes in W
+
 
     #dhw heating is assumed to be included in the space heating capacity
 
@@ -45,53 +48,71 @@ def calculate_system_related_embodied_emissions(ee_database_path, gebaeudekatego
     if cooling_system == heizsystem:
         if nominal_cooling_power <= nominal_heating_power:
             cooler_embodied = 0.0
+            cooler_embodied_UBP = 0.0
         else:
             cooler_embodied_per_kw = database['Value'][cooling_system] # this data is in kgCO2eq/kW
             cooler_lifetime = database['lifetime'][cooling_system]
-            cooler_embodied = cooler_embodied_per_kw * nominal_cooling_power/1000.0/cooler_lifetime
+            cooler_embodied = cooler_embodied_per_kw * nominal_cooling_power/1000.0/cooler_lifetime # cooling power comes in W
             heater_embodied = 0
+            cooler_embodied_per_kw_UBP = database['Value_UBP'][cooling_system]  # this data is in UBP
+            cooler_embodied_UBP = cooler_embodied_per_kw_UBP * nominal_cooling_power / 1000.0 / cooler_lifetime
+            heater_embodied_UBP = 0
 
 
     else:
         cooler_embodied_per_kw = database['Value'][cooling_system]  # this data is in kgCO2eq/kW
         cooler_lifetime = database['lifetime'][cooling_system]
         cooler_embodied = cooler_embodied_per_kw * nominal_cooling_power/1000.0/cooler_lifetime  # cooling power comes in W
+        cooler_embodied_per_kw_UBP = database['Value_UBP'][cooling_system]  # this data is in UBP/kW
+        cooler_embodied_UBP = cooler_embodied_per_kw_UBP * nominal_cooling_power / 1000.0 / cooler_lifetime # cooling power comes in W
 
 
     ## Heat emission
 
     if (heat_distribution == 'air') and (heat_distribution == 'electric'):
-        heat_emisison_embodied_per_kw = 0.0
+        heat_emission_embodied_per_kw = 0.0
+        heat_emission_embodied_per_kw_UBP = 0.0
         heat_emission_lifetime = 1.0  # to avoid division by 0
     else:
         heat_emission_embodied_per_kw = database['Value'][heat_emission_system]  # this data is in kgCO2eq/kW
         heat_emission_lifetime = database['lifetime'][heat_emission_system]
+        heat_emission_embodied_per_kw_UBP = database['Value_UBP'][heat_emission_system]  # this data is in UBP/kW
 
     heat_emission_embodied = heat_emission_embodied_per_kw * nominal_heating_power / 1000.0 / heat_emission_lifetime  # heating power comes in W
+    heat_emission_embodied_UBP = heat_emission_embodied_per_kw_UBP * nominal_heating_power / 1000.0 / heat_emission_lifetime  # heating power comes in W
+
 
     ## Distribution
 
     if heat_distribution == "hydronic":
         if int(gebaeudekategorie) == 1:
             heat_distribution_embodied_per_area = database['Value']['hydronic heat distribution residential']
+            heat_distribution_embodied_per_area_UBP = database['Value_UBP']['hydronic heat distribution residential']
             heat_distribution_lifetime = database['lifetime']['hydronic heat distribution residential']
         elif int(gebaeudekategorie) == 3:
             heat_distribution_embodied_per_area = database['Value']['hydronic heat distribution office']
-            heat_distribution_lifetime = database['lifetime']['hydronic heat distribution office']
+
+            heat_distribution_embodied_per_area_UBP = database['Value_UBP']['hydronic heat distribution office']
+            heat_distribution_lifetime = database['lieftime']['hydronic heat distribution office']
+
         else:
             heat_distribution_embodied_per_area = 0.0
+            heat_distribution_embodied_per_area_UBP = 0.0
             heat_distribution_lifetime = 1.0  # this avoids division by zero if embodied = 0
             print("no embodied emissions for heat distribution")
 
     elif heat_distribution == 'electric':
         heat_distribution_embodied_per_area = 0.0
+        heat_distribution_embodied_per_area_UBP = 0.0
         heat_distribution_lifetime = 1.0  # to avoid division by zero
 
     else:
         heat_distribution_embodied_per_area = database['Value'][heat_distribution]  # this data is in kgCO2eq/kW
+        heat_distribution_embodied_per_area_UBP = database['Value_UBP'][heat_distribution]  # this data is in UBP/kW
         heat_distribution_lifetime = database['lifetime'][heat_distribution]
 
     embodied_heat_distribution = heat_distribution_embodied_per_area * energy_reference_area / heat_distribution_lifetime
+    embodied_heat_distribution_UBP = heat_distribution_embodied_per_area_UBP * energy_reference_area / heat_distribution_lifetime
 
 
 
@@ -100,14 +121,19 @@ def calculate_system_related_embodied_emissions(ee_database_path, gebaeudekatego
     if heat_emission_system == cold_emission_system:
 
         cold_emission_embodied = 0.0
+        cold_emission_embodied_UBP = 0.0
 
 
     else:
         cold_emission_embodied_per_kw = database['Value'][heat_emission_system]  # this data is in kgCO2eq/kW
+        cold_emission_embodied_per_kw_UBP = database['Value_UBP'][heat_emission_system]  # this data is in UBP/kW
         cold_emission_embodied = cold_emission_embodied_per_kw * nominal_heating_power / 1000.0  # cooling power comes in W
+        cold_emission_embodied_UBP = cold_emission_embodied_per_kw_UBP * nominal_heating_power / 1000.0  # cooling power comes in W
 
     embodied_thermal = heater_embodied + cooler_embodied + embodied_heat_distribution + heat_emission_embodied +\
                                                                 cold_emission_embodied
+    embodied_thermal_UBP = heater_embodied_UBP + cooler_embodied_UBP + embodied_heat_distribution_UBP +\
+                           heat_emission_embodied_UBP + cold_emission_embodied_UBP
 
 
 
@@ -126,12 +152,18 @@ def calculate_system_related_embodied_emissions(ee_database_path, gebaeudekatego
 
     ## PV System
     pv_embodied_per_kw = database['Value'][pv_type]  # this data is in kgCO2eq/kWp
+    pv_embodied_per_kw_UBP = database['Value_UBP'][pv_type]  # this data is in UBP/kWp
     pv_lifetime = database['lifetime'][pv_type]
     pv_embodied = pv_embodied_per_kw * pv_area * pv_efficiency / pv_lifetime  # at STC Irradiance = 1kW/m2
+    pv_embodied_UBP = pv_embodied_per_kw_UBP * pv_area * pv_efficiency / pv_lifetime  # at STC Irradiance = 1kW/m2
 
     embodied_electrical = pv_embodied
+    embodied_electrical_UBP = pv_embodied_UBP
 
-    return embodied_thermal + embodied_electrical #+ embodied_ventilation
+    embodied_thermal_electrical = embodied_thermal + embodied_electrical #+ embodied_ventilation
+    embodied_thermal_electrical_UBP = embodied_thermal_UBP + embodied_electrical_UBP #+ embodied_ventilation_UBP
+
+    return embodied_thermal_electrical, embodied_thermal_electrical_UBP
 
 
 
@@ -155,24 +187,34 @@ def calculate_envelope_emissions(database_path, total_wall_area, wall_type, tota
     database = pd.read_excel(database_path, index_col="Name")
 
     wall_embodied_per_area = database['GWP[kgCO2eq/m2]'][wall_type]
+    wall_embodied_per_area_UBP = database['UBP[/m2]'][wall_type]
     wall_lifetime = database['lifetime'][wall_type]
     wall_embodied = total_wall_area * wall_embodied_per_area/wall_lifetime
+    wall_embodied_UBP = total_wall_area * wall_embodied_per_area_UBP/wall_lifetime
 
     window_embodied_per_area = database['GWP[kgCO2eq/m2]'][window_type]
+    window_embodied_per_area_UBP = database['UBP[/m2]'][window_type]
     window_lifetime = database['lifetime'][window_type]
     window_embodied = window_embodied_per_area * total_window_area/window_lifetime
+    window_embodied_UBP = window_embodied_per_area_UBP * total_window_area/window_lifetime
 
     roof_embodied_per_area = database['GWP[kgCO2eq/m2]'][roof_type]
+    roof_embodied_per_area_UBP = database['UBP[/m2]'][roof_type]
     roof_lifetime = database['lifetime'][roof_type]
     roof_embodied = roof_embodied_per_area * total_roof_area/roof_lifetime
+    roof_embodied_UBP = roof_embodied_per_area_UBP * total_roof_area / roof_lifetime
 
     floor_embodied_per_area = database['GWP[kgCO2eq/m2]'][ceiling_type]
+    floor_embodied_per_area_UBP = database['UBP[/m2]'][ceiling_type]
     floor_lifetime = database['lifetime'][ceiling_type]
     floor_embodied = floor_embodied_per_area * energy_reference_area / floor_lifetime
+    floor_embodied_UBP = floor_embodied_per_area_UBP * energy_reference_area / floor_lifetime
 
-    return wall_embodied + window_embodied + roof_embodied + floor_embodied
-    # in total GHG emissions per year (kgCO2eq/a)
+    embodied_envelope = wall_embodied + window_embodied + roof_embodied + floor_embodied
+    embodied_envelope_UBP = wall_embodied_UBP + window_embodied_UBP + roof_embodied_UBP + floor_embodied_UBP
 
+    return embodied_envelope, embodied_envelope_UBP
+    # in total GHG emissions per year (kgCO2eq/a) and (UBP/a)
 
 
 

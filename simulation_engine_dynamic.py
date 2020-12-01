@@ -1,5 +1,5 @@
 import sys
-sys.path.insert(1, r"C:\Users\walkerl\Documents\code\RC_BuildingSimulator\rc_simulator")
+sys.path.insert(1, r"C:\Users\LW_Simulation\Documents\RC_BuildingSimulator\rc_simulator")
 from building_physics import Building
 import numpy as np
 import pandas as pd
@@ -287,7 +287,7 @@ class Sim_Building(object):
                                                                                             self.gebaeudekategorie_sia)
 
 
-    def run_dynamic_emissions(self, emission_factor_source, emission_factor_type, grid_export_assumption='c'):
+    def run_dynamic_emissions(self, emission_factor_source, emission_factor_source_UBP, emission_factor_type, grid_export_assumption='c'):
         """
 
         :return:
@@ -303,23 +303,31 @@ class Sim_Building(object):
 
         ### Too many ifs. TODO: simplify by adding into a single function or table.
         grid_emission_factors = dp.build_yearly_emission_factors(source=emission_factor_source, export_assumption=grid_export_assumption)
+        grid_emission_factors_UBP = dp.build_yearly_emission_factors_UBP(source_UBP=emission_factor_source_UBP,
+                                                                 export_assumption=grid_export_assumption)
 
         if self.heating_fossil_demand.any()>0:
-            # Those factors come in kgCO2eq per kWh heating energy
+            # Those factors come in kgCO2eq or UBP per kWh heating energy
             fossil_heating_emission_factors = dp.fossil_emission_factors(self.heating_system)
+            fossil_heating_emission_factors_UBP = dp.fossil_emission_factors_UBP(self.heating_system)
         else:
             # This is necessary for the vectorized multiplication below
             fossil_heating_emission_factors = np.repeat(0, 8760)
+            fossil_heating_emission_factors_UBP = np.repeat(0, 8760)
 
         if self.cooling_fossil_demand.any()>0: # TODO: Check if cooling fossil demand is given in - or +
             fossil_cooling_emission_factors = dp.fossil_emission_factors(self.cooling_system)
+            fossil_cooling_emission_factors_UBP = dp.fossil_emission_factors_UBP(self.cooling_system)
         else:
             fossil_cooling_emission_factors = np.repeat(0, 8760)
+            fossil_cooling_emission_factors_UBP = np.repeat(0, 8760)
 
         if self.dhw_fossil_demand.any() > 0:
             fossil_dhw_emission_factors = dp.fossil_emission_factors(self.dhw_heating_system)
+            fossil_dhw_emission_factors_UBP = dp.fossil_emission_factors_UBP(self.dhw_heating_system)
         else:
             fossil_dhw_emission_factors = np.repeat(0,8760)
+            fossil_dhw_emission_factors_UBP = np.repeat(0, 8760)
 
         # self.app_light_other_electricity_monthly_demand is per energy reference area in kWh
         # the dynamic model runs in not normalized energy and Wh
@@ -333,19 +341,28 @@ class Sim_Building(object):
 
 
         self.fossil_emissions = np.empty(8760)
+        self.fossil_emissions_UBP = np.empty(8760)
         self.electricity_emissions = np.empty(8760)
+        self.electricity_emissions_UBP = np.empty(8760)
 
         for hour in range(8760):
             # The division by 1000 is necessary because RC models energy in Wh but the emission factors are given
             # in kgCO2 per kWh.
-            self.fossil_emissions[hour] =((self.heating_fossil_demand[hour] * fossil_heating_emission_factors[hour]) + (
-                        self.cooling_fossil_demand[hour] * fossil_cooling_emission_factors[hour]) +
+            self.fossil_emissions[hour] =((self.heating_fossil_demand[hour] * fossil_heating_emission_factors[hour]) +
+                                          (self.cooling_fossil_demand[hour] * fossil_cooling_emission_factors[hour]) +
                                           (self.dhw_fossil_demand[hour] * fossil_dhw_emission_factors[hour]))/1000.0
+
+            self.fossil_emissions_UBP[hour] = ((self.heating_fossil_demand[hour] * fossil_heating_emission_factors_UBP[hour]) +
+                                               (self.cooling_fossil_demand[hour] * fossil_cooling_emission_factors_UBP[hour]) +
+                                               (self.dhw_fossil_demand[hour] * fossil_dhw_emission_factors_UBP[hour])) / 1000.0
 
             self.electricity_emissions[hour] = (self.net_electricity_demand[hour] * grid_emission_factors[hour])/1000.0
 
+            self.electricity_emissions_UBP[hour] = (self.net_electricity_demand[hour] * grid_emission_factors_UBP[hour]) / 1000.0
+
 
         self.operational_emissions = self.fossil_emissions + self.electricity_emissions
+        self.operational_emissions_UBP = self.fossil_emissions_UBP + self.electricity_emissions_UBP
 
 
     def run_heating_sizing(self):

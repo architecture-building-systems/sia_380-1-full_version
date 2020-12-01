@@ -5,7 +5,7 @@ import datetime
 import pvlib
 import os
 import sys
-sys.path.insert(1, r"C:\Users\walkerl\Documents\code\RC_BuildingSimulator\rc_simulator")
+sys.path.insert(1, r"C:\Users\LW_Simulation\Documents\RC_BuildingSimulator\rc_simulator")
 import supply_system
 import emission_system
 import time
@@ -83,19 +83,23 @@ def electric_appliances_sia(energy_reference_area, type=1, value="standard"):
 
 def build_yearly_emission_factors(source, type="annual", export_assumption="c"):
     """
-    :param source: string, currently the choices are SIA and eu. empa_ac should not yet be used
+    :param source: string, currently the choices are SIA, eu and KBOB. empa_ac should not yet be used
     :param type: string, only necessary for empa_ac
     :param export_assumption: string, only necessary for empa_ac
     :return: numpy array of length 8760 with the dimension kgCO2eq/kWh
     """
 
-    if source =="SIA":
+    if source =="SIA": #TODO: compare with values from KBOB
         #SIA has a constant factor, the type therefore does not matter
         hourly_emission_factor = np.repeat(139, 8760) / 1000.0  # kgCO2eq/kWh SIA380
-        return hourly_emission_factor
+
+    elif source == "KBOB":
+        # KBOB has a constant factor, the type therefore does not matter
+        hourly_emission_factor = np.repeat(102, 8760) / 1000.0  # kgCO2eq/kWh KBOB: 2009/1:2016 Verbrauchermix-CH
     elif source == "eu":
         # here a constant factor of the european power mix is assumed, the type therefore does not matter
         hourly_emission_factor = np.repeat(630, 8760) / 1000.0  # kgCO2eq/kWh www.co2-monitor.ch/de/information/glossar/
+        #ENTSO - E - Mix: 5480000 (UBP), 524 (GWP)
 
     elif source == "empa_ac":
 
@@ -120,6 +124,38 @@ def build_yearly_emission_factors(source, type="annual", export_assumption="c"):
 
     return hourly_emission_factor
 
+def build_yearly_emission_factors_UBP(source_UBP, type="annual", export_assumption="c"):
+    """
+    :param source_UBP: string, currently the choice is only KBOB
+    :return: numpy array of length 8760 with the dimension kgCO2eq/kWh
+    """
+
+    if source_UBP =="KBOB":
+        #KBOB has a constant factor, the type therefore does not matter
+        hourly_emission_factor_UBP = np.repeat(347000, 8760) / 1000.0  # UBP/kWh KBOB: 2009/1:2016 Verbrauchermix-CH
+
+    elif source == "empa_ac":
+
+
+        choice = "TEF" + export_assumption
+        emissions_df = pd.read_excel(r"C:\Users\walkerl\Documents\code\proof_of_concept\data\emission_factors_AC.xlsx",
+                                 index="Time")
+        emissions_df = emissions_df.set_index('Time')
+
+        if type == "annual":
+            hourly_emission_factor_UBP = np.repeat(emissions_df.resample('Y').mean()[choice].to_numpy(),
+                                           8760) / 1000.0  # UBP/kWh
+        if type=="monthly":
+            hourly_emission_factor_UBP = np.repeat(emissions_df.resample('M').mean()[choice].to_numpy(),
+                                           8760) / 1000.0  # UBP/kWh
+        if type=="hourly":
+            hourly_emission_factor_UBP = emissions_df[choice].to_numpy() / 1000.0
+
+    else:
+        quit("Emission factors for electricity could not be built. Simulation stopped")
+
+    return hourly_emission_factor_UBP
+
 
 def build_grid_emission_hourly(export_assumption="c"):
     """
@@ -140,9 +176,20 @@ def fossil_emission_factors(system_type):
     kgCO2eq/kWh. The factors are, however constant over the year.
     """
     treibhausgaskoeffizient = {"Oil": 0.319, "Natural Gas": 0.249, "Wood": 0.020, "Pellets": 0.048}
-    #kgCO2/kWh SIA380 2015 Anhang C Tab 5
+    #kgCO2/kWh SIA380 2015 Anhang C Tab 5 (Update to KBOB 2016: Oil: 0.322, Wood: 0.045, Pellets: 0.038)
     hourly_emission_factor = np.repeat(treibhausgaskoeffizient[system_type], 8760)  # kgCO2eq/kWh SIA380
     return hourly_emission_factor
+
+def fossil_emission_factors_UBP(system_type):
+    """
+     for now, wood and pellets are listed in these are also combustion based systems
+    :param system_type: string that describes the combustion based heating system
+    :return: np array for 8760 hours of the year with emission factor for delivered energy according to SIA in
+    kgCO2eq/kWh. The factors are, however constant over the year.
+    """
+    UBPkoeffizient = {"Oil": 251, "Natural Gas": 151, "Wood": 152, "Pellets": 108} #UBP/kWh KBOB: 2009/1:2016
+    hourly_emission_factor_UBP = np.repeat(UBPkoeffizient[system_type], 8760)
+    return hourly_emission_factor_UBP
 
 
 def extract_wall_data(filepath, name="Betonwand, Wärmedämmung mit Lattenrost, Verkleidung", area=0,
