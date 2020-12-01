@@ -370,6 +370,8 @@ pd.DataFrame(emission_performance_matrix_dyn_UBP, index=configurations.index, co
          performance_matrix_path_hourly_UBP)
 pd.DataFrame(emission_performance_matrix_stat, index=configurations.index, columns=scenarios.index).to_excel(
          performance_matrix_path_monthly)
+pd.DataFrame(emission_performance_matrix_stat_UBP, index=configurations.index, columns=scenarios.index).to_excel(
+         performance_matrix_path_monthly_UBP)
 
 # store self consumption ratio
 pd.DataFrame(annual_self_consumption_ratios_dyn, index=configurations.index, columns=scenarios.index).to_excel(sc_ratio_hourly_path)
