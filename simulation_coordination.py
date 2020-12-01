@@ -476,10 +476,10 @@ for config_index, config in configurations.iterrows():
                                                         nominal_cooling_power=nominal_cooling_power_stat[config_index],
                                                         pv_area=np.array(str(config['PV area']).split(" "), dtype=float).sum(),
                                                         pv_type=config['PV type'],
-                                                        pv_efficiency=config['PV efficiency'])/energiebezugsflache
+                                                        pv_efficiency=config['PV efficiency'])
 
-    embodied_systems_emissions_performance_matrix_stat[config_index] = embodied_impact_stat[0]
-    embodied_systems_emissions_performance_matrix_stat_UBP[config_index] = embodied_impact_stat[1]
+    embodied_systems_emissions_performance_matrix_stat[config_index] = embodied_impact_stat[0]/energiebezugsflache
+    embodied_systems_emissions_performance_matrix_stat_UBP[config_index] = embodied_impact_stat[1]/energiebezugsflache
 
     embodied_impact_dyn =  eec.calculate_system_related_embodied_emissions(ee_database_path=sys_ee_database_path,
                                                         gebaeudekategorie=scenarios.loc[0, 'building use type'],
@@ -494,10 +494,10 @@ for config_index, config in configurations.iterrows():
                                                         nominal_cooling_power=nominal_cooling_power_dyn[config_index],
                                                         pv_area=np.array(str(config['PV area']).split(" "), dtype=float).sum(),
                                                         pv_type=config['PV type'],
-                                                        pv_efficiency=config['PV efficiency'])/energiebezugsflache
+                                                        pv_efficiency=config['PV efficiency'])
 
-    embodied_systems_emissions_performance_matrix_dyn[config_index] = embodied_impact_dyn[0]
-    embodied_systems_emissions_performance_matrix_dyn_UBP[config_index] = embodied_impact_dyn[1]
+    embodied_systems_emissions_performance_matrix_dyn[config_index] = embodied_impact_dyn[0]/energiebezugsflache
+    embodied_systems_emissions_performance_matrix_dyn_UBP[config_index] = embodied_impact_dyn[1]/energiebezugsflache
 
     total_wall_area = np.array(config['wall areas'].split(" "), dtype=float).sum()
     total_window_area = np.array(config['window areas'].split(" "), dtype=float).sum()
@@ -516,11 +516,11 @@ for config_index, config in configurations.iterrows():
                                          total_roof_area=total_roof_area,
                                          roof_type=config['roof type'],
                                          energy_reference_area=energiebezugsflache,
-                                         ceiling_type=config['ceiling type'])/energiebezugsflache
+                                         ceiling_type=config['ceiling type'])
 
 
-    embodied_envelope_emissions_performance_matrix[config_index] = annualized_embodied_emsissions_envelope[0]
-    embodied_envelope_emissions_performance_matrix_UBP[config_index] = annualized_embodied_emsissions_envelope[1]
+    embodied_envelope_emissions_performance_matrix[config_index] = annualized_embodied_emsissions_envelope[0]/energiebezugsflache
+    embodied_envelope_emissions_performance_matrix_UBP[config_index] = annualized_embodied_emsissions_envelope[1]/energiebezugsflache
 
 
 """
