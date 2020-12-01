@@ -509,7 +509,7 @@ class Building(object):
         tau_c_0 = 15. # h
         a_c_0 =1.0 # no dimension
 
-        # Where does this equation come from?
+        # 6.6.10.3, page 137
         a_c_ztc_m = a_c_0 + tau_c_ztc_m/tau_c_0
 
         # 6.6.11.4 This value is assumed. Should be changed for intermittent cooling.

@@ -276,6 +276,7 @@ def calculate_monthly_gshp_cop(heat_supply_temp, cold_supply_temp, ground_temper
 
     monthly_heating_cop = heat_pump_efficiency * (heat_supply_temp + 273.15) / heating_delta_temp
 
+
     cooling_delta_temp = max(10, outside_temperature - cold_supply_temp)
     monthly_cooling_cop = heat_pump_efficiency * (cold_supply_temp+273.15)/cooling_delta_temp
 
@@ -642,7 +643,10 @@ def estimate_self_consumption(electricity_demand, pv_peak_power, building_catego
 
     elif int(building_category) == 3:
         monthly_stoc = (pv_peak_power / 12) / (electricity_demand / 1000)
-        monthly_sc = (0.17 + 0.68 * np.exp(-0.79*monthly_stoc))*100.0
+        monthly_sc = (0.15 + 0.70 * np.exp(-0.81*monthly_stoc))*100.0
+
+        ## updated self-consumption formula for office
+        # monthly_sc = (0.17 + 0.68 * np.exp(-0.79 * monthly_stoc)) * 100.0
 
 
     else:
