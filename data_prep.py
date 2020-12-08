@@ -262,22 +262,22 @@ def calculate_monthly_ashp_cop(heat_supply_temp, cold_supply_temp, weather_data_
 
     outside_temperature = weather_data_sia['temperature']
     heating_delta_temp = heat_supply_temp-outside_temperature
-    heating_delta_temp[heating_delta_temp < 10.0] = 10.0
+    heating_delta_temp[heating_delta_temp < 15.0] = 15.0
     monthly_heating_cop = heat_pump_efficiency * (heat_supply_temp + 273.15) / heating_delta_temp
     cooling_delta_temp = outside_temperature - cold_supply_temp
-    cooling_delta_temp[cooling_delta_temp < 10.0] = 10.0
+    cooling_delta_temp[cooling_delta_temp < 15.0] = 15.0
     monthly_cooling_cop = heat_pump_efficiency * (cold_supply_temp+273.15)/cooling_delta_temp
 
     return monthly_heating_cop, monthly_cooling_cop
 
-def calculate_monthly_gshp_cop(heat_supply_temp, cold_supply_temp, ground_temperature=12, heat_pump_efficiency=0.55):
+def calculate_monthly_gshp_cop(heat_supply_temp, cold_supply_temp, ground_temperature=10, heat_pump_efficiency=0.55):
     outside_temperature = ground_temperature
-    heating_delta_temp = max(10, heat_supply_temp-outside_temperature)
+    heating_delta_temp = max(15, heat_supply_temp-outside_temperature)
 
     monthly_heating_cop = heat_pump_efficiency * (heat_supply_temp + 273.15) / heating_delta_temp
 
 
-    cooling_delta_temp = max(10, outside_temperature - cold_supply_temp)
+    cooling_delta_temp = max(15, outside_temperature - cold_supply_temp)
     monthly_cooling_cop = heat_pump_efficiency * (cold_supply_temp+273.15)/cooling_delta_temp
 
     return monthly_heating_cop, monthly_cooling_cop
