@@ -32,7 +32,7 @@ class Building(object):
 
         self.gebaeudekategorie_sia = gebaeudekategorie_sia
         self.regelung = regelung
-        self.windows = windows  # np.array of windows with |area|u-value|g-value|orientation|shading_f1|shading_f2|
+        self.windows = windows  # np.array of windows with |orientation|area|u-value|g-value|
         self.walls = walls  # np.array of walls with |area|u-value| so far, b-values are not possible
         self.roof = roof  # np.array of roofs with |area|u-value|
         self.floor = floor  # np.array of floowrs with |area|u-value|b-value|
