@@ -61,6 +61,11 @@ heat_cop_dyn_path = os.path.join(main_path, results_folder, 'weighted_heating_co
 dhw_cop_dyn_path = os.path.join(main_path, results_folder, 'weighted_dhw_cop_hourly.xlsx')
 cold_cop_dyn_path = os.path.join(main_path, results_folder, 'weighted_cooling_cop_hourly.xlsx')
 
+heating_power_monthly_path = os.path.join(main_path, results_folder, 'heating_power_monthly.xlsx')
+cooling_power_monthly_path = os.path.join(main_path, results_folder, 'cooling_power_monthly.xlsx')
+heating_power_hourly_path = os.path.join(main_path, results_folder, 'heating_power_hourly.xlsx')
+cooling_power_hourly_path = os.path.join(main_path, results_folder, 'cooling_power_hourly.xlsx')
+
 
 scenarios = pd.read_excel(scenarios_path)
 configurations = pd.read_excel(configurations_path, index_col="Configuration", skiprows=[1])
@@ -408,6 +413,14 @@ pd.DataFrame(annual_cooling_cop_stat, index=configurations.index, columns=scenar
 pd.DataFrame(annual_heating_cop_dyn, index=configurations.index, columns=scenarios.index).to_excel(heat_cop_dyn_path)
 pd.DataFrame(annual_dhw_cop_dyn, index=configurations.index, columns=scenarios.index).to_excel(dhw_cop_dyn_path)
 pd.DataFrame(annual_cooling_cop_dyn, index=configurations.index, columns=scenarios.index).to_excel(cold_cop_dyn_path)
+
+# store heating sizing
+pd.DataFrame(nominal_heating_power_stat , index=configurations.index).to_excel(heating_power_monthly_path)
+pd.DataFrame(nominal_cooling_power_stat, index=configurations.index).to_excel(cooling_power_monthly_path)
+pd.DataFrame(nominal_heating_power_dyn, index=configurations.index).to_excel(heating_power_hourly_path)
+pd.DataFrame(nominal_cooling_power_dyn, index=configurations.index).to_excel(cooling_power_hourly_path)
+
+
 
 
 
