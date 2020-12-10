@@ -93,7 +93,7 @@ def calculate_system_related_embodied_emissions(ee_database_path, gebaeudekatego
             heat_distribution_embodied_per_area = database['Value']['hydronic heat distribution office']
 
             heat_distribution_embodied_per_area_UBP = database['Value_UBP']['hydronic heat distribution office']
-            heat_distribution_lifetime = database['lieftime']['hydronic heat distribution office']
+            heat_distribution_lifetime = database['lifetime']['hydronic heat distribution office']
 
         else:
             heat_distribution_embodied_per_area = 0.0
