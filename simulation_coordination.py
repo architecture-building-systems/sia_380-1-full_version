@@ -470,6 +470,8 @@ for config_index, config in configurations.iterrows():
 
     energiebezugsflache = config['energy reference area']  # m2
 
+
+
     ## Systeme
     """
     Choice: Oil, Natural Gas, Wood, Pellets, GSHP, ASHP, electric
@@ -480,6 +482,9 @@ for config_index, config in configurations.iterrows():
         'dhw heating system']  ## This is currently a limitation of the RC Model. Automatically the same!
     if dhw_heizsystem == 'same':
         dhw_heizsystem = heating_system
+
+    # ventilation
+    relevant_volume_flow = max(config['ventilation volume flow'], config['increased ventilation volume flow'])
 
     embodied_impact_stat = eec.calculate_system_related_embodied_emissions(ee_database_path=sys_ee_database_path,
                                                         gebaeudekategorie=scenarios.loc[0, 'building use type'],
@@ -494,7 +499,9 @@ for config_index, config in configurations.iterrows():
                                                         nominal_cooling_power=nominal_cooling_power_stat[config_index],
                                                         pv_area=np.array(str(config['PV area']).split(" "), dtype=float).sum(),
                                                         pv_type=config['PV type'],
-                                                        pv_efficiency=config['PV efficiency'])
+                                                        pv_efficiency=config['PV efficiency'],
+                                                        has_mechanical_ventilation=config['mechanical ventilation'],
+                                                        max_aussenluft_volumenstrom=relevant_volume_flow)
 
     embodied_systems_emissions_performance_matrix_stat[config_index] = embodied_impact_stat[0]/energiebezugsflache
     embodied_systems_emissions_performance_matrix_stat_UBP[config_index] = embodied_impact_stat[1]/energiebezugsflache
@@ -512,7 +519,9 @@ for config_index, config in configurations.iterrows():
                                                         nominal_cooling_power=nominal_cooling_power_dyn[config_index],
                                                         pv_area=np.array(str(config['PV area']).split(" "), dtype=float).sum(),
                                                         pv_type=config['PV type'],
-                                                        pv_efficiency=config['PV efficiency'])
+                                                        pv_efficiency=config['PV efficiency'],
+                                                        has_mechanical_ventilation=config['mechanical ventilation'],
+                                                        max_aussenluft_volumenstrom=relevant_volume_flow)
 
     embodied_systems_emissions_performance_matrix_dyn[config_index] = embodied_impact_dyn[0]/energiebezugsflache
     embodied_systems_emissions_performance_matrix_dyn_UBP[config_index] = embodied_impact_dyn[1]/energiebezugsflache
