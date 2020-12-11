@@ -5,7 +5,7 @@ import datetime
 import pvlib
 import os
 import sys
-sys.path.insert(1, r"C:\Users\LW_Simulation\Documents\RC_BuildingSimulator\rc_simulator")
+sys.path.insert(1, r"C:\Users\walkerl\Documents\code\RC_BuildingSimulator\rc_simulator")
 import supply_system
 import emission_system
 import time
