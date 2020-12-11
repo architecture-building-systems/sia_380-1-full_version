@@ -133,14 +133,17 @@ for config_index, config in configurations.iterrows():
     ventilation_volume_flow = config['ventilation volume flow'] # give a number in m3/(hm2) or select "SIA" to follow SIA380-1 code
     increased_ventilation_volume_flow = config['increased ventilation volume flow'] # give a number in m3/hm2, this volume flow is used when cooling with outside air is possible
     area_per_person = config['area per person']  # give a number or select "SIA" to follow the SIA380-1 code (typical for MFH 40)
-
+    thermal_bridge_add_on = config['thermal bridge add on']  # in %
+    thermal_bridge_factor = 1.0 + (thermal_bridge_add_on / 100.0)
 
     ## Gebäudehülle
-    u_windows = config['u-value window']
+    # the thermal bridge factor leads to an overal increas in transmittance losses. It is implemented here
+    # because that is the easiest way. For result analysis the input file u-values need to be used.
+    u_windows = config['u-value window'] * thermal_bridge_factor
     g_windows = config['g-value window']
-    u_walls = config['u-value wall']
-    u_roof = config['u-value roof']
-    u_floor = config['u-value floor']
+    u_walls = config['u-value wall'] * thermal_bridge_factor
+    u_roof = config['u-value roof'] * thermal_bridge_factor
+    u_floor = config['u-value floor'] * thermal_bridge_factor
     b_floor = 0.4 # lasse ich so, weil nicht direkt beeinflussbar
 
     ## Systeme
