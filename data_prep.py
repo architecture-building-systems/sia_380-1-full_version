@@ -54,6 +54,11 @@ def sia_standardnutzungsdaten(category):
     elif category == 'effective_air_flow':
         return {1: 0.7, 2: 0.7, 3: 0.7, 4: 0.7, 5: 0.7, 6: 1.2, 7: 1.0, 8: 1.0, 9: 0.7, 10: 0.3, 11: 0.7,
                          12: 0.7}  # 380-1 Tab14
+
+    elif category == 'ventilation_electricity_demand':
+        # further categories can be added
+        # in kWh/m2a, SIA2024 Zielwert
+        return{1.1: 0.8, 1.2: 0.5, 2.1:2.8, 2.2:6.6, 3.1:1.4, 3.2:2.0}
     else:
         print('You are trying to look up data from SIA that are not implemented')
 
