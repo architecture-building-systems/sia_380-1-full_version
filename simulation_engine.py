@@ -670,15 +670,17 @@ class Building(object):
 
 
         # account for fossil heating emissions in GWP and UBP
-        if self.heating_system in ["Oil", "Natural Gas", "Wood", "Pellets"]:
+        if self.heating_system in ["Oil", "Natural Gas", "Wood", "Pellets", "district"]:
             self.fossil_heating_emissions = self.heizwarmebedarf * dp.fossil_emission_factors(self.heating_system).mean()
             self.fossil_heating_emissions_UBP = self.heizwarmebedarf * dp.fossil_emission_factors_UBP(self.heating_system).mean()
         else:
             self.fossil_heating_emissions = 0.0
             self.fossil_heating_emissions_UBP = 0.0
 
+        ## Add the same for cooling if district cooling should be possible.
+
         # account for fossil dhw emissions in GWP and UBP
-        if self.dhw_heating_system in ["Oil", "Natural Gas", "Wood", "Pellets"]:
+        if self.dhw_heating_system in ["Oil", "Natural Gas", "Wood", "Pellets", "district"]:
             self.fossil_dhw_emissions = self.dhw_demand * dp.fossil_emission_factors(self.dhw_heating_system).mean()
             self.fossil_dhw_emissions_UBP = self.dhw_demand * dp.fossil_emission_factors_UBP(self.dhw_heating_system).mean()
         else:

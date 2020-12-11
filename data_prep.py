@@ -175,7 +175,7 @@ def fossil_emission_factors(system_type):
     :return: np array for 8760 hours of the year with emission factor for delivered energy according to SIA in
     kgCO2eq/kWh. The factors are, however constant over the year.
     """
-    treibhausgaskoeffizient = {"Oil": 0.319, "Natural Gas": 0.249, "Wood": 0.020, "Pellets": 0.048}
+    treibhausgaskoeffizient = {"Oil": 0.319, "Natural Gas": 0.249, "Wood": 0.020, "Pellets": 0.048, "district":0.089}
     #kgCO2/kWh SIA380 2015 Anhang C Tab 5 (Update to KBOB 2016: Oil: 0.322, Wood: 0.045, Pellets: 0.038)
     hourly_emission_factor = np.repeat(treibhausgaskoeffizient[system_type], 8760)  # kgCO2eq/kWh SIA380
     return hourly_emission_factor
@@ -187,7 +187,7 @@ def fossil_emission_factors_UBP(system_type):
     :return: np array for 8760 hours of the year with emission factor for delivered energy according to SIA in
     kgCO2eq/kWh. The factors are, however constant over the year.
     """
-    UBPkoeffizient = {"Oil": 251, "Natural Gas": 151, "Wood": 152, "Pellets": 108} #UBP/kWh KBOB: 2009/1:2016
+    UBPkoeffizient = {"Oil": 251., "Natural Gas": 151., "Wood": 152., "Pellets": 108., "district":75.5} #UBP/kWh KBOB: 2009/1:2016
     hourly_emission_factor_UBP = np.repeat(UBPkoeffizient[system_type], 8760)
     return hourly_emission_factor_UBP
 
@@ -229,7 +229,8 @@ def translate_system_sia_to_rc(system):
     system_dictionary = {'Oil':supply_system.OilBoilerNew, 'Natural Gas':supply_system.OilBoilerNew ,
                          'Wood':supply_system.OilBoilerMed , 'Pellets':supply_system.OilBoilerNew,
                          'GSHP':supply_system.HeatPumpWater, 'ASHP':supply_system.HeatPumpAir,
-                         'electric':supply_system.ElectricHeating, 'None':supply_system.DirectHeater}
+                         'electric':supply_system.ElectricHeating, 'district':supply_system.OilBoilerNew,
+                         'None':supply_system.DirectHeater}
     return system_dictionary[system]
 
 def translate_heat_emission_system(system):
