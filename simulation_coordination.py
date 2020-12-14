@@ -197,24 +197,21 @@ for config_index, config in configurations.iterrows():
     print("Configuration %s prepared" %config_index)
 
     for scenario_index, scenario in scenarios.iterrows():
-
         """
         This loop goes through all the scenarios which are defined in the scenario file. (Each scenario is one line)
         Here, further, scenario-dependent, system variables are defined. Basically, if one definition should be 
         considered as a scenario rather than a configuration, it can simply be moved here and the input files can be 
         adapted accordingly.
         """
-
         start=time.time()
-
         print("Calculating Scenario %s" %(scenario_index))
 
         weatherfile_path = scenario["weatherfile"]
         gebaeudekategorie_sia = scenario["building use type"]
-        # There should be an easier version to get this value out of the file! TODO: Simplify
-        occupancy_path = translations[translations['building use type'] == gebaeudekategorie_sia]['occupancy schedule'].to_numpy()[0]
-        heating_setpoint = scenario['heating setpoint']  # give a number in deC or select "SIA" to follow the SIA380-1 code
-        cooling_setpoint = scenario['cooling setpoint']  # give a number in deC or select "SIA" to follow the SIA380-1 code
+        occupancy_path = \
+        translations[translations['building use type'] == gebaeudekategorie_sia]['occupancy schedule'].to_numpy()[0]
+        heating_setpoint = scenario['heating setpoint']  # number in deC or select "SIA" to follow the SIA380-1 code
+        cooling_setpoint = scenario['cooling setpoint']  # number in deC or select "SIA" to follow the SIA380-1 code
         electricity_factor_source = scenario['emission source']
         electricity_factor_source_UBP = scenario['emission source UBP']
 
