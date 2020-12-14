@@ -28,7 +28,8 @@ class Building(object):
                  cold_emission_system,
                  heating_setpoint="SIA",
                  cooling_setpoint="SIA",
-                 area_per_person="SIA"):
+                 area_per_person="SIA",
+                 has_mechanical_ventilation=False):
 
         self.gebaeudekategorie_sia = gebaeudekategorie_sia
         self.regelung = regelung
@@ -55,6 +56,7 @@ class Building(object):
         self.heating_supply_temperature = dp.lookup_supply_temperatures_according_to_rc(self.heat_emission_system)[0]
         self.cooling_supply_temperature = dp.lookup_supply_temperatures_according_to_rc(self.cold_emission_system)[1]
         self.heat_pump_efficiency = heat_pump_efficiency
+        self.has_mechanical_ventilation = has_mechanical_ventilation
 
         # Further optional attributes:
         self.electricity_demand = None
@@ -585,6 +587,7 @@ class Building(object):
 
         ### Bestimmung Elektrizitätsbedarf pro EBF:
         self.electricity_demand = self.app_light_other_electricity_monthly_demand
+        # TODO: ADD electricity demand for ventilation here! Only here!!!
         if self.heating_system == "GSHP":
             gshp_cop_heating, gshp_cop_cooling = dp.calculate_monthly_gshp_cop(self.heating_supply_temperature,
                                                                                self.cooling_supply_temperature,
@@ -703,7 +706,8 @@ class Building(object):
 
     def run_SIA_electricity_demand(self, occupancy_path):
         self.app_light_other_electricity_monthly_demand = dp.hourly_to_monthly(
-            dp.sia_electricity_per_erf_hourly(occupancy_path, self.gebaeudekategorie_sia))
+            dp.sia_electricity_per_erf_hourly(occupancy_path, self.gebaeudekategorie_sia,
+                                              self.has_mechanical_ventilation))
 
 
     def run_heating_sizing_384_201(self, weatherfile_path):

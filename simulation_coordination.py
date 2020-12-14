@@ -161,6 +161,7 @@ for config_index, config in configurations.iterrows():
     pv_efficiency = config['PV efficiency']
     pv_performance_ratio = config['PV performance ratio']
     heat_pump_efficiency = config['heat pump efficiency']
+    has_mechanical_ventilation = config['mechanical ventilation']
 
     pv_area = np.array(str(config['PV area']).split(" "), dtype=float)  # m2, can be directly linked with roof size
     pv_tilt = np.array(str(config['PV tilt']).split(" "), dtype=float)  # in degrees
@@ -250,7 +251,7 @@ for config_index, config in configurations.iterrows():
                                       heat_pump_efficiency,
                                       korrekturfaktor_luftungs_eff_f_v, hohe_uber_meer, heizsystem, dhw_heizsystem,
                                       cooling_system, heat_emission_system, cold_emission_system, heating_setpoint,
-                                      cooling_setpoint, area_per_person)
+                                      cooling_setpoint, area_per_person, has_mechanical_ventilation)
 
 
         Gebaeude_static.pv_production = pv_yield_hourly
@@ -265,7 +266,8 @@ for config_index, config in configurations.iterrows():
                                          heat_pump_efficiency,
                                        korrekturfaktor_luftungs_eff_f_v, hohe_uber_meer, heizsystem, cooling_system,
                                          heat_emission_system, cold_emission_system,
-                                       dhw_heizsystem, heating_setpoint, cooling_setpoint, area_per_person)
+                                       dhw_heizsystem, heating_setpoint, cooling_setpoint, area_per_person,
+                                         has_mechanical_ventilation)
 
         Gebaeude_dyn.pv_production = pv_yield_hourly  # in kWh (! ACHTUNG, RC immer in Wh !)
 
