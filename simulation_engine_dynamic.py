@@ -32,7 +32,8 @@ class Sim_Building(object):
                  dhw_heating_system,
                  heating_setpoint="SIA",
                  cooling_setpoint="SIA",
-                 area_per_person="SIA"):
+                 area_per_person="SIA",
+                 has_mechanical_ventilation=False):
 
         ### Similar to SIA some are unecessary.
         self.gebaeudekategorie_sia = gebaeudekategorie_sia
@@ -52,6 +53,7 @@ class Sim_Building(object):
         self.heating_system = heating_system
         self.cooling_system = cooling_system
         self.area_per_person = area_per_person
+        self.has_mechanical_ventilation=has_mechanical_ventilation
 
         self.heat_emission_system = heat_emission_system
         self.cold_emission_system = cold_emission_system
@@ -284,7 +286,9 @@ class Sim_Building(object):
 
     def run_SIA_electricity_demand(self, occupancy_path):
         self.app_light_other_electricity_monthly_demand = dp.sia_electricity_per_erf_hourly(occupancy_path,
-                                                                                            self.gebaeudekategorie_sia)
+                                                                                            self.gebaeudekategorie_sia,
+                                                                                            self.has_mechanical_ventilation)
+
 
 
     def run_dynamic_emissions(self, emission_factor_source, emission_factor_source_UBP, emission_factor_type, grid_export_assumption='c'):

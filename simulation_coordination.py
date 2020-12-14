@@ -161,6 +161,7 @@ for config_index, config in configurations.iterrows():
     pv_efficiency = config['PV efficiency']
     pv_performance_ratio = config['PV performance ratio']
     heat_pump_efficiency = config['heat pump efficiency']
+    has_mechanical_ventilation = config['mechanical ventilation']
 
     pv_area = np.array(str(config['PV area']).split(" "), dtype=float)  # m2, can be directly linked with roof size
     pv_tilt = np.array(str(config['PV tilt']).split(" "), dtype=float)  # in degrees
@@ -196,24 +197,21 @@ for config_index, config in configurations.iterrows():
     print("Configuration %s prepared" %config_index)
 
     for scenario_index, scenario in scenarios.iterrows():
-
         """
         This loop goes through all the scenarios which are defined in the scenario file. (Each scenario is one line)
         Here, further, scenario-dependent, system variables are defined. Basically, if one definition should be 
         considered as a scenario rather than a configuration, it can simply be moved here and the input files can be 
         adapted accordingly.
         """
-
         start=time.time()
-
         print("Calculating Scenario %s" %(scenario_index))
 
         weatherfile_path = scenario["weatherfile"]
         gebaeudekategorie_sia = scenario["building use type"]
-        # There should be an easier version to get this value out of the file! TODO: Simplify
-        occupancy_path = translations[translations['building use type'] == gebaeudekategorie_sia]['occupancy schedule'].to_numpy()[0]
-        heating_setpoint = scenario['heating setpoint']  # give a number in deC or select "SIA" to follow the SIA380-1 code
-        cooling_setpoint = scenario['cooling setpoint']  # give a number in deC or select "SIA" to follow the SIA380-1 code
+        occupancy_path = \
+        translations[translations['building use type'] == gebaeudekategorie_sia]['occupancy schedule'].to_numpy()[0]
+        heating_setpoint = scenario['heating setpoint']  # number in deC or select "SIA" to follow the SIA380-1 code
+        cooling_setpoint = scenario['cooling setpoint']  # number in deC or select "SIA" to follow the SIA380-1 code
         electricity_factor_source = scenario['emission source']
         electricity_factor_source_UBP = scenario['emission source UBP']
 
@@ -250,7 +248,7 @@ for config_index, config in configurations.iterrows():
                                       heat_pump_efficiency,
                                       korrekturfaktor_luftungs_eff_f_v, hohe_uber_meer, heizsystem, dhw_heizsystem,
                                       cooling_system, heat_emission_system, cold_emission_system, heating_setpoint,
-                                      cooling_setpoint, area_per_person)
+                                      cooling_setpoint, area_per_person, has_mechanical_ventilation)
 
 
         Gebaeude_static.pv_production = pv_yield_hourly
@@ -265,7 +263,8 @@ for config_index, config in configurations.iterrows():
                                          heat_pump_efficiency,
                                        korrekturfaktor_luftungs_eff_f_v, hohe_uber_meer, heizsystem, cooling_system,
                                          heat_emission_system, cold_emission_system,
-                                       dhw_heizsystem, heating_setpoint, cooling_setpoint, area_per_person)
+                                       dhw_heizsystem, heating_setpoint, cooling_setpoint, area_per_person,
+                                         has_mechanical_ventilation)
 
         Gebaeude_dyn.pv_production = pv_yield_hourly  # in kWh (! ACHTUNG, RC immer in Wh !)
 
@@ -470,6 +469,8 @@ for config_index, config in configurations.iterrows():
 
     energiebezugsflache = config['energy reference area']  # m2
 
+
+
     ## Systeme
     """
     Choice: Oil, Natural Gas, Wood, Pellets, GSHP, ASHP, electric
@@ -480,6 +481,9 @@ for config_index, config in configurations.iterrows():
         'dhw heating system']  ## This is currently a limitation of the RC Model. Automatically the same!
     if dhw_heizsystem == 'same':
         dhw_heizsystem = heating_system
+
+    # ventilation
+    relevant_volume_flow = max(config['ventilation volume flow'], config['increased ventilation volume flow'])
 
     embodied_impact_stat = eec.calculate_system_related_embodied_emissions(ee_database_path=sys_ee_database_path,
                                                         gebaeudekategorie=scenarios.loc[0, 'building use type'],
@@ -494,7 +498,9 @@ for config_index, config in configurations.iterrows():
                                                         nominal_cooling_power=nominal_cooling_power_stat[config_index],
                                                         pv_area=np.array(str(config['PV area']).split(" "), dtype=float).sum(),
                                                         pv_type=config['PV type'],
-                                                        pv_efficiency=config['PV efficiency'])
+                                                        pv_efficiency=config['PV efficiency'],
+                                                        has_mechanical_ventilation=config['mechanical ventilation'],
+                                                        max_aussenluft_volumenstrom=relevant_volume_flow)
 
     embodied_systems_emissions_performance_matrix_stat[config_index] = embodied_impact_stat[0]/energiebezugsflache
     embodied_systems_emissions_performance_matrix_stat_UBP[config_index] = embodied_impact_stat[1]/energiebezugsflache
@@ -512,7 +518,9 @@ for config_index, config in configurations.iterrows():
                                                         nominal_cooling_power=nominal_cooling_power_dyn[config_index],
                                                         pv_area=np.array(str(config['PV area']).split(" "), dtype=float).sum(),
                                                         pv_type=config['PV type'],
-                                                        pv_efficiency=config['PV efficiency'])
+                                                        pv_efficiency=config['PV efficiency'],
+                                                        has_mechanical_ventilation=config['mechanical ventilation'],
+                                                        max_aussenluft_volumenstrom=relevant_volume_flow)
 
     embodied_systems_emissions_performance_matrix_dyn[config_index] = embodied_impact_dyn[0]/energiebezugsflache
     embodied_systems_emissions_performance_matrix_dyn_UBP[config_index] = embodied_impact_dyn[1]/energiebezugsflache

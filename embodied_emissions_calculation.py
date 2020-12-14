@@ -6,7 +6,8 @@ def calculate_system_related_embodied_emissions(ee_database_path, gebaeudekatego
                                                 heizsystem, heat_emission_system,
                                                 heat_distribution, nominal_heating_power, dhw_heizsystem,
                                                 cooling_system, cold_emission_system, nominal_cooling_power,
-                                                pv_area, pv_type, pv_efficiency):
+                                                pv_area, pv_type, pv_efficiency, has_mechanical_ventilation,
+                                                max_aussenluft_volumenstrom):
     """
     This function is used to calculate the annualized embodied emissions of the considered building systems. A database
     file is called that includes impact and lifetime values. Further the system sizing has to be known for some power
@@ -58,7 +59,6 @@ def calculate_system_related_embodied_emissions(ee_database_path, gebaeudekatego
             cooler_embodied_UBP = cooler_embodied_per_kw_UBP * nominal_cooling_power / 1000.0 / cooler_lifetime
             heater_embodied_UBP = 0
 
-
     else:
         cooler_embodied_per_kw = database['Value'][cooling_system]  # this data is in kgCO2eq/kW
         cooler_lifetime = database['lifetime'][cooling_system]
@@ -69,10 +69,16 @@ def calculate_system_related_embodied_emissions(ee_database_path, gebaeudekatego
 
     ## Heat emission
 
-    if (heat_distribution == 'air') and (heat_distribution == 'electric'):
+    if heat_emission_system == 'air':
+        # In that case 0.0 is assigned to heat emission system because it is already considered in
+        # mechanical ventilation
         heat_emission_embodied_per_kw = 0.0
         heat_emission_embodied_per_kw_UBP = 0.0
         heat_emission_lifetime = 1.0  # to avoid division by 0
+        if has_mechanical_ventilation == False:
+            print("you chose heat distribution by air but do not have mechanical ventilation")
+            quit()
+
     else:
         heat_emission_embodied_per_kw = database['Value'][heat_emission_system]  # this data is in kgCO2eq/kW
         heat_emission_lifetime = database['lifetime'][heat_emission_system]
@@ -106,10 +112,13 @@ def calculate_system_related_embodied_emissions(ee_database_path, gebaeudekatego
         heat_distribution_embodied_per_area_UBP = 0.0
         heat_distribution_lifetime = 1.0  # to avoid division by zero
 
-    else:
+    elif heat_distribution == 'air':
+        #Todo: I am not sure if that makes sense or if it would be included in mechanidcal ventilation
         heat_distribution_embodied_per_area = database['Value'][heat_distribution]  # this data is in kgCO2eq/kW
         heat_distribution_embodied_per_area_UBP = database['Value_UBP'][heat_distribution]  # this data is in UBP/kW
         heat_distribution_lifetime = database['lifetime'][heat_distribution]
+    else:
+        print('You did not specify a correct heat distribution system')
 
     embodied_heat_distribution = heat_distribution_embodied_per_area * energy_reference_area / heat_distribution_lifetime
     embodied_heat_distribution_UBP = heat_distribution_embodied_per_area_UBP * energy_reference_area / heat_distribution_lifetime
@@ -130,6 +139,7 @@ def calculate_system_related_embodied_emissions(ee_database_path, gebaeudekatego
         cold_emission_embodied = cold_emission_embodied_per_kw * nominal_heating_power / 1000.0  # cooling power comes in W
         cold_emission_embodied_UBP = cold_emission_embodied_per_kw_UBP * nominal_heating_power / 1000.0  # cooling power comes in W
 
+
     embodied_thermal = heater_embodied + cooler_embodied + embodied_heat_distribution + heat_emission_embodied +\
                                                                 cold_emission_embodied
     embodied_thermal_UBP = heater_embodied_UBP + cooler_embodied_UBP + embodied_heat_distribution_UBP +\
@@ -139,11 +149,16 @@ def calculate_system_related_embodied_emissions(ee_database_path, gebaeudekatego
 
     # Calculation of embodied emissions for ventilation system
 
-    # if has_mechanical_ventilation == True:
-    #     ventilation_embodied_per_era = database['Value']['mechanical ventilation'] * aussenluftvolumenstrom
-    #     embodied_ventilation = ventilation_embodied_per_era * energy_reference_area
-    # else:
-    #     embodied_ventilation = 0.0
+    if has_mechanical_ventilation == True:
+         ventilation_embodied_per_era = database['Value']['mechanical ventilation'] * max_aussenluft_volumenstrom
+         ventilation_lifetime = database['lifetime']['mechanical ventilation']
+         embodied_ventilation = ventilation_embodied_per_era * energy_reference_area / ventilation_lifetime
+
+         ventilation_embodied_per_era_ubp = database['Value_UBP']['mechanical ventilation'] * max_aussenluft_volumenstrom
+         embodied_ventilation_ubp = ventilation_embodied_per_era * energy_reference_area / ventilation_lifetime
+    else:
+        embodied_ventilation = 0.0
+        embodied_ventilation_ubp = 0.0
 
 
     # Calculation of embodied emissions for the electrical systems
@@ -160,10 +175,10 @@ def calculate_system_related_embodied_emissions(ee_database_path, gebaeudekatego
     embodied_electrical = pv_embodied
     embodied_electrical_UBP = pv_embodied_UBP
 
-    embodied_thermal_electrical = embodied_thermal + embodied_electrical #+ embodied_ventilation
-    embodied_thermal_electrical_UBP = embodied_thermal_UBP + embodied_electrical_UBP #+ embodied_ventilation_UBP
+    embodied_thermal_electrical_vent = embodied_thermal + embodied_electrical + embodied_ventilation
+    embodied_thermal_electrical_vent_UBP = embodied_thermal_UBP + embodied_electrical_UBP + embodied_ventilation_ubp
 
-    return embodied_thermal_electrical, embodied_thermal_electrical_UBP
+    return embodied_thermal_electrical_vent, embodied_thermal_electrical_vent_UBP
 
 
 
@@ -215,8 +230,6 @@ def calculate_envelope_emissions(database_path, total_wall_area, wall_type, tota
 
     return embodied_envelope, embodied_envelope_UBP
     # in total GHG emissions per year (kgCO2eq/a) and (UBP/a)
-
-
 
 
 

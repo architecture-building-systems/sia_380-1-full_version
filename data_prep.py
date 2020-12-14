@@ -54,6 +54,7 @@ def sia_standardnutzungsdaten(category):
     elif category == 'effective_air_flow':
         return {1: 0.7, 2: 0.7, 3: 0.7, 4: 0.7, 5: 0.7, 6: 1.2, 7: 1.0, 8: 1.0, 9: 0.7, 10: 0.3, 11: 0.7,
                          12: 0.7}  # 380-1 Tab14
+
     else:
         print('You are trying to look up data from SIA that are not implemented')
 
@@ -315,7 +316,7 @@ def hourly_to_monthly_average(hourly_array):
         start_hour = start_hour + hours_per_month[month]
     return monthly_values
 
-def sia_electricity_per_erf_hourly(occupancy_path, gebaeudekategorie_sia):
+def sia_electricity_per_erf_hourly(occupancy_path, gebaeudekategorie_sia, has_mechanical_ventilation):
         """
         This function distributes the electricity demand of SIA380-1 according to occupancy schedules of SIA2024
         It is questionable if this is correct but probably a good first approximation.
@@ -329,13 +330,19 @@ def sia_electricity_per_erf_hourly(occupancy_path, gebaeudekategorie_sia):
         elektrizitatsbedarf = {1: 28., 2: 22., 3: 22., 4: 11., 5: 33., 6: 33., 7: 17., 8: 28., 9: 17., 10: 6., 11: 6.,
                                12: 56.}  # 380-1 Tab12
 
+        if has_mechanical_ventilation:
+            # SIA2024 - 2015 in kWh/m2a
+            ventilation_electricity = {1.1: 0.8, 1.2: 0.5, 2.1: 2.8, 2.2: 6.6, 3.1: 1.4, 3.2: 2.0}
+        else:
+            ventilation_electricity = {1.1: 0., 1.2: 0., 2.1: 0., 2.2: 0., 3.1: 0., 3.2: 0.}
+
         occupancyProfile = pd.read_csv(occupancy_path)
         occupancy_factor = np.empty(8760)
         total = occupancyProfile['People'].sum()
         for hour in range(8760):
             occupancy_factor[hour] = occupancyProfile.loc[hour, 'People']/total
 
-        return occupancy_factor * elektrizitatsbedarf[int(gebaeudekategorie_sia)]
+        return occupancy_factor * (elektrizitatsbedarf[int(gebaeudekategorie_sia)] + ventilation_electricity[gebaeudekategorie_sia])
 
 def sia_annaul_dhw_demand(gebaeudekategorie_sia):
     """
