@@ -732,7 +732,10 @@ class Building(object):
 
 
     def run_cooling_sizing(self):
-        self.nominal_cooling_power = self.energy_reference_area * 10  # in W TODO: remove hard coded value from SIA2024
+        if self.cooling_system == "None" or None:
+            self.nominal_cooling_power = 0.0
+        else:
+            self.nominal_cooling_power = self.energy_reference_area * 10  # in W TODO: remove hard coded value from SIA2024
 
 
 

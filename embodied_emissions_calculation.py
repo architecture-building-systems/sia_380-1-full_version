@@ -136,8 +136,8 @@ def calculate_system_related_embodied_emissions(ee_database_path, gebaeudekatego
     else:
         cold_emission_embodied_per_kw = database['Value'][heat_emission_system]  # this data is in kgCO2eq/kW
         cold_emission_embodied_per_kw_UBP = database['Value_UBP'][heat_emission_system]  # this data is in UBP/kW
-        cold_emission_embodied = cold_emission_embodied_per_kw * nominal_heating_power / 1000.0  # cooling power comes in W
-        cold_emission_embodied_UBP = cold_emission_embodied_per_kw_UBP * nominal_heating_power / 1000.0  # cooling power comes in W
+        cold_emission_embodied = cold_emission_embodied_per_kw * nominal_cooling_power / 1000.0  # cooling power comes in W
+        cold_emission_embodied_UBP = cold_emission_embodied_per_kw_UBP * nominal_cooling_power / 1000.0  # cooling power comes in W
 
 
     embodied_thermal = heater_embodied + cooler_embodied + embodied_heat_distribution + heat_emission_embodied +\

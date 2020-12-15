@@ -1,5 +1,6 @@
 import sys
 sys.path.insert(1, r"C:\Users\LW_Simulation\Documents\RC_BuildingSimulator\rc_simulator")
+# sys.path.insert(1, r"C:\Users\walkerl\Documents\code\RC_BuildingSimulator\rc_simulator")
 from building_physics import Building
 import numpy as np
 import pandas as pd
@@ -64,7 +65,7 @@ class Sim_Building(object):
 
         ### RC Simulator inputs (derive from other inputs as much as possible)
         ## So far the lighting load is still hard coded because it is not looked at and I don't know the source.
-        lighting_load = 11.7  # [W/m2] (source?)
+        lighting_load = 11.7  # [W/m2] (source?) This probably comes from SIA 2024: Offices (11.6)
         lighting_control = 300.0  # lux threshold at which the lights turn on.
         lighting_utilisation_factor = 0.45
         lighting_maintenance_factor = 0.9
