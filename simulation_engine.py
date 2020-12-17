@@ -648,6 +648,12 @@ class Building(object):
             self.cooling_elec = 0.0
 
         self.electricity_demand += (self.heating_elec + self.dhw_elec + self.cooling_elec)
+        # At one point it might be useful to store these monthly values into a spreadsheet. For now they are only printed,
+        # for a quick reliability check of the results.
+        #print("total electricity demand:", self.electricity_demand)
+        #print("heating electricty demand", self.heating_elec)
+        #print("dhw electricity demand:", self.dhw_elec)
+        #print("cooling electricity demand", self.cooling_elec)
 
         electricity_demand_for_self_consumption = self.electricity_demand * self.energy_reference_area
 

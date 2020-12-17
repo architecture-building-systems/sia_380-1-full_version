@@ -36,6 +36,7 @@ embodied_systems_dyn_performance_path = os.path.join(main_path, results_folder, 
 embodied_systems_dyn_performance_path_UBP = os.path.join(main_path, results_folder, 'embodied_systems_hourly_UBP.xlsx')
 embodied_envelope_performance_path = os.path.join(main_path, results_folder, 'embodied_envelope.xlsx')
 embodied_envelope_performance_path_UBP = os.path.join(main_path, results_folder, 'embodied_envelope_UBP.xlsx')
+embodied_envelope_performance_detailed_path = os.path.join(main_path, results_folder, 'embodied_envelope_detailed.xlsx')
 
 dyn_heat_path = os.path.join(main_path, results_folder, 'heat_demand_hourly.xlsx')
 dyn_cold_path = os.path.join(main_path, results_folder, 'cooling_demand_hourly.xlsx')
@@ -547,7 +548,17 @@ for config_index, config in configurations.iterrows():
 
     embodied_envelope_emissions_performance_matrix[config_index] = annualized_embodied_emsissions_envelope[0]/energiebezugsflache
     embodied_envelope_emissions_performance_matrix_UBP[config_index] = annualized_embodied_emsissions_envelope[1]/energiebezugsflache
-
+    eee_wall = annualized_embodied_emsissions_envelope[2]/energiebezugsflache
+    eee_wall_UBP = annualized_embodied_emsissions_envelope[3]/energiebezugsflache
+    eee_window = annualized_embodied_emsissions_envelope[4] / energiebezugsflache
+    eee_window_UBP = annualized_embodied_emsissions_envelope[5] / energiebezugsflache
+    eee_roof = annualized_embodied_emsissions_envelope[6] / energiebezugsflache
+    eee_roof_UBP = annualized_embodied_emsissions_envelope[7] / energiebezugsflache
+    eee_floor = annualized_embodied_emsissions_envelope[8]/energiebezugsflache
+    eee_floor_UBP = annualized_embodied_emsissions_envelope[9]/energiebezugsflache
+    embodied_envelope_emissions_detailed_matrix = np.array( [['0','wall', 'window', 'roof', 'floor'],
+                                                            ['GWP', eee_wall, eee_window, eee_roof, eee_floor],
+                                                            ['UBP', eee_wall_UBP, eee_window_UBP, eee_roof_UBP, eee_floor_UBP]])
 
 """
 Last but not least, all the created dataframes from the embodied part are stored in the file locations given in the 
@@ -568,4 +579,6 @@ pd.DataFrame(embodied_systems_emissions_performance_matrix_dyn_UBP, index=config
     embodied_systems_dyn_performance_path_UBP)
 pd.DataFrame(embodied_envelope_emissions_performance_matrix_UBP, index=configurations.index).to_excel(
     embodied_envelope_performance_path_UBP)
+
+pd.DataFrame(embodied_envelope_emissions_detailed_matrix).to_excel(embodied_envelope_performance_detailed_path)
 
