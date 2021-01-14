@@ -741,8 +741,8 @@ class Building(object):
         if self.cooling_system == "None" or None:
             self.nominal_cooling_power = 0.0
         else:
+            #self.nominal_cooling_power = self.monthly_cooling_demand.sum()*self.energy_reference_area*1000/550
             self.nominal_cooling_power = self.energy_reference_area * 10  # in W TODO: remove hard coded value from SIA2024
-
 
 
 def window_irradiation(windows, g_sh_012, g_ss_013, g_se_014, g_sw_015, g_sn_016):

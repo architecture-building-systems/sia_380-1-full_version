@@ -320,7 +320,7 @@ class Sim_Building(object):
             fossil_heating_emission_factors = np.repeat(0, 8760)
             fossil_heating_emission_factors_UBP = np.repeat(0, 8760)
 
-        if self.cooling_fossil_demand.any()>0: # TODO: Check if cooling fossil demand is given in - or +
+        if self.cooling_fossil_demand.any() > 0: # TODO: Check if cooling fossil demand is given in - or +
             fossil_cooling_emission_factors = dp.fossil_emission_factors(self.cooling_system)
             fossil_cooling_emission_factors_UBP = dp.fossil_emission_factors_UBP(self.cooling_system)
         else:
@@ -371,10 +371,21 @@ class Sim_Building(object):
 
 
     def run_heating_sizing(self):
-        self.nominal_heating_power = self.heating_demand.max()
+        # total energy per year divided by volllaststunden (SIA 2024; MFH) for heating
+        # self.nominal_heating_power = self.heating_demand.sum()/830
+        self.heating_hours = self.heating_demand[self.heating_demand >= 0.001]
+        self.nominal_heating_power = np.percentile(self.heating_hours, [100])
 
     def run_cooling_sizing(self):
-        self.nominal_cooling_power = self.cooling_demand.min()
+        # total energy per year divided by volllaststunden (SIA 2024; MFH) for cooling
+        # self.nominal_cooling_power = self.cooling_demand.min()
+        # self.nominal_cooling_power = self.cooling_demand.sum()/650
+        self.cooling_hours = self.cooling_demand[self.cooling_demand <= -0.001]
+
+        if self.cooling_hours.any() > 0:
+            self.nominal_cooling_power = np.percentile(abs(self.cooling_hours), [70])
+        else:
+            self.nominal_cooling_power = 0
 
 
 def comfort_assessment(indoor_temperature_time_series, comfort_range=[19.0, 25.0], discomfort_type="integrated"):
