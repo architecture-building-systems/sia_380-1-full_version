@@ -177,8 +177,9 @@ def fossil_emission_factors(system_type):
     :return: np array for 8760 hours of the year with emission factor for delivered energy according to SIA in
     kgCO2eq/kWh. The factors are, however constant over the year.
     """
-    treibhausgaskoeffizient = {"Oil": 0.319, "Natural Gas": 0.249, "Wood": 0.020, "Pellets": 0.048, "district":0.089}
-    #kgCO2/kWh SIA380 2015 Anhang C Tab 5 (Update to KBOB 2016: Oil: 0.322, Wood: 0.045, Pellets: 0.038)
+    treibhausgaskoeffizient = {"Oil": 0.301, "Natural Gas": 0.228, "Wood": 0.027, "Pellets": 0.027, "district": 0.089}
+    #kgCO2/kWh KBOB 2009/1:2016 Nutzenergie {"Oil": 0.322, "Natural Gas": 0.249, "Wood": 0.045, "Pellets": 0.038, "district":0.089})
+    #SIA380 2015 Anhang C Tab 5 (old values): {"Oil": 0.319, "Natural Gas": 0.249, "Wood": 0.020, "Pellets": 0.048, "district":0.089}
     hourly_emission_factor = np.repeat(treibhausgaskoeffizient[system_type], 8760)  # kgCO2eq/kWh SIA380
     return hourly_emission_factor
 
@@ -189,7 +190,8 @@ def fossil_emission_factors_UBP(system_type):
     :return: np array for 8760 hours of the year with emission factor for delivered energy according to SIA in
     kgCO2eq/kWh. The factors are, however constant over the year.
     """
-    UBPkoeffizient = {"Oil": 251., "Natural Gas": 151., "Wood": 152., "Pellets": 108., "district":75.5} #UBP/kWh KBOB: 2009/1:2016
+    UBPkoeffizient = {"Oil": 234., "Natural Gas": 137., "Wood": 93.1, "Pellets": 81.1, "district": 75.5}
+    #UBP/kWh KBOB: 2009/1:2016 Nutzenergie {"Oil": 251., "Natural Gas": 151., "Wood": 152., "Pellets": 108., "district":75.5}
     hourly_emission_factor_UBP = np.repeat(UBPkoeffizient[system_type], 8760)
     return hourly_emission_factor_UBP
 

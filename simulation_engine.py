@@ -248,14 +248,14 @@ class Building(object):
 
             if (q_t_107_temporary + ((theta_ic_083 - theta_e_011) * q_th_008 * t_c_009 * rhoa_ca_108 * 24)/1000) <= 0:
                 q_t_107 = 0
-                print("Keine Transmissionswärmeverluste q_t_107")
+                print("Keine Transmissionswärmeverluste q_t_107", month, temperatur_mittelwert[month])
             else:
                 q_t_107 = q_t_107_temporary
 
 
             if  q_t_107_temporary + (theta_ic_083-theta_e_011) * q_th_109 * t_c_009 * rhoa_ca_108 *24/1000 <= 0:
                 q_v_110 = 0
-                print("Kein Lüftungswärmeverlust")
+                print("Kein Lüftungswärmeverlust", month, temperatur_mittelwert[month])
             else:
                 q_v_110 = (theta_ic_083-theta_e_011) * q_th_109 * t_c_009 * rhoa_ca_108 * 24 / 1000
 
