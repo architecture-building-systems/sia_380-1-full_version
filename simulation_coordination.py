@@ -213,9 +213,13 @@ for config_index, config in configurations.iterrows():
         translations[translations['building use type'] == gebaeudekategorie_sia]['occupancy schedule'].to_numpy()[0]
         heating_setpoint = scenario['heating setpoint']  # number in deC or select "SIA" to follow the SIA380-1 code
         cooling_setpoint = scenario['cooling setpoint']  # number in deC or select "SIA" to follow the SIA380-1 code
+        shading_factor_season = np.array(str(scenario['shading factor']).split(" "), dtype=float)
+            # array with shading factors (per season: winter, spring, summer, fall)
         electricity_factor_source = scenario['emission source']
         electricity_factor_source_UBP = scenario['emission source UBP']
 
+        shading_factor_monthly = dp.factor_season_to_month(shading_factor_season)
+        shading_factor_hourly = dp.factor_month_to_hour(shading_factor_monthly)
         weather_data_sia = dp.epw_to_sia_irrad(weatherfile_path)
         infiltration_volume_flow = infiltration_volume_flow_planned * scenario['infiltration volume flow factor']
         # This accounts for improper construction/tightness
@@ -247,7 +251,7 @@ for config_index, config in configurations.iterrows():
                                       anlagennutzungsgrad_wrg, infiltration_volume_flow, ventilation_volume_flow,
                                       increased_ventilation_volume_flow, warmespeicherfahigkeit_pro_EBF,
                                       heat_pump_efficiency,
-                                      korrekturfaktor_luftungs_eff_f_v, hohe_uber_meer, heizsystem, dhw_heizsystem,
+                                      korrekturfaktor_luftungs_eff_f_v, hohe_uber_meer, shading_factor_monthly, heizsystem, dhw_heizsystem,
                                       cooling_system, heat_emission_system, cold_emission_system, heating_setpoint,
                                       cooling_setpoint, area_per_person, has_mechanical_ventilation)
 
@@ -262,7 +266,7 @@ for config_index, config in configurations.iterrows():
                                        anlagennutzungsgrad_wrg, infiltration_volume_flow, ventilation_volume_flow,
                                          increased_ventilation_volume_flow, warmespeicherfahigkeit_pro_EBF,
                                          heat_pump_efficiency,
-                                       korrekturfaktor_luftungs_eff_f_v, hohe_uber_meer, heizsystem, cooling_system,
+                                       korrekturfaktor_luftungs_eff_f_v, hohe_uber_meer, shading_factor_hourly, heizsystem, cooling_system,
                                          heat_emission_system, cold_emission_system,
                                        dhw_heizsystem, heating_setpoint, cooling_setpoint, area_per_person,
                                          has_mechanical_ventilation)

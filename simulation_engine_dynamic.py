@@ -1,5 +1,6 @@
 import sys
-sys.path.insert(1, r"C:\Users\LW_Simulation\Documents\RC_BuildingSimulator\rc_simulator")
+sys.path.insert(1, r"/Users/alexandra/Dokumente/code/RC_BuildingSimulator/rc_simulator")
+# sys.path.insert(1, r"C:\Users\LW_Simulation\Documents\RC_BuildingSimulator\rc_simulator")
 # sys.path.insert(1, r"C:\Users\walkerl\Documents\code\RC_BuildingSimulator\rc_simulator")
 from building_physics import Building
 import numpy as np
@@ -26,6 +27,7 @@ class Sim_Building(object):
                  heat_pump_efficiency,
                  korrekturfaktor_luftungs_eff_f_v,
                  height_above_sea,
+                 shading_factor_hourly,
                  heating_system,
                  cooling_system,
                  heat_emission_system,
@@ -51,6 +53,7 @@ class Sim_Building(object):
         self.warmespeicherfahigkeit_pro_ebf = thermal_storage_capacity_per_floor_area
         self.korrekturfaktor_luftungs_eff_f_v = korrekturfaktor_luftungs_eff_f_v
         self.hohe_uber_meer = height_above_sea
+        self.shading_factor_hourly = shading_factor_hourly
         self.heating_system = heating_system
         self.cooling_system = cooling_system
         self.area_per_person = area_per_person
@@ -243,7 +246,7 @@ class Sim_Building(object):
                                                                          dni_extra=dni_extra,
                                                                          model="isotropic",
                                                                          airmass=relative_air_mass)['poa_global'] * \
-                           self.windows[1][window] * self.windows[3][window]
+                           self.windows[1][window] * self.windows[3][window] * self.shading_factor_hourly
 
         for hour in range(8760):
             # Occupancy for the time step

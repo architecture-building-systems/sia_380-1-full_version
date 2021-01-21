@@ -5,7 +5,8 @@ import datetime
 import pvlib
 import os
 import sys
-sys.path.insert(1, r"C:\Users\LW_Simulation\Documents\RC_BuildingSimulator\rc_simulator")
+sys.path.insert(1, r"/Users/alexandra/Dokumente/code/RC_BuildingSimulator/rc_simulator")
+# sys.path.insert(1, r"C:\Users\LW_Simulation\Documents\RC_BuildingSimulator\rc_simulator")
 # sys.path.insert(1, r"C:\Users\walkerl\Documents\code\RC_BuildingSimulator\rc_simulator")
 import supply_system
 import emission_system
@@ -691,6 +692,37 @@ def calculate_self_consumption(hourly_demand, hourly_production):
         self_consumption_ratio = self_consumption.sum()/hourly_production.sum()
     return self_consumption_ratio
 
+def factor_season_to_month(seasonal_factor):
+    """
+    This function takes the seasonal factor and copies it to the corresponding months
+    winter, spring, summer, fall to December to November
+    :param seasonal_factor: np.array of seasonal factors
+    :return: np.array of monthly factors
+    """
+    monthly_factor = np.empty(12)
+
+    for i in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]:
+        if i in [12, 1, 2]:
+            monthly_factor[i-1] = seasonal_factor[0]
+        elif i in [3, 4, 5]:
+            monthly_factor[i-1] = seasonal_factor[1]
+        elif i in [6, 7, 8]:
+            monthly_factor[i-1] = seasonal_factor[2]
+        else :
+            monthly_factor[i-1] = seasonal_factor[3]
+
+    return monthly_factor
+
+def factor_month_to_hour(monthly_factor):
+    """
+    This function takes the monthly factor and copies it to the corresponding hours
+    :param monthly_factor: np.array of monthly factors
+    :return: np.array of hourly factors
+    """
+    hours_per_month = [744, 672, 744, 720, 744, 720, 744, 744, 720, 744, 720, 744]
+    hourly_factor = np.repeat(monthly_factor, hours_per_month)
+
+    return hourly_factor
 
 
 #### Robustness part
