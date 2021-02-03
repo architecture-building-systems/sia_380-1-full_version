@@ -297,6 +297,7 @@ for config_index, config in configurations.iterrows():
             config_index, scenario_index] = Gebaeude_dyn.operational_emissions_UBP.sum() / energiebezugsflache
 
         heating_demand_dyn[config_index, scenario_index] = Gebaeude_dyn.heating_demand.sum()/1000.0/energiebezugsflache
+        print(Gebaeude_dyn.heating_demand.max())
         cooling_demand_dyn[config_index, scenario_index] = Gebaeude_dyn.cooling_demand.sum()/1000.0/energiebezugsflache
         dhw_demand_dyn[config_index, scenario_index] = Gebaeude_dyn.dhw_demand.sum()/1000.0/energiebezugsflache
 
