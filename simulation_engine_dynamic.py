@@ -1,5 +1,7 @@
 import sys
-sys.path.insert(1, r"C:\Users\LW_Simulation\Documents\RC_BuildingSimulator\rc_simulator")
+sys.path.insert(1, r"/Users/alexandra/Dokumente/code/RC_BuildingSimulator/rc_simulator")
+# sys.path.insert(1, r"C:\Users\LW_Simulation\Documents\RC_BuildingSimulator\rc_simulator")
+# sys.path.insert(1, r"C:\Users\walkerl\Documents\code\RC_BuildingSimulator\rc_simulator")
 from building_physics import Building
 import numpy as np
 import pandas as pd
@@ -25,6 +27,7 @@ class Sim_Building(object):
                  heat_pump_efficiency,
                  korrekturfaktor_luftungs_eff_f_v,
                  height_above_sea,
+                 shading_factor_hourly,
                  heating_system,
                  cooling_system,
                  heat_emission_system,
@@ -50,6 +53,7 @@ class Sim_Building(object):
         self.warmespeicherfahigkeit_pro_ebf = thermal_storage_capacity_per_floor_area
         self.korrekturfaktor_luftungs_eff_f_v = korrekturfaktor_luftungs_eff_f_v
         self.hohe_uber_meer = height_above_sea
+        self.shading_factor_hourly = shading_factor_hourly
         self.heating_system = heating_system
         self.cooling_system = cooling_system
         self.area_per_person = area_per_person
@@ -64,7 +68,7 @@ class Sim_Building(object):
 
         ### RC Simulator inputs (derive from other inputs as much as possible)
         ## So far the lighting load is still hard coded because it is not looked at and I don't know the source.
-        lighting_load = 11.7  # [W/m2] (source?)
+        lighting_load = 11.7  # [W/m2] (source?) This probably comes from SIA 2024: Offices (11.6)
         lighting_control = 300.0  # lux threshold at which the lights turn on.
         lighting_utilisation_factor = 0.45
         lighting_maintenance_factor = 0.9
@@ -242,7 +246,7 @@ class Sim_Building(object):
                                                                          dni_extra=dni_extra,
                                                                          model="isotropic",
                                                                          airmass=relative_air_mass)['poa_global'] * \
-                           self.windows[1][window] * self.windows[3][window]
+                           self.windows[1][window] * self.windows[3][window] * self.shading_factor_hourly
 
         for hour in range(8760):
             # Occupancy for the time step
@@ -319,7 +323,7 @@ class Sim_Building(object):
             fossil_heating_emission_factors = np.repeat(0, 8760)
             fossil_heating_emission_factors_UBP = np.repeat(0, 8760)
 
-        if self.cooling_fossil_demand.any()>0: # TODO: Check if cooling fossil demand is given in - or +
+        if self.cooling_fossil_demand.any() > 0: # TODO: Check if cooling fossil demand is given in - or +
             fossil_cooling_emission_factors = dp.fossil_emission_factors(self.cooling_system)
             fossil_cooling_emission_factors_UBP = dp.fossil_emission_factors_UBP(self.cooling_system)
         else:
@@ -370,10 +374,21 @@ class Sim_Building(object):
 
 
     def run_heating_sizing(self):
-        self.nominal_heating_power = self.heating_demand.max()
+        # total energy per year divided by volllaststunden (SIA 2024; MFH) for heating
+        # self.nominal_heating_power = self.heating_demand.sum()/830
+        self.heating_hours = self.heating_demand[self.heating_demand >= 0.001]
+        self.nominal_heating_power = np.percentile(self.heating_hours, [100])
 
     def run_cooling_sizing(self):
-        self.nominal_cooling_power = self.cooling_demand.min()
+        # total energy per year divided by volllaststunden (SIA 2024; MFH) for cooling
+        # self.nominal_cooling_power = self.cooling_demand.min()
+        # self.nominal_cooling_power = self.cooling_demand.sum()/650
+        self.cooling_hours = self.cooling_demand[self.cooling_demand <= -0.001]
+
+        if self.cooling_hours.any() > 0:
+            self.nominal_cooling_power = np.percentile(abs(self.cooling_hours), [70])
+        else:
+            self.nominal_cooling_power = 0
 
 
 def comfort_assessment(indoor_temperature_time_series, comfort_range=[19.0, 25.0], discomfort_type="integrated"):

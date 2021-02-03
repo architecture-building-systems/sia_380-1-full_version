@@ -21,6 +21,7 @@ class Building(object):
                  heat_pump_efficiency,
                  korrekturfaktor_luftungs_eff_f_v,
                  height_above_sea,
+                 shading_factor_monthly,
                  heizsystem,
                  dhw_heizsystem,
                  cooling_system,
@@ -45,6 +46,7 @@ class Building(object):
         self.warmespeicherfahigkeit_pro_ebf = thermal_storage_capacity_per_floor_area # One value, float
         self.korrekturfaktor_luftungs_eff_f_v = korrekturfaktor_luftungs_eff_f_v
         self.hohe_uber_meer = height_above_sea
+        self.shading_factor_monthly = shading_factor_monthly #np.array of 12 factors
         self.heating_setpoint= heating_setpoint
         self.cooling_setpoint= cooling_setpoint
         self.area_per_person= area_per_person
@@ -134,7 +136,7 @@ class Building(object):
         heizwarmebedarf = np.empty(12)
 
 
-        ## Berchnung nach SIA380-1 Anhang D
+        ## Berechnung nach SIA380-1 Anhang D
 
         for month in range(12):
             t_c_009 = t_c[month]  # Länge Berechnungsschritt [d]
@@ -205,6 +207,7 @@ class Building(object):
             ## Gleiches gilt für die unten angegebenen Verschattungsfaktoren!
             f_f_072 = 0.95# Abminderungsfaktor für Fensterrahmen [-] Ebenfalls im Hardcode bei cooling nach ISO52016-1
             f_sh_073 = 1.0  # Verschattungsfaktor horizontal [-]
+            f_sh = self.shading_factor_monthly[month] # Verschattungsfaktor für bewegliche Sonnenblenden [-]
 
             ### spezielle Eingabedaten
             cr_ae_078 = self.warmespeicherfahigkeit_pro_ebf  # Wärmespeicherfähigkeit pro EBF [kWh/(m2K)]
@@ -248,14 +251,14 @@ class Building(object):
 
             if (q_t_107_temporary + ((theta_ic_083 - theta_e_011) * q_th_008 * t_c_009 * rhoa_ca_108 * 24)/1000) <= 0:
                 q_t_107 = 0
-                print("Keine Transmissionswärmeverluste q_t_107")
+                print("Keine Transmissionswärmeverluste q_t_107", month, temperatur_mittelwert[month])
             else:
                 q_t_107 = q_t_107_temporary
 
 
             if  q_t_107_temporary + (theta_ic_083-theta_e_011) * q_th_109 * t_c_009 * rhoa_ca_108 *24/1000 <= 0:
                 q_v_110 = 0
-                print("Kein Lüftungswärmeverlust")
+                print("Kein Lüftungswärmeverlust", month, temperatur_mittelwert[month])
             else:
                 q_v_110 = (theta_ic_083-theta_e_011) * q_th_109 * t_c_009 * rhoa_ca_108 * 24 / 1000
 
@@ -275,7 +278,7 @@ class Building(object):
             q_l_p_114 = q_p_004 * t_p_005 * t_c_009/(a_p_003 * 1000)
             q_i_115 = q_i_el_113 + q_l_p_114
 
-            q_s_121 = np.sum(g_s_windows * self.windows[1] * self.windows[3] * 0.9 * f_f_072 * f_sh_073 / a_e_017)
+            q_s_121 = np.sum(g_s_windows * self.windows[1] * self.windows[3] * 0.9 * f_f_072 * f_sh_073 * f_sh / a_e_017)
 
             q_g_122 = q_i_115 + q_s_121  # Interne Wärmegewinne
             if q_tot_111 == 0:  # This is not part of SIA380 but needs to be specified for months with no heating demand
@@ -404,7 +407,6 @@ class Building(object):
 
         q_hc_sol_wi = np.empty(12)
         f_glass_rahmen = 0.95  # zu verwendender Wert gemäss SIA 380/1
-        f_shading = 1  # anpassen, falls Verschattung diskutiert werden soll. Im Moment in SIA heating demand gleich.
         for month in range(12):
             g_sh_012 = globalstrahlung_horizontal_monatlich[month]  # globale Sonnenstrahlung horizontal [kWh/m2]
             g_ss_013 = globalstrahlung_sud_monatlich[month]  # hemisphärische Sonnenstrahlung Süd [kWh/m2]
@@ -415,7 +417,7 @@ class Building(object):
             g_s_windows = window_irradiation(self.windows, g_sh_012, g_ss_013, g_se_014, g_sw_015, g_sn_016)
 
             q_hc_sol_wi[month] = np.sum(g_s_windows * self.windows[1] * self.windows[3] * 0.9 *
-                                        f_glass_rahmen * f_shading)
+                                        f_glass_rahmen * self.shading_factor_monthly[month])
 
         # Solare Wärmegewinne durch opake Wände:
         # !!!!! ACHTUNG anschauen, ob dies nicht noch implementiert werden sollte. Vielleicht beim cooling
@@ -648,6 +650,12 @@ class Building(object):
             self.cooling_elec = 0.0
 
         self.electricity_demand += (self.heating_elec + self.dhw_elec + self.cooling_elec)
+        # At one point it might be useful to store these monthly values into a spreadsheet. For now they are only printed,
+        # for a quick reliability check of the results.
+        #print("total electricity demand:", self.electricity_demand)
+        #print("heating electricty demand", self.heating_elec)
+        #print("dhw electricity demand:", self.dhw_elec)
+        #print("cooling electricity demand", self.cooling_elec)
 
         electricity_demand_for_self_consumption = self.electricity_demand * self.energy_reference_area
 
@@ -732,8 +740,11 @@ class Building(object):
 
 
     def run_cooling_sizing(self):
-        self.nominal_cooling_power = self.energy_reference_area * 10  # in W TODO: remove hard coded value from SIA2024
-
+        if self.cooling_system == "None" or None:
+            self.nominal_cooling_power = 0.0
+        else:
+            #self.nominal_cooling_power = self.monthly_cooling_demand.sum()*self.energy_reference_area*1000/550
+            self.nominal_cooling_power = self.energy_reference_area * 10  # in W TODO: remove hard coded value from SIA2024
 
 
 def window_irradiation(windows, g_sh_012, g_ss_013, g_se_014, g_sw_015, g_sn_016):
