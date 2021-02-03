@@ -147,24 +147,20 @@ def calculate_system_related_embodied_emissions(ee_database_path, gebaeudekatego
 
 
 
-    # Calculation of embodied emissions for ventilation system
 
+    # Calculation of embodied emissions for ventilation system
     if has_mechanical_ventilation == True:
          ventilation_embodied_per_era = database['Value']['mechanical ventilation'] * max_aussenluft_volumenstrom
          ventilation_lifetime = database['lifetime']['mechanical ventilation']
          embodied_ventilation = ventilation_embodied_per_era * energy_reference_area / ventilation_lifetime
 
-         ventilation_embodied_per_era_ubp = database['Value_UBP']['mechanical ventilation'] * max_aussenluft_volumenstrom
-         embodied_ventilation_ubp = ventilation_embodied_per_era * energy_reference_area / ventilation_lifetime
+         ventilation_embodied_per_era_UBP = database['Value_UBP']['mechanical ventilation'] * max_aussenluft_volumenstrom
+         embodied_ventilation_UBP = ventilation_embodied_per_era_UBP * energy_reference_area / ventilation_lifetime
     else:
         embodied_ventilation = 0.0
-        embodied_ventilation_ubp = 0.0
-
+        embodied_ventilation_UBP = 0.0
 
     # Calculation of embodied emissions for the electrical systems
-
-
-
     ## PV System
     pv_embodied_per_kw = database['Value'][pv_type]  # this data is in kgCO2eq/kWp
     pv_embodied_per_kw_UBP = database['Value_UBP'][pv_type]  # this data is in UBP/kWp
@@ -175,11 +171,11 @@ def calculate_system_related_embodied_emissions(ee_database_path, gebaeudekatego
     embodied_electrical = pv_embodied
     embodied_electrical_UBP = pv_embodied_UBP
 
+    # Calculation of total embodied building systems: heater, cooler, distribution, emission, electric (PV), ventilation
     embodied_thermal_electrical_vent = embodied_thermal + embodied_electrical + embodied_ventilation
-    embodied_thermal_electrical_vent_UBP = embodied_thermal_UBP + embodied_electrical_UBP + embodied_ventilation_ubp
+    embodied_thermal_electrical_vent_UBP = embodied_thermal_UBP + embodied_electrical_UBP + embodied_ventilation_UBP
 
     return embodied_thermal_electrical_vent, embodied_thermal_electrical_vent_UBP
-
 
 
 def calculate_envelope_emissions(database_path, total_wall_area, wall_type, total_window_area,
@@ -228,7 +224,8 @@ def calculate_envelope_emissions(database_path, total_wall_area, wall_type, tota
     embodied_envelope = wall_embodied + window_embodied + roof_embodied + floor_embodied
     embodied_envelope_UBP = wall_embodied_UBP + window_embodied_UBP + roof_embodied_UBP + floor_embodied_UBP
 
-    return embodied_envelope, embodied_envelope_UBP
+    return embodied_envelope, embodied_envelope_UBP, wall_embodied, wall_embodied_UBP, window_embodied, window_embodied_UBP, \
+    roof_embodied, roof_embodied_UBP, floor_embodied, floor_embodied_UBP
     # in total GHG emissions per year (kgCO2eq/a) and (UBP/a)
 
 

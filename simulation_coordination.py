@@ -36,6 +36,7 @@ embodied_systems_dyn_performance_path = os.path.join(main_path, results_folder, 
 embodied_systems_dyn_performance_path_UBP = os.path.join(main_path, results_folder, 'embodied_systems_hourly_UBP.xlsx')
 embodied_envelope_performance_path = os.path.join(main_path, results_folder, 'embodied_envelope.xlsx')
 embodied_envelope_performance_path_UBP = os.path.join(main_path, results_folder, 'embodied_envelope_UBP.xlsx')
+embodied_envelope_performance_detailed_path = os.path.join(main_path, results_folder, 'embodied_envelope_detailed.xlsx')
 
 dyn_heat_path = os.path.join(main_path, results_folder, 'heat_demand_hourly.xlsx')
 dyn_cold_path = os.path.join(main_path, results_folder, 'cooling_demand_hourly.xlsx')
@@ -212,9 +213,13 @@ for config_index, config in configurations.iterrows():
         translations[translations['building use type'] == gebaeudekategorie_sia]['occupancy schedule'].to_numpy()[0]
         heating_setpoint = scenario['heating setpoint']  # number in deC or select "SIA" to follow the SIA380-1 code
         cooling_setpoint = scenario['cooling setpoint']  # number in deC or select "SIA" to follow the SIA380-1 code
+        shading_factor_season = np.array(str(scenario['shading factor']).split(" "), dtype=float)
+            # array with shading factors (per season: winter, spring, summer, fall)
         electricity_factor_source = scenario['emission source']
         electricity_factor_source_UBP = scenario['emission source UBP']
 
+        shading_factor_monthly = dp.factor_season_to_month(shading_factor_season)
+        shading_factor_hourly = dp.factor_month_to_hour(shading_factor_monthly)
         weather_data_sia = dp.epw_to_sia_irrad(weatherfile_path)
         infiltration_volume_flow = infiltration_volume_flow_planned * scenario['infiltration volume flow factor']
         # This accounts for improper construction/tightness
@@ -246,7 +251,7 @@ for config_index, config in configurations.iterrows():
                                       anlagennutzungsgrad_wrg, infiltration_volume_flow, ventilation_volume_flow,
                                       increased_ventilation_volume_flow, warmespeicherfahigkeit_pro_EBF,
                                       heat_pump_efficiency,
-                                      korrekturfaktor_luftungs_eff_f_v, hohe_uber_meer, heizsystem, dhw_heizsystem,
+                                      korrekturfaktor_luftungs_eff_f_v, hohe_uber_meer, shading_factor_monthly, heizsystem, dhw_heizsystem,
                                       cooling_system, heat_emission_system, cold_emission_system, heating_setpoint,
                                       cooling_setpoint, area_per_person, has_mechanical_ventilation)
 
@@ -261,7 +266,7 @@ for config_index, config in configurations.iterrows():
                                        anlagennutzungsgrad_wrg, infiltration_volume_flow, ventilation_volume_flow,
                                          increased_ventilation_volume_flow, warmespeicherfahigkeit_pro_EBF,
                                          heat_pump_efficiency,
-                                       korrekturfaktor_luftungs_eff_f_v, hohe_uber_meer, heizsystem, cooling_system,
+                                       korrekturfaktor_luftungs_eff_f_v, hohe_uber_meer, shading_factor_hourly, heizsystem, cooling_system,
                                          heat_emission_system, cold_emission_system,
                                        dhw_heizsystem, heating_setpoint, cooling_setpoint, area_per_person,
                                          has_mechanical_ventilation)
@@ -547,7 +552,17 @@ for config_index, config in configurations.iterrows():
 
     embodied_envelope_emissions_performance_matrix[config_index] = annualized_embodied_emsissions_envelope[0]/energiebezugsflache
     embodied_envelope_emissions_performance_matrix_UBP[config_index] = annualized_embodied_emsissions_envelope[1]/energiebezugsflache
-
+    eee_wall = annualized_embodied_emsissions_envelope[2]/energiebezugsflache
+    eee_wall_UBP = annualized_embodied_emsissions_envelope[3]/energiebezugsflache
+    eee_window = annualized_embodied_emsissions_envelope[4] / energiebezugsflache
+    eee_window_UBP = annualized_embodied_emsissions_envelope[5] / energiebezugsflache
+    eee_roof = annualized_embodied_emsissions_envelope[6] / energiebezugsflache
+    eee_roof_UBP = annualized_embodied_emsissions_envelope[7] / energiebezugsflache
+    eee_floor = annualized_embodied_emsissions_envelope[8]/energiebezugsflache
+    eee_floor_UBP = annualized_embodied_emsissions_envelope[9]/energiebezugsflache
+    embodied_envelope_emissions_detailed_matrix = np.array( [['0','wall', 'window', 'roof', 'floor'],
+                                                            ['GWP', eee_wall, eee_window, eee_roof, eee_floor],
+                                                            ['UBP', eee_wall_UBP, eee_window_UBP, eee_roof_UBP, eee_floor_UBP]])
 
 """
 Last but not least, all the created dataframes from the embodied part are stored in the file locations given in the 
@@ -568,4 +583,6 @@ pd.DataFrame(embodied_systems_emissions_performance_matrix_dyn_UBP, index=config
     embodied_systems_dyn_performance_path_UBP)
 pd.DataFrame(embodied_envelope_emissions_performance_matrix_UBP, index=configurations.index).to_excel(
     embodied_envelope_performance_path_UBP)
+
+pd.DataFrame(embodied_envelope_emissions_detailed_matrix).to_excel(embodied_envelope_performance_detailed_path)
 
