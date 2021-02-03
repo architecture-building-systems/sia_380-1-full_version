@@ -2,6 +2,9 @@
 
 #files die ich lokal zwischenspeichere
 data/Zwischenspeichern/
+data/configurations.xlsx
+data/embodied_emissions_systems.xlsx
+
 
 
 #Resultate
@@ -17,4 +20,16 @@ data/performance_matrix_UBA_monthly.xlsx
 data/sc_ratio.xlsx
 data/scenarios_UBA.xlsx
 data/walls.xlsx
+
+
+# Überflüssige Wetterfiles
+data/Zürich-2030-A1B.epw
+data/Zürich-2030-A2.epw
+data/Zürich-2030-B1.epw
+data/Zürich-2040-A1B.epw
+data/Zürich-2040-A2.epw
+data/Zürich-2040-B1.epw
+data/Zürich-2070-A1B.epw
+data/Zürich-2070-B1.epw
+
 
