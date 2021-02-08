@@ -36,7 +36,7 @@ embodied_systems_dyn_performance_path = os.path.join(main_path, results_folder, 
 embodied_systems_dyn_performance_path_UBP = os.path.join(main_path, results_folder, 'embodied_systems_hourly_UBP.xlsx')
 embodied_envelope_performance_path = os.path.join(main_path, results_folder, 'embodied_envelope.xlsx')
 embodied_envelope_performance_path_UBP = os.path.join(main_path, results_folder, 'embodied_envelope_UBP.xlsx')
-embodied_envelope_performance_detailed_path = os.path.join(main_path, results_folder, 'embodied_envelope_detailed.xlsx')
+embodied_envelope_performance_detailed_path = os.path.join(main_path, results_folder, 'embodied_envelope_detailed')
 
 dyn_heat_path = os.path.join(main_path, results_folder, 'heat_demand_hourly.xlsx')
 dyn_cold_path = os.path.join(main_path, results_folder, 'cooling_demand_hourly.xlsx')
@@ -456,6 +456,16 @@ embodied_systems_emissions_performance_matrix_stat_UBP = np.empty((len(configura
 embodied_systems_emissions_performance_matrix_dyn_UBP = np.empty((len(configurations.index), len(scenarios.index)))
 embodied_envelope_emissions_performance_matrix_UBP = np.empty((len(configurations.index), len(scenarios.index)))
 
+eee_wall = np.empty((len(configurations.index), len(scenarios.index)))
+eee_wall_UBP = np.empty((len(configurations.index), len(scenarios.index)))
+eee_window = np.empty((len(configurations.index), len(scenarios.index)))
+eee_window_UBP = np.empty((len(configurations.index), len(scenarios.index)))
+eee_roof = np.empty((len(configurations.index), len(scenarios.index)))
+eee_roof_UBP = np.empty((len(configurations.index), len(scenarios.index)))
+eee_floor = np.empty((len(configurations.index), len(scenarios.index)))
+eee_floor_UBP = np.empty((len(configurations.index), len(scenarios.index)))
+
+
 """
 ###################################### SYSTEM SIMULATION #######################################################
 In this part the embodied simulation is happening in two steps:
@@ -562,14 +572,15 @@ for config_index, config in configurations.iterrows():
         embodied_envelope_emissions_performance_matrix_UBP[config_index, scenario_index] = annualized_embodied_emsissions_envelope[1]/energiebezugsflache / envelope_lifetime_factor
 
 
-    eee_wall = annualized_embodied_emsissions_envelope[2]/energiebezugsflache
-    eee_wall_UBP = annualized_embodied_emsissions_envelope[3]/energiebezugsflache
-    eee_window = annualized_embodied_emsissions_envelope[4] / energiebezugsflache
-    eee_window_UBP = annualized_embodied_emsissions_envelope[5] / energiebezugsflache
-    eee_roof = annualized_embodied_emsissions_envelope[6] / energiebezugsflache
-    eee_roof_UBP = annualized_embodied_emsissions_envelope[7] / energiebezugsflache
-    eee_floor = annualized_embodied_emsissions_envelope[8]/energiebezugsflache
-    eee_floor_UBP = annualized_embodied_emsissions_envelope[9]/energiebezugsflache
+        eee_wall[config_index, scenario_index] = annualized_embodied_emsissions_envelope[2]/energiebezugsflache/ envelope_lifetime_factor
+        eee_wall_UBP[config_index, scenario_index] = annualized_embodied_emsissions_envelope[3]/energiebezugsflache/ envelope_lifetime_factor
+        eee_window[config_index, scenario_index] = annualized_embodied_emsissions_envelope[4] / energiebezugsflache/ envelope_lifetime_factor
+        eee_window_UBP[config_index, scenario_index] = annualized_embodied_emsissions_envelope[5] / energiebezugsflache/ envelope_lifetime_factor
+        eee_roof[config_index, scenario_index] = annualized_embodied_emsissions_envelope[6] / energiebezugsflache/ envelope_lifetime_factor
+        eee_roof_UBP[config_index, scenario_index] = annualized_embodied_emsissions_envelope[7] / energiebezugsflache/ envelope_lifetime_factor
+        eee_floor[config_index, scenario_index] = annualized_embodied_emsissions_envelope[8]/energiebezugsflache/ envelope_lifetime_factor
+        eee_floor_UBP[config_index, scenario_index] = annualized_embodied_emsissions_envelope[9]/energiebezugsflache/ envelope_lifetime_factor
+
     embodied_envelope_emissions_detailed_matrix = np.array( [['0','wall', 'window', 'roof', 'floor'],
                                                             ['GWP', eee_wall, eee_window, eee_roof, eee_floor],
                                                             ['UBP', eee_wall_UBP, eee_window_UBP, eee_roof_UBP, eee_floor_UBP]])
@@ -596,5 +607,15 @@ pd.DataFrame(embodied_systems_emissions_performance_matrix_dyn_UBP, index=config
 pd.DataFrame(embodied_envelope_emissions_performance_matrix_UBP, index=configurations.index).to_excel(
     embodied_envelope_performance_path_UBP)
 
-pd.DataFrame(embodied_envelope_emissions_detailed_matrix).to_excel(embodied_envelope_performance_detailed_path)
 
+pd.DataFrame(eee_wall).to_excel(os.path.join(embodied_envelope_performance_detailed_path, 'wall_GWP.xlsx'))
+pd.DataFrame(eee_wall_UBP).to_excel(os.path.join(embodied_envelope_performance_detailed_path, 'wall_UBP.xlsx'))
+pd.DataFrame(eee_window).to_excel(os.path.join(embodied_envelope_performance_detailed_path, 'window_GWP.xlsx'))
+pd.DataFrame(eee_window_UBP).to_excel(os.path.join(embodied_envelope_performance_detailed_path, 'wall_UBP.xlsx'))
+pd.DataFrame(eee_roof).to_excel(os.path.join(embodied_envelope_performance_detailed_path, 'roof_GWP.xlsx'))
+pd.DataFrame(eee_roof_UBP).to_excel(os.path.join(embodied_envelope_performance_detailed_path, 'roof_UBP.xlsx'))
+pd.DataFrame(eee_floor).to_excel(os.path.join(embodied_envelope_performance_detailed_path, 'floor_GWP.xlsx'))
+pd.DataFrame(eee_floor_UBP).to_excel(os.path.join(embodied_envelope_performance_detailed_path, 'floor_UBP.xlsx'))
+
+
+os.path.join(main_path, results_folder, 'embodied_envelope_detailed')
