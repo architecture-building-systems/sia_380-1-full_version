@@ -213,11 +213,11 @@ for config_index, config in configurations.iterrows():
         translations[translations['building use type'] == gebaeudekategorie_sia]['occupancy schedule'].to_numpy()[0]
         heating_setpoint = scenario['heating setpoint']  # number in deC or select "SIA" to follow the SIA380-1 code
         cooling_setpoint = scenario['cooling setpoint']  # number in deC or select "SIA" to follow the SIA380-1 code
+
         shading_factor_season = np.array(str(scenario['shading factor']).split(" "), dtype=float)
             # array with shading factors (per season: winter, spring, summer, fall)
         electricity_factor_source = scenario['emission source']
         electricity_factor_source_UBP = scenario['emission source UBP']
-
         shading_factor_monthly = dp.factor_season_to_month(shading_factor_season)
         shading_factor_hourly = dp.factor_month_to_hour(shading_factor_monthly)
         weather_data_sia = dp.epw_to_sia_irrad(weatherfile_path)
@@ -302,7 +302,6 @@ for config_index, config in configurations.iterrows():
             config_index, scenario_index] = Gebaeude_dyn.operational_emissions_UBP.sum() / energiebezugsflache
 
         heating_demand_dyn[config_index, scenario_index] = Gebaeude_dyn.heating_demand.sum()/1000.0/energiebezugsflache
-        print(Gebaeude_dyn.heating_demand.max())
         cooling_demand_dyn[config_index, scenario_index] = Gebaeude_dyn.cooling_demand.sum()/1000.0/energiebezugsflache
         dhw_demand_dyn[config_index, scenario_index] = Gebaeude_dyn.dhw_demand.sum()/1000.0/energiebezugsflache
 
@@ -449,13 +448,13 @@ Codewise it is important to see that here it is no longer possible to call the c
 recollected from the configuration file.
 """
 
-embodied_systems_emissions_performance_matrix_stat = np.empty(len(configurations.index))
-embodied_systems_emissions_performance_matrix_dyn = np.empty(len(configurations.index))
-embodied_envelope_emissions_performance_matrix = np.empty(len(configurations.index))
+embodied_systems_emissions_performance_matrix_stat = np.empty((len(configurations.index), len(scenarios.index)))
+embodied_systems_emissions_performance_matrix_dyn = np.empty((len(configurations.index), len(scenarios.index)))
+embodied_envelope_emissions_performance_matrix = np.empty((len(configurations.index), len(scenarios.index)))
 
-embodied_systems_emissions_performance_matrix_stat_UBP = np.empty(len(configurations.index))
-embodied_systems_emissions_performance_matrix_dyn_UBP = np.empty(len(configurations.index))
-embodied_envelope_emissions_performance_matrix_UBP = np.empty(len(configurations.index))
+embodied_systems_emissions_performance_matrix_stat_UBP = np.empty((len(configurations.index), len(scenarios.index)))
+embodied_systems_emissions_performance_matrix_dyn_UBP = np.empty((len(configurations.index), len(scenarios.index)))
+embodied_envelope_emissions_performance_matrix_UBP = np.empty((len(configurations.index), len(scenarios.index)))
 
 """
 ###################################### SYSTEM SIMULATION #######################################################
@@ -475,7 +474,9 @@ for config_index, config in configurations.iterrows():
 
     energiebezugsflache = config['energy reference area']  # m2
 
-
+    # At the moment hard coded here because embodied emissions are not yet based on scenarios
+    envelope_lifetime_factor = 1.0
+    system_lifetime_factor = 1.0
 
     ## Systeme
     """
@@ -508,8 +509,6 @@ for config_index, config in configurations.iterrows():
                                                         has_mechanical_ventilation=config['mechanical ventilation'],
                                                         max_aussenluft_volumenstrom=relevant_volume_flow)
 
-    embodied_systems_emissions_performance_matrix_stat[config_index] = embodied_impact_stat[0]/energiebezugsflache
-    embodied_systems_emissions_performance_matrix_stat_UBP[config_index] = embodied_impact_stat[1]/energiebezugsflache
 
     embodied_impact_dyn =  eec.calculate_system_related_embodied_emissions(ee_database_path=sys_ee_database_path,
                                                         gebaeudekategorie=scenarios.loc[0, 'building use type'],
@@ -527,9 +526,6 @@ for config_index, config in configurations.iterrows():
                                                         pv_efficiency=config['PV efficiency'],
                                                         has_mechanical_ventilation=config['mechanical ventilation'],
                                                         max_aussenluft_volumenstrom=relevant_volume_flow)
-
-    embodied_systems_emissions_performance_matrix_dyn[config_index] = embodied_impact_dyn[0]/energiebezugsflache
-    embodied_systems_emissions_performance_matrix_dyn_UBP[config_index] = embodied_impact_dyn[1]/energiebezugsflache
 
     total_wall_area = np.array(config['wall areas'].split(" "), dtype=float).sum()
     total_window_area = np.array(config['window areas'].split(" "), dtype=float).sum()
@@ -551,8 +547,21 @@ for config_index, config in configurations.iterrows():
                                          ceiling_type=config['ceiling type'])
 
 
-    embodied_envelope_emissions_performance_matrix[config_index] = annualized_embodied_emsissions_envelope[0]/energiebezugsflache
-    embodied_envelope_emissions_performance_matrix_UBP[config_index] = annualized_embodied_emsissions_envelope[1]/energiebezugsflache
+    for scenario_index, scenario in scenarios.iterrows():
+
+        envelope_lifetime_factor = scenario['envelope lifetime factor']
+        system_lifetime_factor = scenario['system lifetime factor']
+
+        embodied_systems_emissions_performance_matrix_stat[config_index, scenario_index] = embodied_impact_stat[0] / energiebezugsflache/ system_lifetime_factor
+        embodied_systems_emissions_performance_matrix_stat_UBP[config_index, scenario_index] = embodied_impact_stat[1] / energiebezugsflache/ system_lifetime_factor
+
+        embodied_systems_emissions_performance_matrix_dyn[config_index, scenario_index] = embodied_impact_dyn[0] / energiebezugsflache /system_lifetime_factor
+        embodied_systems_emissions_performance_matrix_dyn_UBP[config_index, scenario_index] = embodied_impact_dyn[1] / energiebezugsflache / system_lifetime_factor
+
+        embodied_envelope_emissions_performance_matrix[config_index, scenario_index] = annualized_embodied_emsissions_envelope[0]/energiebezugsflache / envelope_lifetime_factor
+        embodied_envelope_emissions_performance_matrix_UBP[config_index, scenario_index] = annualized_embodied_emsissions_envelope[1]/energiebezugsflache / envelope_lifetime_factor
+
+
     eee_wall = annualized_embodied_emsissions_envelope[2]/energiebezugsflache
     eee_wall_UBP = annualized_embodied_emsissions_envelope[3]/energiebezugsflache
     eee_window = annualized_embodied_emsissions_envelope[4] / energiebezugsflache
@@ -564,6 +573,8 @@ for config_index, config in configurations.iterrows():
     embodied_envelope_emissions_detailed_matrix = np.array( [['0','wall', 'window', 'roof', 'floor'],
                                                             ['GWP', eee_wall, eee_window, eee_roof, eee_floor],
                                                             ['UBP', eee_wall_UBP, eee_window_UBP, eee_roof_UBP, eee_floor_UBP]])
+
+
 
 """
 Last but not least, all the created dataframes from the embodied part are stored in the file locations given in the 
