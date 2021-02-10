@@ -377,7 +377,10 @@ class Sim_Building(object):
         # total energy per year divided by volllaststunden (SIA 2024; MFH) for heating
         # self.nominal_heating_power = self.heating_demand.sum()/830
         self.heating_hours = self.heating_demand[self.heating_demand >= 0.001]
-        self.nominal_heating_power = np.percentile(self.heating_hours, [100])
+        if self.heating_hours.size == 0:
+            self.nominal_heating_power = 0.0
+        else:
+            self.nominal_heating_power = np.percentile(self.heating_hours, [100])
 
     def run_cooling_sizing(self):
         # total energy per year divided by volllaststunden (SIA 2024; MFH) for cooling
