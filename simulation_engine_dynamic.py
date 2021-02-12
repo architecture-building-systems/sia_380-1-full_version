@@ -318,23 +318,23 @@ class Sim_Building(object):
 
         if self.heating_fossil_demand.any()>0:
             # Those factors come in kgCO2eq or UBP per kWh heating energy
-            fossil_heating_emission_factors = dp.fossil_emission_factors(self.heating_system)
-            fossil_heating_emission_factors_UBP = dp.fossil_emission_factors_UBP(self.heating_system)
+            fossil_heating_emission_factors = dp.fossil_emission_factors(self.heating_system, self.combustion_efficiency_factor)
+            fossil_heating_emission_factors_UBP = dp.fossil_emission_factors_UBP(self.heating_system, self.combustion_efficiency_factor)
         else:
             # This is necessary for the vectorized multiplication below
             fossil_heating_emission_factors = np.repeat(0, 8760)
             fossil_heating_emission_factors_UBP = np.repeat(0, 8760)
 
         if self.cooling_fossil_demand.any() > 0: # TODO: Check if cooling fossil demand is given in - or +
-            fossil_cooling_emission_factors = dp.fossil_emission_factors(self.cooling_system)
-            fossil_cooling_emission_factors_UBP = dp.fossil_emission_factors_UBP(self.cooling_system)
+            fossil_cooling_emission_factors = dp.fossil_emission_factors(self.cooling_system, self.combustion_efficiency_factor)
+            fossil_cooling_emission_factors_UBP = dp.fossil_emission_factors_UBP(self.cooling_system, self.combustion_efficiency_factor)
         else:
             fossil_cooling_emission_factors = np.repeat(0, 8760)
             fossil_cooling_emission_factors_UBP = np.repeat(0, 8760)
 
         if self.dhw_fossil_demand.any() > 0:
-            fossil_dhw_emission_factors = dp.fossil_emission_factors(self.dhw_heating_system)
-            fossil_dhw_emission_factors_UBP = dp.fossil_emission_factors_UBP(self.dhw_heating_system)
+            fossil_dhw_emission_factors = dp.fossil_emission_factors(self.dhw_heating_system, self.combustion_efficiency_factor)
+            fossil_dhw_emission_factors_UBP = dp.fossil_emission_factors_UBP(self.dhw_heating_system, self.combustion_efficiency_factor)
         else:
             fossil_dhw_emission_factors = np.repeat(0,8760)
             fossil_dhw_emission_factors_UBP = np.repeat(0, 8760)
@@ -371,8 +371,8 @@ class Sim_Building(object):
             self.electricity_emissions_UBP[hour] = (self.net_electricity_demand[hour] * grid_emission_factors_UBP[hour]) / 1000.0
 
 
-        self.operational_emissions = self.fossil_emissions*self.combustion_efficiency_factor + self.electricity_emissions
-        self.operational_emissions_UBP = self.fossil_emissions_UBP*self.combustion_efficiency_factor + self.electricity_emissions_UBP
+        self.operational_emissions = self.fossil_emissions + self.electricity_emissions
+        self.operational_emissions_UBP = self.fossil_emissions_UBP + self.electricity_emissions_UBP
 
 
     def run_heating_sizing(self):
@@ -382,7 +382,7 @@ class Sim_Building(object):
         if self.heating_hours.size == 0:
             self.nominal_heating_power = 0.0
         else:
-            self.nominal_heating_power = np.percentile(self.heating_hours, [100])
+            self.nominal_heating_power = np.percentile(self.heating_hours, [99.5])
 
     def run_cooling_sizing(self):
         # total energy per year divided by volllaststunden (SIA 2024; MFH) for cooling
