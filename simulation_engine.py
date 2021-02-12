@@ -19,6 +19,7 @@ class Building(object):
                  ventilation_volume_flow_increased,
                  thermal_storage_capacity_per_floor_area,
                  heat_pump_efficiency,
+                 combustion_efficiency_factor,
                  korrekturfaktor_luftungs_eff_f_v,
                  height_above_sea,
                  shading_factor_monthly,
@@ -58,6 +59,7 @@ class Building(object):
         self.heating_supply_temperature = dp.lookup_supply_temperatures_according_to_rc(self.heat_emission_system)[0]
         self.cooling_supply_temperature = dp.lookup_supply_temperatures_according_to_rc(self.cold_emission_system)[1]
         self.heat_pump_efficiency = heat_pump_efficiency
+        self.combustion_efficiency_factor = combustion_efficiency_factor
         self.has_mechanical_ventilation = has_mechanical_ventilation
 
         # Further optional attributes:
@@ -682,8 +684,10 @@ class Building(object):
 
         # account for fossil heating emissions in GWP and UBP
         if self.heating_system in ["Oil", "Natural Gas", "Wood", "Pellets", "district"]:
-            self.fossil_heating_emissions = self.heizwarmebedarf * dp.fossil_emission_factors(self.heating_system).mean()
-            self.fossil_heating_emissions_UBP = self.heizwarmebedarf * dp.fossil_emission_factors_UBP(self.heating_system).mean()
+            self.fossil_heating_emissions = \
+                self.heizwarmebedarf * dp.fossil_emission_factors(self.heating_system)*self.combustion_efficiency_factor.mean()
+            self.fossil_heating_emissions_UBP = \
+                self.heizwarmebedarf * dp.fossil_emission_factors_UBP(self.heating_system)*self.combustion_efficiency_factor.mean()
         else:
             self.fossil_heating_emissions = 0.0
             self.fossil_heating_emissions_UBP = 0.0
@@ -692,8 +696,10 @@ class Building(object):
 
         # account for fossil dhw emissions in GWP and UBP
         if self.dhw_heating_system in ["Oil", "Natural Gas", "Wood", "Pellets", "district"]:
-            self.fossil_dhw_emissions = self.dhw_demand * dp.fossil_emission_factors(self.dhw_heating_system).mean()
-            self.fossil_dhw_emissions_UBP = self.dhw_demand * dp.fossil_emission_factors_UBP(self.dhw_heating_system).mean()
+            self.fossil_dhw_emissions = \
+                self.dhw_demand * dp.fossil_emission_factors(self.dhw_heating_system)*self.combustion_efficiency_factor.mean()
+            self.fossil_dhw_emissions_UBP = \
+                self.dhw_demand * dp.fossil_emission_factors_UBP(self.dhw_heating_system)*self.combustion_efficiency_factor.mean()
         else:
             self.fossil_dhw_emissions = 0.0
             self.fossil_dhw_emissions_UBP = 0.0

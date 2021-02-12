@@ -1,6 +1,6 @@
 import sys
-sys.path.insert(1, r"/Users/alexandra/Dokumente/code/RC_BuildingSimulator/rc_simulator")
-# sys.path.insert(1, r"C:\Users\LW_Simulation\Documents\RC_BuildingSimulator\rc_simulator")
+# sys.path.insert(1, r"/Users/alexandra/Dokumente/code/RC_BuildingSimulator/rc_simulator")
+sys.path.insert(1, r"C:\Users\LW_Simulation\Documents\RC_BuildingSimulator\rc_simulator")
 # sys.path.insert(1, r"C:\Users\walkerl\Documents\code\RC_BuildingSimulator\rc_simulator")
 from building_physics import Building
 import numpy as np
@@ -25,6 +25,7 @@ class Sim_Building(object):
                  increased_ventilation_volume_flow,
                  thermal_storage_capacity_per_floor_area,
                  heat_pump_efficiency,
+                 combustion_efficiency_factor,
                  korrekturfaktor_luftungs_eff_f_v,
                  height_above_sea,
                  shading_factor_hourly,
@@ -92,6 +93,7 @@ class Sim_Building(object):
         self.t_set_heating = heating_setpoint
         self.t_set_cooling = cooling_setpoint
         self.heat_pump_efficiency = heat_pump_efficiency
+        self.combustion_efficiency_factor = combustion_efficiency_factor
 
         self.dhw_supply_temperature = 60  # deg C fixed and hard coded
 
@@ -369,8 +371,8 @@ class Sim_Building(object):
             self.electricity_emissions_UBP[hour] = (self.net_electricity_demand[hour] * grid_emission_factors_UBP[hour]) / 1000.0
 
 
-        self.operational_emissions = self.fossil_emissions + self.electricity_emissions
-        self.operational_emissions_UBP = self.fossil_emissions_UBP + self.electricity_emissions_UBP
+        self.operational_emissions = self.fossil_emissions*self.combustion_efficiency_factor + self.electricity_emissions
+        self.operational_emissions_UBP = self.fossil_emissions_UBP*self.combustion_efficiency_factor + self.electricity_emissions_UBP
 
 
     def run_heating_sizing(self):

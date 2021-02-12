@@ -134,17 +134,13 @@ for config_index, config in configurations.iterrows():
     ventilation_volume_flow = config['ventilation volume flow'] # give a number in m3/(hm2) or select "SIA" to follow SIA380-1 code
     increased_ventilation_volume_flow = config['increased ventilation volume flow'] # give a number in m3/hm2, this volume flow is used when cooling with outside air is possible
     area_per_person = config['area per person']  # give a number or select "SIA" to follow the SIA380-1 code (typical for MFH 40)
-    thermal_bridge_add_on = config['thermal bridge add on']  # in %
-    thermal_bridge_factor = 1.0 + (thermal_bridge_add_on / 100.0)
 
     ## Gebäudehülle
-    # the thermal bridge factor leads to an overal increas in transmittance losses. It is implemented here
-    # because that is the easiest way. For result analysis the input file u-values need to be used.
-    u_windows = config['u-value window'] * thermal_bridge_factor
+    u_windows_raw = config['u-value window']
     g_windows = config['g-value window']
-    u_walls = config['u-value wall'] * thermal_bridge_factor
-    u_roof = config['u-value roof'] * thermal_bridge_factor
-    u_floor = config['u-value floor'] * thermal_bridge_factor
+    u_walls_raw = config['u-value wall']
+    u_roof_raw = config['u-value roof']
+    u_floor_raw = config['u-value floor']
     b_floor = 0.4 # lasse ich so, weil nicht direkt beeinflussbar
 
     ## Systeme
@@ -161,7 +157,6 @@ for config_index, config in configurations.iterrows():
     cold_emission_system = config['cold emission system']
     pv_efficiency = config['PV efficiency']
     pv_performance_ratio = config['PV performance ratio']
-    heat_pump_efficiency = config['heat pump efficiency']
     has_mechanical_ventilation = config['mechanical ventilation']
 
     pv_area = np.array(str(config['PV area']).split(" "), dtype=float)  # m2, can be directly linked with roof size
@@ -171,28 +166,6 @@ for config_index, config in configurations.iterrows():
     wall_areas = np.array(config['wall areas'].split(" "), dtype=float)
     window_areas = np.array(config['window areas'].split(" "), dtype=float)
     window_orientations = np.array(config['window orientations'].split(" "), dtype=str)
-
-
-
-
-    ## Bauteile:
-    # Windows: [[Orientation],[Areas],[U-value],[g-value]]
-    windows = np.array([window_orientations,
-                        window_areas,
-                        np.repeat(u_windows, len(window_orientations)),
-                        np.repeat(g_windows, len(window_orientations))],
-                       dtype=object)  # dtype=object is necessary because there are different data types
-
-    # walls: [[Areas], [U-values]] zuvor waren es 4 x 412.5
-    walls = np.array([wall_areas,
-                      np.repeat(u_walls, len(wall_areas))])
-
-
-    # roof: [[Areas], [U-values]]
-    roof = np.array([[config["roof area"]], [u_roof]])
-
-    # floor to ground (for now) [[Areas],[U-values],[b-values]]
-    floor = np.array([[config["floor area"]], [u_floor], [b_floor]])
 
     #This print helps keeping track of the simulation progress.
     print("Configuration %s prepared" %config_index)
@@ -213,6 +186,8 @@ for config_index, config in configurations.iterrows():
         translations[translations['building use type'] == gebaeudekategorie_sia]['occupancy schedule'].to_numpy()[0]
         heating_setpoint = scenario['heating setpoint']  # number in deC or select "SIA" to follow the SIA380-1 code
         cooling_setpoint = scenario['cooling setpoint']  # number in deC or select "SIA" to follow the SIA380-1 code
+        heat_pump_efficiency = scenario['heat pump efficiency']
+        combustion_efficiency_factor = scenario['combustion efficiency factor']
 
         shading_factor_season = np.array(str(scenario['shading factor']).split(" "), dtype=float)
             # array with shading factors (per season: winter, spring, summer, fall)
@@ -223,6 +198,33 @@ for config_index, config in configurations.iterrows():
         weather_data_sia = dp.epw_to_sia_irrad(weatherfile_path)
         infiltration_volume_flow = infiltration_volume_flow_planned * scenario['infiltration volume flow factor']
         # This accounts for improper construction/tightness
+        thermal_bridge_add_on = scenario['thermal bridge add on']  # in %
+        thermal_bridge_factor = 1.0 + (thermal_bridge_add_on / 100.0)
+
+        # the thermal bridge factor leads to an overal increase in transmittance losses. It is implemented here
+        # because that is the easiest way. For result analysis the input file u-values need to be used.
+        u_windows = u_windows_raw * thermal_bridge_factor
+        u_walls = u_walls_raw * thermal_bridge_factor
+        u_roof = u_roof_raw * thermal_bridge_factor
+        u_floor = u_floor_raw * thermal_bridge_factor
+
+        ## Bauteile:
+        # Windows: [[Orientation],[Areas],[U-value],[g-value]]
+        windows = np.array([window_orientations,
+                            window_areas,
+                            np.repeat(u_windows, len(window_orientations)),
+                            np.repeat(g_windows, len(window_orientations))],
+                           dtype=object)  # dtype=object is necessary because there are different data types
+
+        # walls: [[Areas], [U-values]] zuvor waren es 4 x 412.5
+        walls = np.array([wall_areas,
+                          np.repeat(u_walls, len(wall_areas))])
+
+        # roof: [[Areas], [U-values]]
+        roof = np.array([[config["roof area"]], [u_roof]])
+
+        # floor to ground (for now) [[Areas],[U-values],[b-values]]
+        floor = np.array([[config["floor area"]], [u_floor], [b_floor]])
 
         """
         ###################################### SYSTEM SIMULATION #######################################################
@@ -250,7 +252,7 @@ for config_index, config in configurations.iterrows():
         Gebaeude_static = se.Building(gebaeudekategorie_sia, regelung, windows, walls, roof, floor, energiebezugsflache,
                                       anlagennutzungsgrad_wrg, infiltration_volume_flow, ventilation_volume_flow,
                                       increased_ventilation_volume_flow, warmespeicherfahigkeit_pro_EBF,
-                                      heat_pump_efficiency,
+                                      heat_pump_efficiency, combustion_efficiency_factor,
                                       korrekturfaktor_luftungs_eff_f_v, hohe_uber_meer, shading_factor_monthly, heizsystem, dhw_heizsystem,
                                       cooling_system, heat_emission_system, cold_emission_system, heating_setpoint,
                                       cooling_setpoint, area_per_person, has_mechanical_ventilation)
@@ -265,7 +267,7 @@ for config_index, config in configurations.iterrows():
         Gebaeude_dyn = sime.Sim_Building(gebaeudekategorie_sia, regelung, windows, walls, roof, floor, energiebezugsflache,
                                        anlagennutzungsgrad_wrg, infiltration_volume_flow, ventilation_volume_flow,
                                          increased_ventilation_volume_flow, warmespeicherfahigkeit_pro_EBF,
-                                         heat_pump_efficiency,
+                                         heat_pump_efficiency, combustion_efficiency_factor,
                                        korrekturfaktor_luftungs_eff_f_v, hohe_uber_meer, shading_factor_hourly, heizsystem, cooling_system,
                                          heat_emission_system, cold_emission_system,
                                        dhw_heizsystem, heating_setpoint, cooling_setpoint, area_per_person,
@@ -580,10 +582,6 @@ for config_index, config in configurations.iterrows():
         eee_roof_UBP[config_index, scenario_index] = annualized_embodied_emsissions_envelope[7] / energiebezugsflache/ envelope_lifetime_factor
         eee_floor[config_index, scenario_index] = annualized_embodied_emsissions_envelope[8]/energiebezugsflache/ envelope_lifetime_factor
         eee_floor_UBP[config_index, scenario_index] = annualized_embodied_emsissions_envelope[9]/energiebezugsflache/ envelope_lifetime_factor
-
-    embodied_envelope_emissions_detailed_matrix = np.array( [['0','wall', 'window', 'roof', 'floor'],
-                                                            ['GWP', eee_wall, eee_window, eee_roof, eee_floor],
-                                                            ['UBP', eee_wall_UBP, eee_window_UBP, eee_roof_UBP, eee_floor_UBP]])
 
 
 
