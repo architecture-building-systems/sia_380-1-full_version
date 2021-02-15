@@ -6,8 +6,8 @@ import pvlib
 import os
 import sys
 # sys.path.insert(1, r"/Users/alexandra/Dokumente/code/RC_BuildingSimulator/rc_simulator")
-# sys.path.insert(1, r"C:\Users\LW_Simulation\Documents\RC_BuildingSimulator\rc_simulator")
-sys.path.insert(1, r"C:\Users\walkerl\Documents\code\RC_BuildingSimulator\rc_simulator")
+sys.path.insert(1, r"C:\Users\LW_Simulation\Documents\RC_BuildingSimulator\rc_simulator")
+# sys.path.insert(1, r"C:\Users\walkerl\Documents\code\RC_BuildingSimulator\rc_simulator")
 import supply_system
 import emission_system
 import time
@@ -171,29 +171,49 @@ def build_grid_emission_hourly(export_assumption="c"):
     hourly_emission_factors = emissions_df[choice].to_numpy()/1000.0
     return(hourly_emission_factors)
 
-def fossil_emission_factors(system_type):
+def fossil_emission_factors(system_type, combustion_efficiency_factor):
     """
      for now, wood and pellets are listed in these are also combustion based systems
     :param system_type: string that describes the combustion based heating system
-    :return: np array for 8760 hours of the year with emission factor for delivered energy according to SIA in
+    :param combustion_emission_factor: influences the efficiency of the system
+    :return: np array for 8760 hours of the year with emission factor for delivered energy according to KBOB in
     kgCO2eq/kWh. The factors are, however constant over the year.
     """
+    efficiency = {"Oil": 0.85, "Natural Gas": 0.88, "Wood": 0.60, "Pellets": 0.70, "district": 0.98}
+    #average efficiencies from EnergieSchweiz (2019), Leistungsgarantie
     treibhausgaskoeffizient = {"Oil": 0.301, "Natural Gas": 0.228, "Wood": 0.027, "Pellets": 0.027, "district": 0.089}
-    #kgCO2/kWh KBOB 2009/1:2016 Nutzenergie {"Oil": 0.322, "Natural Gas": 0.249, "Wood": 0.045, "Pellets": 0.038, "district":0.089})
-    #SIA380 2015 Anhang C Tab 5 (old values): {"Oil": 0.319, "Natural Gas": 0.249, "Wood": 0.020, "Pellets": 0.048, "district":0.089}
-    hourly_emission_factor = np.repeat(treibhausgaskoeffizient[system_type], 8760)  # kgCO2eq/kWh SIA380
+    #kgCO2/kWh KBOB 2009/1:2016 Endenergie
+
+    if (efficiency[system_type] * combustion_efficiency_factor) > 1.0:
+        print("Efficiency of system `",system_type,"` was corrected to 1")
+        treibhausgaskoeffizient_system = treibhausgaskoeffizient[system_type]
+    else:
+        treibhausgaskoeffizient_system = treibhausgaskoeffizient[system_type] / \
+                                     (efficiency[system_type] * combustion_efficiency_factor)
+
+    hourly_emission_factor = np.repeat(treibhausgaskoeffizient_system, 8760)  # kgCO2eq/kWh KBOB 2009/1:2016
     return hourly_emission_factor
 
-def fossil_emission_factors_UBP(system_type):
+def fossil_emission_factors_UBP(system_type, combustion_efficiency_factor):
     """
      for now, wood and pellets are listed in these are also combustion based systems
     :param system_type: string that describes the combustion based heating system
-    :return: np array for 8760 hours of the year with emission factor for delivered energy according to SIA in
-    kgCO2eq/kWh. The factors are, however constant over the year.
+    :param combustion_emission_factor: influences the efficiency of the system
+    :return: np array for 8760 hours of the year with emission factor for delivered energy according to KBOB in
+    UBP/kWh. The factors are, however constant over the year.
     """
+    efficiency = {"Oil": 0.85, "Natural Gas": 0.88, "Wood": 0.60, "Pellets": 0.70, "district": 0.98}
+    #average efficiencies from EnergieSchweiz (2019), Leistungsgarantie
     UBPkoeffizient = {"Oil": 234., "Natural Gas": 137., "Wood": 93.1, "Pellets": 81.1, "district": 75.5}
-    #UBP/kWh KBOB: 2009/1:2016 Nutzenergie {"Oil": 251., "Natural Gas": 151., "Wood": 152., "Pellets": 108., "district":75.5}
-    hourly_emission_factor_UBP = np.repeat(UBPkoeffizient[system_type], 8760)
+    #UBP/kWh KBOB: 2009/1:2016 Endenergie
+
+    if (efficiency[system_type] * combustion_efficiency_factor) > 1.0:
+        print("Efficiency of system `",system_type,"` was corrected to 1")
+        UBPkoeffizient_system = UBPkoeffizient[system_type]
+    else:
+        UBPkoeffizient_system = UBPkoeffizient[system_type] / (efficiency[system_type] * combustion_efficiency_factor)
+
+    hourly_emission_factor_UBP = np.repeat(UBPkoeffizient_system, 8760) # UBP/kWh KBOB 2009/1:2016
     return hourly_emission_factor_UBP
 
 

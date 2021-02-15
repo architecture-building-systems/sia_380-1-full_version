@@ -20,7 +20,7 @@ def calculate_system_related_embodied_emissions(ee_database_path, gebaeudekatego
     :param heizsystem: string of the heating system type
     :param heat_emission_system: string of heat emission system
     :param heat_distribution: string of heat distribution system
-    :param nominal_heating_power: float [W] heating sizing. MAKE SURE TO USE CORRECT DIMENSION
+    :param nominal_power: float [W] heating sizing. MAKE SURE TO USE CORRECT DIMENSION
     :param dhw_heizsystem: string dhw heating system (currently not used, assumed to be the heating system)
     :param cooling_system: string of cooling system
     :param cold_emission_system: string of cold emission system

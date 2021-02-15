@@ -60,9 +60,6 @@ if __name__ == '__main__':
     electricity_factor_type = "annual"  # Can be "annual", "monthly", "hourly" (Hourly will only work for hourly model and
     # source: empa_ac )
 
-
-
-
     ### Generate Samples
     problem = {
         'num_vars': 7,

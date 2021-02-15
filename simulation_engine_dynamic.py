@@ -1,6 +1,6 @@
 import sys
-sys.path.insert(1, r"/Users/alexandra/Dokumente/code/RC_BuildingSimulator/rc_simulator")
-# sys.path.insert(1, r"C:\Users\LW_Simulation\Documents\RC_BuildingSimulator\rc_simulator")
+# sys.path.insert(1, r"/Users/alexandra/Dokumente/code/RC_BuildingSimulator/rc_simulator")
+sys.path.insert(1, r"C:\Users\LW_Simulation\Documents\RC_BuildingSimulator\rc_simulator")
 # sys.path.insert(1, r"C:\Users\walkerl\Documents\code\RC_BuildingSimulator\rc_simulator")
 from building_physics import Building
 import numpy as np
@@ -25,6 +25,7 @@ class Sim_Building(object):
                  increased_ventilation_volume_flow,
                  thermal_storage_capacity_per_floor_area,
                  heat_pump_efficiency,
+                 combustion_efficiency_factor,
                  korrekturfaktor_luftungs_eff_f_v,
                  height_above_sea,
                  shading_factor_hourly,
@@ -92,6 +93,7 @@ class Sim_Building(object):
         self.t_set_heating = heating_setpoint
         self.t_set_cooling = cooling_setpoint
         self.heat_pump_efficiency = heat_pump_efficiency
+        self.combustion_efficiency_factor = combustion_efficiency_factor
 
         self.dhw_supply_temperature = 60  # deg C fixed and hard coded
 
@@ -316,23 +318,23 @@ class Sim_Building(object):
 
         if self.heating_fossil_demand.any()>0:
             # Those factors come in kgCO2eq or UBP per kWh heating energy
-            fossil_heating_emission_factors = dp.fossil_emission_factors(self.heating_system)
-            fossil_heating_emission_factors_UBP = dp.fossil_emission_factors_UBP(self.heating_system)
+            fossil_heating_emission_factors = dp.fossil_emission_factors(self.heating_system, self.combustion_efficiency_factor)
+            fossil_heating_emission_factors_UBP = dp.fossil_emission_factors_UBP(self.heating_system, self.combustion_efficiency_factor)
         else:
             # This is necessary for the vectorized multiplication below
             fossil_heating_emission_factors = np.repeat(0, 8760)
             fossil_heating_emission_factors_UBP = np.repeat(0, 8760)
 
         if self.cooling_fossil_demand.any() > 0: # TODO: Check if cooling fossil demand is given in - or +
-            fossil_cooling_emission_factors = dp.fossil_emission_factors(self.cooling_system)
-            fossil_cooling_emission_factors_UBP = dp.fossil_emission_factors_UBP(self.cooling_system)
+            fossil_cooling_emission_factors = dp.fossil_emission_factors(self.cooling_system, self.combustion_efficiency_factor)
+            fossil_cooling_emission_factors_UBP = dp.fossil_emission_factors_UBP(self.cooling_system, self.combustion_efficiency_factor)
         else:
             fossil_cooling_emission_factors = np.repeat(0, 8760)
             fossil_cooling_emission_factors_UBP = np.repeat(0, 8760)
 
         if self.dhw_fossil_demand.any() > 0:
-            fossil_dhw_emission_factors = dp.fossil_emission_factors(self.dhw_heating_system)
-            fossil_dhw_emission_factors_UBP = dp.fossil_emission_factors_UBP(self.dhw_heating_system)
+            fossil_dhw_emission_factors = dp.fossil_emission_factors(self.dhw_heating_system, self.combustion_efficiency_factor)
+            fossil_dhw_emission_factors_UBP = dp.fossil_emission_factors_UBP(self.dhw_heating_system, self.combustion_efficiency_factor)
         else:
             fossil_dhw_emission_factors = np.repeat(0,8760)
             fossil_dhw_emission_factors_UBP = np.repeat(0, 8760)
@@ -380,7 +382,7 @@ class Sim_Building(object):
         if self.heating_hours.size == 0:
             self.nominal_heating_power = 0.0
         else:
-            self.nominal_heating_power = np.percentile(self.heating_hours, [100])
+            self.nominal_heating_power = np.percentile(self.heating_hours, [99.5])
 
     def run_cooling_sizing(self):
         # total energy per year divided by volllaststunden (SIA 2024; MFH) for cooling
