@@ -20,6 +20,7 @@ class Building(object):
                  thermal_storage_capacity_per_floor_area,
                  heat_pump_efficiency,
                  combustion_efficiency_factor,
+                 electricity_decarbonization_factor,
                  korrekturfaktor_luftungs_eff_f_v,
                  height_above_sea,
                  shading_factor_monthly,
@@ -60,6 +61,7 @@ class Building(object):
         self.cooling_supply_temperature = dp.lookup_supply_temperatures_according_to_rc(self.cold_emission_system)[1]
         self.heat_pump_efficiency = heat_pump_efficiency
         self.combustion_efficiency_factor = combustion_efficiency_factor
+        self.electricity_decarbonization_factor = electricity_decarbonization_factor
         self.has_mechanical_ventilation = has_mechanical_ventilation
 
         # Further optional attributes:
@@ -706,7 +708,7 @@ class Building(object):
 
         # account for net grid import emissions in GWP and UBP
         self.grid_electricity_emissions = self.net_electricity_demand * dp.build_yearly_emission_factors(
-            emission_factor_source, emission_factor_type).mean()
+            emission_factor_source, emission_factor_type).mean() * self.electricity_decarbonization_factor
         self.grid_electricity_emissions[self.grid_electricity_emissions < 0.0] = 0.0
 
         self.grid_electricity_emissions_UBP = self.net_electricity_demand * dp.build_yearly_emission_factors_UBP(
