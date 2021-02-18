@@ -13,14 +13,14 @@ def calculate_system_related_embodied_emissions(ee_database_path, gebaeudekatego
     file is called that includes impact and lifetime values. Further the system sizing has to be known for some power
     based components. Other components are sized directly from the energy reference area.
     Currently included: heat/cold production, heat/cold distribution, heat/cold emission
-    TODO: possibly add electrical systems plus ventilation
+    TODO: possibly add electrical systems
     :param ee_database_path: string, database path where the system's impact and lifetimes are stored (xlsx file)
     :param gebaeudekategorie: float/int of SIA building category
     :param energy_reference_area: float
     :param heizsystem: string of the heating system type
     :param heat_emission_system: string of heat emission system
     :param heat_distribution: string of heat distribution system
-    :param nominal_power: float [W] heating sizing. MAKE SURE TO USE CORRECT DIMENSION
+    :param nominal_heating_power: float [W] heating sizing. MAKE SURE TO USE CORRECT DIMENSION
     :param dhw_heizsystem: string dhw heating system (currently not used, assumed to be the heating system)
     :param cooling_system: string of cooling system
     :param cold_emission_system: string of cold emission system
@@ -28,7 +28,9 @@ def calculate_system_related_embodied_emissions(ee_database_path, gebaeudekatego
     :param pv_area: m2 float/int
     :param pv_type: string of pv type as in database
     :param pv_efficiency: stc efficiency is required for m2 to kWp transformation
-    :return: embodied emissions for building systems
+    :param has_mechanical_ventilation: boolean (True/False)
+    :param max_aussenluft_volumenstrom: float in m3/hm2
+    :return: embodied emissions for building systems in kgCO2eq/a or UBP/a
     """
 
     database = pd.read_excel(ee_database_path, index_col="Name")
@@ -72,20 +74,20 @@ def calculate_system_related_embodied_emissions(ee_database_path, gebaeudekatego
     if heat_emission_system == 'air':
         # In that case 0.0 is assigned to heat emission system because it is already considered in
         # mechanical ventilation
-        heat_emission_embodied_per_kw = 0.0
-        heat_emission_embodied_per_kw_UBP = 0.0
+        heat_emission_embodied_per_area = 0.0
+        heat_emission_embodied_per_area_UBP = 0.0
         heat_emission_lifetime = 1.0  # to avoid division by 0
         if has_mechanical_ventilation == False:
             print("you chose heat distribution by air but do not have mechanical ventilation")
             quit()
 
     else:
-        heat_emission_embodied_per_kw = database['Value'][heat_emission_system]  # this data is in kgCO2eq/kW
+        heat_emission_embodied_per_area = database['Value'][heat_emission_system]  # this data is in kgCO2eq/m2
         heat_emission_lifetime = database['lifetime'][heat_emission_system]
-        heat_emission_embodied_per_kw_UBP = database['Value_UBP'][heat_emission_system]  # this data is in UBP/kW
+        heat_emission_embodied_per_area_UBP = database['Value_UBP'][heat_emission_system]  # this data is in UBP/m2
 
-    heat_emission_embodied = heat_emission_embodied_per_kw * nominal_heating_power / 1000.0 / heat_emission_lifetime  # heating power comes in W
-    heat_emission_embodied_UBP = heat_emission_embodied_per_kw_UBP * nominal_heating_power / 1000.0 / heat_emission_lifetime  # heating power comes in W
+    heat_emission_embodied = heat_emission_embodied_per_area * energy_reference_area / heat_emission_lifetime
+    heat_emission_embodied_UBP = heat_emission_embodied_per_area_UBP * energy_reference_area / heat_emission_lifetime
 
 
     ## Distribution
@@ -119,6 +121,7 @@ def calculate_system_related_embodied_emissions(ee_database_path, gebaeudekatego
         heat_distribution_lifetime = database['lifetime'][heat_distribution]
     else:
         print('You did not specify a correct heat distribution system')
+        quit()
 
     embodied_heat_distribution = heat_distribution_embodied_per_area * energy_reference_area / heat_distribution_lifetime
     embodied_heat_distribution_UBP = heat_distribution_embodied_per_area_UBP * energy_reference_area / heat_distribution_lifetime
@@ -134,10 +137,13 @@ def calculate_system_related_embodied_emissions(ee_database_path, gebaeudekatego
 
 
     else:
-        cold_emission_embodied_per_kw = database['Value'][heat_emission_system]  # this data is in kgCO2eq/kW
-        cold_emission_embodied_per_kw_UBP = database['Value_UBP'][heat_emission_system]  # this data is in UBP/kW
-        cold_emission_embodied = cold_emission_embodied_per_kw * nominal_cooling_power / 1000.0  # cooling power comes in W
-        cold_emission_embodied_UBP = cold_emission_embodied_per_kw_UBP * nominal_cooling_power / 1000.0  # cooling power comes in W
+        cold_emission_embodied_per_area = database['Value'][cold_emission_system]  # this data is in kgCO2eq/m2
+        cold_emission_embodied_per_area_UBP = database['Value_UBP'][cold_emission_system]  # this data is in UBP/m2
+        cold_emission_embodied_lifetime = database['lifetime'][cold_emission_system]
+        cold_emission_embodied = cold_emission_embodied_per_area * energy_reference_area / \
+                                 cold_emission_embodied_lifetime
+        cold_emission_embodied_UBP = cold_emission_embodied_per_area_UBP * energy_reference_area / \
+                                 cold_emission_embodied_lifetime
 
 
     embodied_thermal = heater_embodied + cooler_embodied + embodied_heat_distribution + heat_emission_embodied +\
@@ -192,7 +198,7 @@ def calculate_envelope_emissions(database_path, total_wall_area, wall_type, tota
     :param roof_type: string, roof type that can be found in database
     :param energy_reference_area: m2 energy reference area
     :param ceiling_type: string, ceiling type for intermediate floors
-    :return:
+    :return: envelope embodied emissions in kgCO2eq/a or UBP/a, splitted into the individual envelope components
     """
 
     database = pd.read_excel(database_path, index_col="Name")
