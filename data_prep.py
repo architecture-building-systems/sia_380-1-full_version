@@ -216,6 +216,53 @@ def fossil_emission_factors_UBP(system_type, combustion_efficiency_factor):
     hourly_emission_factor_UBP = np.repeat(UBPkoeffizient_system, 8760) # UBP/kWh KBOB 2009/1:2016
     return hourly_emission_factor_UBP
 
+def operation_maintenance_yearly_costs(system_type):
+    """
+    this function returns the operation and maintenance cost in CHF/a for the system_type
+    :param system_type: string
+    :return: O&M costs for the input system in CHF/a
+    """
+    operation_maintenance_cost = {"Oil": 780.0, "Natural Gas": 690.0, "Wood": 820.0, "Pellets": 870.0, "district": 820.0,
+               "ASHP": 330.0, "GSHP": 410.0, "None": 0.0}
+
+    return operation_maintenance_cost[system_type]
+
+def energy_cost_per_kWh(energy_type, energy_cost_source, combustion_efficiency_factor=1):
+    """
+    this function returns the operational cost in CHF/kWh for the system_type and the operational cost source.
+    At the moment, only current prices are available.
+    :param system_type: string
+    :return: operational cost in CHF/kWh
+    """
+    efficiency = {"Oil": 0.85, "Natural Gas": 0.88, "Wood": 0.60, "Pellets": 0.70, "district": 0.98, "electricity": 1.0}
+
+    if energy_cost_source == "current":
+        op_cost = {"Oil": 0.089, "Natural Gas": 0.084, "Wood": 0.089, "Pellets": 0.069, "district": 0.093,
+                   "electricity": 0.207}
+
+    elif energy_cost_source == "POM_2050":
+        op_cost = {"Oil": 0.128, "Natural Gas": 0.149, "Wood": 0.072, "Pellets": 0.072, "district": 0.127,
+                   "electricity": 0.288}
+
+    elif energy_cost_source == "NEP_2050":
+        op_cost = {"Oil": 0.154, "Natural Gas": 0.175, "Wood": 0.102, "Pellets": 0.102, "district": 0.138,
+                   "electricity": 0.336}
+
+    else:
+        op_cost = 0.0
+        print('Please choose a different operational cost source')
+        quit()
+
+    op_cost_final = op_cost[energy_type] / (efficiency[energy_type] * combustion_efficiency_factor)
+    #the warning of efficiencies > 1 is already given during LCA calculation.
+
+    return  op_cost_final
+
+def pv_cost_interpolation(pv_kWp):
+    # pv cost per kW via power-trendline TODO: maybe there is a more elegant way to do this in python instead of excel
+    pv_cost_per_kW = 5855.3 * pow(pv_kWp, -0.328) # for BAPV
+    # pv_cost_per_kW = 6615.5 * pow(pv_kWp, -0.328)  # for BIPV
+    return pv_cost_per_kW
 
 def extract_wall_data(filepath, name="Betonwand, Wärmedämmung mit Lattenrost, Verkleidung", area=0,
                                type="GWP[kgCO2eq/m2]", ):
