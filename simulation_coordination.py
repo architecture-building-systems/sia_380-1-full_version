@@ -220,7 +220,7 @@ for config_index, config in configurations.iterrows():
         thermal_bridge_add_on = scenario['thermal bridge add on']  # in %
         thermal_bridge_factor = 1.0 + (thermal_bridge_add_on / 100.0)
 
-        # the thermal bridge factor leads to an overal increase in transmittance losses. It is implemented here
+        # the thermal bridge factor leads to an overall increase in transmittance losses. It is implemented here
         # because that is the easiest way. For result analysis the input file u-values need to be used.
         u_windows = u_windows_raw * thermal_bridge_factor
         u_walls = u_walls_raw * thermal_bridge_factor
@@ -588,7 +588,7 @@ for config_index, config in configurations.iterrows():
                                          window_type=config['window type'],
                                          total_roof_area=total_roof_area,
                                          roof_type=config['roof type'],
-                                         energy_reference_area=energiebezugsflache,
+                                         floor_area=floor_area,
                                          ceiling_type=config['ceiling type'])
 
 

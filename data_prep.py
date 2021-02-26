@@ -92,19 +92,24 @@ def build_yearly_emission_factors(source, type="annual", export_assumption="c"):
     :return: numpy array of length 8760 with the dimension kgCO2eq/kWh
     """
 
-    if source =="SIA": #TODO: compare with values from KBOB
+    if source == "SIA": #TODO: compare with values from KBOB
         #SIA has a constant factor, the type therefore does not matter
         hourly_emission_factor = np.repeat(139, 8760) / 1000.0  # kgCO2eq/kWh SIA380
 
     elif source == "KBOB":
         # KBOB has a constant factor, the type therefore does not matter
         hourly_emission_factor = np.repeat(102, 8760) / 1000.0  # kgCO2eq/kWh KBOB: 2009/1:2016 Verbrauchermix-CH
-    elif source == "eu":
+
+    elif source == "ZERO_2050":
+        # KBOB has a constant factor, the type therefore does not matter
+        hourly_emission_factor = np.repeat(54, 8760) / 1000.0  # kgCO2eq/kWh
+
+    elif source =="eu":
         # here a constant factor of the european power mix is assumed, the type therefore does not matter
         hourly_emission_factor = np.repeat(630, 8760) / 1000.0  # kgCO2eq/kWh www.co2-monitor.ch/de/information/glossar/
         #ENTSO - E - Mix: 5480000 (UBP), 524 (GWP)
 
-    elif source == "empa_ac":
+    elif source =="empa_ac":
 
 
         choice = "TEF" + export_assumption
@@ -133,11 +138,14 @@ def build_yearly_emission_factors_UBP(source_UBP, type="annual", export_assumpti
     :return: numpy array of length 8760 with the dimension kgCO2eq/kWh
     """
 
-    if source_UBP =="KBOB":
+    if source_UBP == "KBOB":
         #KBOB has a constant factor, the type therefore does not matter
         hourly_emission_factor_UBP = np.repeat(347000, 8760) / 1000.0  # UBP/kWh KBOB: 2009/1:2016 Verbrauchermix-CH
 
-    elif source == "empa_ac":
+    elif source_UBP == "ZERO_2050":
+        hourly_emission_factor_UBP = np.repeat(109000, 8760) / 1000.0  # UBP/kWh KBOB: 2009/1:2016 Verbrauchermix-CH
+
+    elif source_UBP =="empa_ac":
 
 
         choice = "TEF" + export_assumption
@@ -155,7 +163,7 @@ def build_yearly_emission_factors_UBP(source_UBP, type="annual", export_assumpti
             hourly_emission_factor_UBP = emissions_df[choice].to_numpy() / 1000.0
 
     else:
-        quit("Emission factors for electricity could not be built. Simulation stopped")
+        quit("Emission factors UBP for electricity could not be built. Simulation stopped")
 
     return hourly_emission_factor_UBP
 
@@ -171,7 +179,7 @@ def build_grid_emission_hourly(export_assumption="c"):
     hourly_emission_factors = emissions_df[choice].to_numpy()/1000.0
     return(hourly_emission_factors)
 
-def fossil_emission_factors(system_type, combustion_efficiency_factor):
+def fossil_emission_factors(system_type, emission_source, combustion_efficiency_factor):
     """
      for now, wood and pellets are listed in these are also combustion based systems
     :param system_type: string that describes the combustion based heating system
@@ -181,8 +189,14 @@ def fossil_emission_factors(system_type, combustion_efficiency_factor):
     """
     efficiency = {"Oil": 0.85, "Natural Gas": 0.88, "Wood": 0.60, "Pellets": 0.70, "district": 0.98}
     #average efficiencies from EnergieSchweiz (2019), Leistungsgarantie
-    treibhausgaskoeffizient = {"Oil": 0.301, "Natural Gas": 0.228, "Wood": 0.027, "Pellets": 0.027, "district": 0.089}
-    #kgCO2/kWh KBOB 2009/1:2016 Endenergie
+    if emission_source =="KBOB":
+        treibhausgaskoeffizient = {"Oil": 0.301, "Natural Gas": 0.228, "Wood": 0.027, "Pellets": 0.027, "district": 0.108}
+        #kgCO2/kWh KBOB 2009/1:2016 Endenergie
+    elif emission_source =="ZERO_2050":
+        treibhausgaskoeffizient = {"Oil": 0.301, "Natural Gas": 0.228, "Wood": 0.027, "Pellets": 0.027,
+                                   "district": 0.042}
+    else:
+        quit("Fossil emission factors could not be built. Simulation stopped")
 
     if (efficiency[system_type] * combustion_efficiency_factor) > 1.0:
         print("Efficiency of system `",system_type,"` was corrected to 1")
@@ -194,7 +208,7 @@ def fossil_emission_factors(system_type, combustion_efficiency_factor):
     hourly_emission_factor = np.repeat(treibhausgaskoeffizient_system, 8760)  # kgCO2eq/kWh KBOB 2009/1:2016
     return hourly_emission_factor
 
-def fossil_emission_factors_UBP(system_type, combustion_efficiency_factor):
+def fossil_emission_factors_UBP(system_type, emission_source_UBP, combustion_efficiency_factor):
     """
      for now, wood and pellets are listed in these are also combustion based systems
     :param system_type: string that describes the combustion based heating system
@@ -204,8 +218,13 @@ def fossil_emission_factors_UBP(system_type, combustion_efficiency_factor):
     """
     efficiency = {"Oil": 0.85, "Natural Gas": 0.88, "Wood": 0.60, "Pellets": 0.70, "district": 0.98}
     #average efficiencies from EnergieSchweiz (2019), Leistungsgarantie
-    UBPkoeffizient = {"Oil": 234., "Natural Gas": 137., "Wood": 93.1, "Pellets": 81.1, "district": 75.5}
+    if emission_source_UBP =="KBOB":
+        UBPkoeffizient = {"Oil": 234., "Natural Gas": 137., "Wood": 93.1, "Pellets": 81.1, "district": 92.8}
     #UBP/kWh KBOB: 2009/1:2016 Endenergie
+    elif emission_source_UBP =="ZERO_2050":
+        UBPkoeffizient = {"Oil": 234., "Natural Gas": 137., "Wood": 93.1, "Pellets": 81.1, "district": 92.2}
+    else:
+        quit("Fossil emission UBP factors could not be built. Simulation stopped")
 
     if (efficiency[system_type] * combustion_efficiency_factor) > 1.0:
         print("Efficiency of system `",system_type,"` was corrected to 1")
@@ -234,8 +253,8 @@ def energy_cost_per_kWh(energy_type, energy_cost_source, combustion_efficiency_f
     :param system_type: string
     :return: operational cost in CHF/kWh
     """
-    efficiency = {"Oil": 0.85, "Natural Gas": 0.88, "Wood": 0.60, "Pellets": 0.70, "district": 0.98, "electricity": 1.0}
-
+    efficiency = {"Oil": 0.85, "Natural Gas": 0.88, "Wood": 0.60, "Pellets": 0.70, "district": 0.97, "electricity": 1.0}
+    # average efficiencies from EnergieSchweiz (2019), Leistungsgarantie
     if energy_cost_source == "current":
         op_cost = {"Oil": 0.089, "Natural Gas": 0.084, "Wood": 0.089, "Pellets": 0.069, "district": 0.093,
                    "electricity": 0.207}
@@ -260,7 +279,10 @@ def energy_cost_per_kWh(energy_type, energy_cost_source, combustion_efficiency_f
 
 def pv_cost_interpolation(pv_kWp):
     # pv cost per kW via power-trendline TODO: maybe there is a more elegant way to do this in python instead of excel
-    pv_cost_per_kW = 5855.3 * pow(pv_kWp, -0.328) # for BAPV
+    if pv_kWp == 0.:
+        pv_cost_per_kW = 0
+    else:
+        pv_cost_per_kW = 5855.3 * pow(pv_kWp, -0.328) # for BAPV
     # pv_cost_per_kW = 6615.5 * pow(pv_kWp, -0.328)  # for BIPV
     return pv_cost_per_kW
 

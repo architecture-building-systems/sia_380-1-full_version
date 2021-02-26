@@ -173,7 +173,7 @@ def calculate_envelope_investment_cost(database_path, total_wall_area, wall_type
 
     database = pd.read_excel(database_path, index_col="Name")
     if zinssatz == 0.0:
-        i = 0.00001
+        i = 0.0000001
     else:
         i = zinssatz/100
 
