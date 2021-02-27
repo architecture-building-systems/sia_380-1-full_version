@@ -242,7 +242,7 @@ def operation_maintenance_yearly_costs(system_type):
     :return: O&M costs for the input system in CHF/a
     """
     operation_maintenance_cost = {"Oil": 780.0, "Natural Gas": 690.0, "Wood": 820.0, "Pellets": 870.0, "district": 820.0,
-               "ASHP": 330.0, "GSHP": 410.0, "None": 0.0}
+               "ASHP": 330.0, "GSHP": 410.0, "None": 0.0, "electric": 330}
 
     return operation_maintenance_cost[system_type]
 
