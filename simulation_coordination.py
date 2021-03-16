@@ -165,7 +165,6 @@ for config_index, config in configurations.iterrows():
     cooling_system = config['cooling system']
     heat_emission_system = config['heat emission system']
     cold_emission_system = config['cold emission system']
-    pv_efficiency = config['PV efficiency']
     pv_performance_ratio = config['PV performance ratio']
     has_mechanical_ventilation = config['mechanical ventilation']
 
@@ -206,6 +205,7 @@ for config_index, config in configurations.iterrows():
         cooling_setpoint = scenario['cooling setpoint']  # number in deC or select "SIA" to follow the SIA380-1 code
         heat_pump_efficiency = scenario['heat pump efficiency']
         combustion_efficiency_factor = scenario['combustion efficiency factor']
+        pv_efficiency = scenario['PV efficiency']
 
         shading_factor_season = np.array(str(scenario['shading factor']).split(" "), dtype=float)
         # array with shading factors (per season: winter, spring, summer, fall)
@@ -512,169 +512,168 @@ whole simulation process.
 
 
 for config_index, config in configurations.iterrows():
-    """
-    For the embodied emisisons a single loop through the configurations is enough.
-    """
-
-    energiebezugsflache = config['energy reference area']  # m2
-
-    # At the moment hard coded here because embodied emissions are not yet based on scenarios
-    envelope_lifetime_factor = 1.0
-    system_lifetime_factor = 1.0
-
-    ## Systeme
-    """
-    Choice: Oil, Natural Gas, Wood, Pellets, GSHP, ASHP, electric
-    The system choice is translated to a similar system available in the RC Simulator
-    """
-    heating_system = config['heating system']  # zb"ASHP"
-    dhw_heizsystem = config[
-        'dhw heating system']  ## This is currently a limitation of the RC Model. Automatically the same!
-    if dhw_heizsystem == 'same':
-        dhw_heizsystem = heating_system
-
-    # ventilation
-    relevant_volume_flow = max(config['ventilation volume flow'], config['increased ventilation volume flow'])
-
-    embodied_impact_stat = eec.calculate_system_related_embodied_emissions(ee_database_path=sys_ee_database_path,
-                                                        gebaeudekategorie=scenarios.loc[0, 'building use type'],
-                                                        energy_reference_area=config['energy reference area'],
-                                                        heizsystem=heating_system,
-                                                        heat_emission_system=config['heat emission system'],
-                                                        heat_distribution=config['heat distribution'],
-                                                        nominal_heating_power=nominal_heating_power_stat[config_index],
-                                                        dhw_heizsystem=dhw_heizsystem,
-                                                        cooling_system = config['cooling system'],
-                                                        cold_emission_system = config['cold emission system'],
-                                                        nominal_cooling_power=nominal_cooling_power_stat[config_index],
-                                                        pv_area=np.array(str(config['PV area']).split(" "), dtype=float).sum(),
-                                                        pv_type=config['PV type'],
-                                                        pv_efficiency=config['PV efficiency'],
-                                                        has_mechanical_ventilation=config['mechanical ventilation'],
-                                                        max_aussenluft_volumenstrom=relevant_volume_flow)
-
-
-    embodied_impact_dyn =  eec.calculate_system_related_embodied_emissions(ee_database_path=sys_ee_database_path,
-                                                        gebaeudekategorie=scenarios.loc[0, 'building use type'],
-                                                        energy_reference_area=config['energy reference area'],
-                                                        heizsystem=config['heating system'],
-                                                        heat_emission_system=config['heat emission system'],
-                                                        heat_distribution=config['heat distribution'],
-                                                        nominal_heating_power=nominal_heating_power_dyn[config_index],
-                                                        dhw_heizsystem=dhw_heizsystem,
-                                                        cooling_system=config['cooling system'],
-                                                        cold_emission_system=config['cold emission system'],
-                                                        nominal_cooling_power=nominal_cooling_power_dyn[config_index],
-                                                        pv_area=np.array(str(config['PV area']).split(" "), dtype=float).sum(),
-                                                        pv_type=config['PV type'],
-                                                        pv_efficiency=config['PV efficiency'],
-                                                        has_mechanical_ventilation=config['mechanical ventilation'],
-                                                        max_aussenluft_volumenstrom=relevant_volume_flow)
-
-    total_wall_area = np.array(config['wall areas'].split(" "), dtype=float).sum()
-    total_window_area = np.array(config['window areas'].split(" "), dtype=float).sum()
-    total_roof_area = np.array(config["roof area"]).sum()
-    floor_area = np.array(config["floor area"]).sum()
-
-    wall_type = config['wall type']
-    window_type = config["window type"]
-    roof_type = config["roof type"]
-
-    annualized_embodied_emsissions_envelope = \
-        eec.calculate_envelope_emissions(database_path=env_ee_database_path,
-                                         total_wall_area=total_wall_area,
-                                         wall_type=config['wall type'],
-                                         total_window_area=total_window_area,
-                                         window_type=config['window type'],
-                                         total_roof_area=total_roof_area,
-                                         roof_type=config['roof type'],
-                                         floor_area=floor_area,
-                                         ceiling_type=config['ceiling type'])
-
 
     for scenario_index, scenario in scenarios.iterrows():
+         """
+         For the embodied emissions and costs, it is iterated through per scenario, because PV invest depends on PV type
+         (year) in scenarios.
+         """
 
-        envelope_lifetime_factor = scenario['envelope lifetime factor']
-        system_lifetime_factor = scenario['system lifetime factor']
-        zinssatz = scenario['zinssatz']
+         energiebezugsflache = config['energy reference area']  # m2
 
-        embodied_systems_emissions_performance_matrix_stat[config_index, scenario_index] = embodied_impact_stat[0] / energiebezugsflache/ system_lifetime_factor
-        embodied_systems_emissions_performance_matrix_stat_UBP[config_index, scenario_index] = embodied_impact_stat[1] / energiebezugsflache/ system_lifetime_factor
+         # At the moment hard coded here because embodied emissions are not yet based on scenarios
+         envelope_lifetime_factor = 1.0
+         system_lifetime_factor = 1.0
 
-        embodied_systems_emissions_performance_matrix_dyn[config_index, scenario_index] = embodied_impact_dyn[0] / energiebezugsflache /system_lifetime_factor
-        embodied_systems_emissions_performance_matrix_dyn_UBP[config_index, scenario_index] = embodied_impact_dyn[1] / energiebezugsflache / system_lifetime_factor
+         ## Systeme
+         """
+         Choice: Oil, Natural Gas, Wood, Pellets, GSHP, ASHP, electric
+         The system choice is translated to a similar system available in the RC Simulator
+         """
+         heating_system = config['heating system']  # zb"ASHP"
+         dhw_heizsystem = config['dhw heating system']  ## This is currently a limitation of the RC Model. Automatically the same!
+         if dhw_heizsystem == 'same':
+            dhw_heizsystem = heating_system
 
-        embodied_envelope_emissions_performance_matrix[config_index, scenario_index] = annualized_embodied_emsissions_envelope[0]/energiebezugsflache / envelope_lifetime_factor
-        embodied_envelope_emissions_performance_matrix_UBP[config_index, scenario_index] = annualized_embodied_emsissions_envelope[1]/energiebezugsflache / envelope_lifetime_factor
+         # ventilation
+         relevant_volume_flow = max(config['ventilation volume flow'], config['increased ventilation volume flow'])
+
+         total_wall_area = np.array(config['wall areas'].split(" "), dtype=float).sum()
+         total_window_area = np.array(config['window areas'].split(" "), dtype=float).sum()
+         total_roof_area = np.array(config["roof area"]).sum()
+         floor_area = np.array(config["floor area"]).sum()
+
+         wall_type = config['wall type']
+         window_type = config["window type"]
+         roof_type = config["roof type"]
+
+         annualized_embodied_emsissions_envelope = \
+             eec.calculate_envelope_emissions(database_path=env_ee_database_path,
+                                              total_wall_area=total_wall_area,
+                                              wall_type=config['wall type'],
+                                              total_window_area=total_window_area,
+                                              window_type=config['window type'],
+                                              total_roof_area=total_roof_area,
+                                              roof_type=config['roof type'],
+                                              floor_area=floor_area,
+                                              ceiling_type=config['ceiling type'])
+
+         embodied_impact_stat = \
+             eec.calculate_system_related_embodied_emissions(ee_database_path=sys_ee_database_path,
+                                                             gebaeudekategorie=scenarios.loc[0, 'building use type'],
+                                                             energy_reference_area=config['energy reference area'],
+                                                             heizsystem=heating_system,
+                                                             heat_emission_system=config['heat emission system'],
+                                                             heat_distribution=config['heat distribution'],
+                                                             nominal_heating_power=nominal_heating_power_stat[config_index],
+                                                             dhw_heizsystem=dhw_heizsystem,
+                                                             cooling_system=config['cooling system'],
+                                                             cold_emission_system=config['cold emission system'],
+                                                             nominal_cooling_power=nominal_cooling_power_stat[config_index],
+                                                             pv_area=np.array(str(config['PV area']).split(" "),dtype=float).sum(),
+                                                             pv_type=scenario['PV type'],
+                                                             pv_efficiency=scenario['PV efficiency'],
+                                                             has_mechanical_ventilation=config[ 'mechanical ventilation'],
+                                                             max_aussenluft_volumenstrom=relevant_volume_flow)
+
+         embodied_impact_dyn = \
+             eec.calculate_system_related_embodied_emissions(ee_database_path=sys_ee_database_path,
+                                                             gebaeudekategorie=scenarios.loc[0, 'building use type'],
+                                                             energy_reference_area=config['energy reference area'],
+                                                             heizsystem=config['heating system'],
+                                                             heat_emission_system=config['heat emission system'],
+                                                             heat_distribution=config['heat distribution'],
+                                                             nominal_heating_power=nominal_heating_power_dyn[config_index],
+                                                             dhw_heizsystem=dhw_heizsystem,
+                                                             cooling_system=config['cooling system'],
+                                                             cold_emission_system=config['cold emission system'],
+                                                             nominal_cooling_power=nominal_cooling_power_dyn[config_index],
+                                                             pv_area=np.array(str(config['PV area']).split(" "),dtype=float).sum(),
+                                                             pv_type=scenario['PV type'],
+                                                             pv_efficiency=scenario['PV efficiency'],
+                                                             has_mechanical_ventilation=config['mechanical ventilation'],
+                                                             max_aussenluft_volumenstrom=relevant_volume_flow)
+
+         envelope_lifetime_factor = scenario['envelope lifetime factor']
+         system_lifetime_factor = scenario['system lifetime factor']
+
+         embodied_systems_emissions_performance_matrix_stat[config_index, scenario_index] = embodied_impact_stat[0] / energiebezugsflache/ system_lifetime_factor
+         embodied_systems_emissions_performance_matrix_stat_UBP[config_index, scenario_index] = embodied_impact_stat[1] / energiebezugsflache/ system_lifetime_factor
+
+         embodied_systems_emissions_performance_matrix_dyn[config_index, scenario_index] = embodied_impact_dyn[0] / energiebezugsflache /system_lifetime_factor
+         embodied_systems_emissions_performance_matrix_dyn_UBP[config_index, scenario_index] = embodied_impact_dyn[1] / energiebezugsflache / system_lifetime_factor
+
+         embodied_envelope_emissions_performance_matrix[config_index, scenario_index] = annualized_embodied_emsissions_envelope[0]/energiebezugsflache / envelope_lifetime_factor
+         embodied_envelope_emissions_performance_matrix_UBP[config_index, scenario_index] = annualized_embodied_emsissions_envelope[1]/energiebezugsflache / envelope_lifetime_factor
 
 
-        eee_wall[config_index, scenario_index] = annualized_embodied_emsissions_envelope[2]/energiebezugsflache/ envelope_lifetime_factor
-        eee_wall_UBP[config_index, scenario_index] = annualized_embodied_emsissions_envelope[3]/energiebezugsflache/ envelope_lifetime_factor
-        eee_window[config_index, scenario_index] = annualized_embodied_emsissions_envelope[4] / energiebezugsflache/ envelope_lifetime_factor
-        eee_window_UBP[config_index, scenario_index] = annualized_embodied_emsissions_envelope[5] / energiebezugsflache/ envelope_lifetime_factor
-        eee_roof[config_index, scenario_index] = annualized_embodied_emsissions_envelope[6] / energiebezugsflache/ envelope_lifetime_factor
-        eee_roof_UBP[config_index, scenario_index] = annualized_embodied_emsissions_envelope[7] / energiebezugsflache/ envelope_lifetime_factor
-        eee_floor[config_index, scenario_index] = annualized_embodied_emsissions_envelope[8]/energiebezugsflache/ envelope_lifetime_factor
-        eee_floor_UBP[config_index, scenario_index] = annualized_embodied_emsissions_envelope[9]/energiebezugsflache/ envelope_lifetime_factor
+         eee_wall[config_index, scenario_index] = annualized_embodied_emsissions_envelope[2]/energiebezugsflache/ envelope_lifetime_factor
+         eee_wall_UBP[config_index, scenario_index] = annualized_embodied_emsissions_envelope[3]/energiebezugsflache/ envelope_lifetime_factor
+         eee_window[config_index, scenario_index] = annualized_embodied_emsissions_envelope[4] / energiebezugsflache/ envelope_lifetime_factor
+         eee_window_UBP[config_index, scenario_index] = annualized_embodied_emsissions_envelope[5] / energiebezugsflache/ envelope_lifetime_factor
+         eee_roof[config_index, scenario_index] = annualized_embodied_emsissions_envelope[6] / energiebezugsflache/ envelope_lifetime_factor
+         eee_roof_UBP[config_index, scenario_index] = annualized_embodied_emsissions_envelope[7] / energiebezugsflache/ envelope_lifetime_factor
+         eee_floor[config_index, scenario_index] = annualized_embodied_emsissions_envelope[8]/energiebezugsflache/ envelope_lifetime_factor
+         eee_floor_UBP[config_index, scenario_index] = annualized_embodied_emsissions_envelope[9]/energiebezugsflache/ envelope_lifetime_factor
 
-        # As the zinssatz is dependent on scenarios, the investment calculation has to be made for each scenario
-        annual_investment_costs_systems_stat = \
-            icc.calculate_system_related_investment_cost(ee_database_path=sys_ee_database_path,
-                                                         gebaeudekategorie=scenarios.loc[0, 'building use type'],
-                                                         energy_reference_area=config['energy reference area'],
-                                                         heizsystem=heating_system,
-                                                         heat_emission_system=config['heat emission system'],
-                                                         heat_distribution=config['heat distribution'],
-                                                         nominal_heating_power=nominal_heating_power_stat[config_index],
-                                                         dhw_heizsystem=dhw_heizsystem,
-                                                         cooling_system=config['cooling system'],
-                                                         cold_emission_system=config['cold emission system'],
-                                                         nominal_cooling_power=nominal_cooling_power_stat[config_index],
-                                                         pv_area=np.array(str(config['PV area']).split(" "),
+         # As the zinssatz is dependent on scenarios, the investment calculation has to be made for each scenario
+         annual_investment_costs_systems_stat = \
+             icc.calculate_system_related_investment_cost(ee_database_path=sys_ee_database_path,
+                                                          gebaeudekategorie=scenarios.loc[0, 'building use type'],
+                                                          energy_reference_area=config['energy reference area'],
+                                                          heizsystem=heating_system,
+                                                          heat_emission_system=config['heat emission system'],
+                                                          heat_distribution=config['heat distribution'],
+                                                          nominal_heating_power=nominal_heating_power_stat[config_index],
+                                                          dhw_heizsystem=dhw_heizsystem,
+                                                          cooling_system=config['cooling system'],
+                                                          cold_emission_system=config['cold emission system'],
+                                                          nominal_cooling_power=nominal_cooling_power_stat[config_index],
+                                                          pv_area=np.array(str(config['PV area']).split(" "),
                                                                           dtype=float).sum(),
-                                                         pv_type=config['PV type'],
-                                                         pv_efficiency=config['PV efficiency'],
-                                                         has_mechanical_ventilation=config['mechanical ventilation'],
-                                                         zinssatz=zinssatz)
+                                                          pv_type=scenario['PV type'],
+                                                          pv_efficiency=scenario['PV efficiency'],
+                                                          has_mechanical_ventilation=config['mechanical ventilation'],
+                                                          zinssatz = scenario['zinssatz'])
 
-        annual_investment_costs_systems_dyn = \
-            icc.calculate_system_related_investment_cost(ee_database_path=sys_ee_database_path,
-                                                         gebaeudekategorie=scenarios.loc[0, 'building use type'],
-                                                         energy_reference_area=config['energy reference area'],
-                                                         heizsystem=heating_system,
-                                                         heat_emission_system=config['heat emission system'],
-                                                         heat_distribution=config['heat distribution'],
-                                                         nominal_heating_power=nominal_heating_power_dyn[config_index],
-                                                         dhw_heizsystem=dhw_heizsystem,
-                                                         cooling_system=config['cooling system'],
-                                                         cold_emission_system=config['cold emission system'],
-                                                         nominal_cooling_power=nominal_cooling_power_dyn[config_index],
-                                                         pv_area=np.array(str(config['PV area']).split(" "),
+         annual_investment_costs_systems_dyn = \
+             icc.calculate_system_related_investment_cost(ee_database_path=sys_ee_database_path,
+                                                          gebaeudekategorie=scenarios.loc[0, 'building use type'],
+                                                          energy_reference_area=config['energy reference area'],
+                                                          heizsystem=heating_system,
+                                                          heat_emission_system=config['heat emission system'],
+                                                          heat_distribution=config['heat distribution'],
+                                                          nominal_heating_power=nominal_heating_power_dyn[config_index],
+                                                          dhw_heizsystem=dhw_heizsystem,
+                                                          cooling_system=config['cooling system'],
+                                                          cold_emission_system=config['cold emission system'],
+                                                          nominal_cooling_power=nominal_cooling_power_dyn[config_index],
+                                                          pv_area=np.array(str(config['PV area']).split(" "),
                                                                           dtype=float).sum(),
-                                                         pv_type=config['PV type'],
-                                                         pv_efficiency=config['PV efficiency'],
-                                                         has_mechanical_ventilation=config['mechanical ventilation'],
-                                                         zinssatz=zinssatz)
+                                                          pv_type=scenario['PV type'],
+                                                          pv_efficiency=scenario['PV efficiency'],
+                                                          has_mechanical_ventilation=config['mechanical ventilation'],
+                                                          zinssatz = scenario['zinssatz'])
 
-        annual_investment_costs_envelope = \
-            icc.calculate_envelope_investment_cost(database_path=env_ee_database_path,
-                                             total_wall_area=total_wall_area,
-                                             wall_type=config['wall type'],
-                                             total_window_area=total_window_area,
-                                             window_type=config['window type'],
-                                             total_roof_area=total_roof_area,
-                                             roof_type=config['roof type'],
-                                             floor_area=floor_area,
-                                             ceiling_type=config['ceiling type'],
-                                             zinssatz=zinssatz)
+         annual_investment_costs_envelope = \
+             icc.calculate_envelope_investment_cost(database_path=env_ee_database_path,
+                                                    total_wall_area=total_wall_area,
+                                                    wall_type=config['wall type'],
+                                                    total_window_area=total_window_area,
+                                                    window_type=config['window type'],
+                                                    total_roof_area=total_roof_area,
+                                                    roof_type=config['roof type'],
+                                                    floor_area=floor_area,
+                                                    ceiling_type=config['ceiling type'],
+                                                    zinssatz = scenario['zinssatz'])
 
-        investment_costs_systems_matrix_stat[config_index, scenario_index] = \
-            annual_investment_costs_systems_stat / energiebezugsflache / system_lifetime_factor
+         investment_costs_systems_matrix_stat[config_index, scenario_index] = \
+             annual_investment_costs_systems_stat / energiebezugsflache / system_lifetime_factor
 
-        investment_costs_systems_matrix_dyn[config_index, scenario_index] = \
-           annual_investment_costs_systems_dyn / energiebezugsflache / system_lifetime_factor
+         investment_costs_systems_matrix_dyn[config_index, scenario_index] = \
+            annual_investment_costs_systems_dyn / energiebezugsflache / system_lifetime_factor
 
-        investment_costs_envelope_matrix[config_index, scenario_index] = \
+         investment_costs_envelope_matrix[config_index, scenario_index] = \
             annual_investment_costs_envelope / energiebezugsflache / envelope_lifetime_factor
 
 """

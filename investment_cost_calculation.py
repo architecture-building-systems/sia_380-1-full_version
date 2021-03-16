@@ -139,7 +139,7 @@ def calculate_system_related_investment_cost(ee_database_path, gebaeudekategorie
     # Calculation of embodied emissions for the electrical systems
     ## PV System
     pv_kWp = pv_area * pv_efficiency  # at STC Irradiance = 1kW/m2
-    pv_cost_per_kw = dp.pv_cost_interpolation(pv_kWp)  # this data is in CHF/kWp
+    pv_cost_per_kw = dp.pv_cost_interpolation(pv_kWp, pv_type)  # this data is in CHF/kWp
     pv_lifetime = database['lifetime'][pv_type]
     pv_cost = pv_cost_per_kw * pv_kWp * (i/(1-pow((i+1),-pv_lifetime)))
 

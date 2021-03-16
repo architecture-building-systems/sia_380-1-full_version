@@ -102,7 +102,7 @@ def build_yearly_emission_factors(source, type="annual", export_assumption="c"):
 
     elif source == "ZERO_2050":
         # KBOB has a constant factor, the type therefore does not matter
-        hourly_emission_factor = np.repeat(54, 8760) / 1000.0  # kgCO2eq/kWh
+        hourly_emission_factor = np.repeat(37.9, 8760) / 1000.0  # kgCO2eq/kWh
 
     elif source =="eu":
         # here a constant factor of the european power mix is assumed, the type therefore does not matter
@@ -143,7 +143,7 @@ def build_yearly_emission_factors_UBP(source_UBP, type="annual", export_assumpti
         hourly_emission_factor_UBP = np.repeat(347000, 8760) / 1000.0  # UBP/kWh KBOB: 2009/1:2016 Verbrauchermix-CH
 
     elif source_UBP == "ZERO_2050":
-        hourly_emission_factor_UBP = np.repeat(109000, 8760) / 1000.0  # UBP/kWh KBOB: 2009/1:2016 Verbrauchermix-CH
+        hourly_emission_factor_UBP = np.repeat(79600, 8760) / 1000.0  # UBP/kWh KBOB: 2009/1:2016 Verbrauchermix-CH
 
     elif source_UBP =="empa_ac":
 
@@ -194,7 +194,7 @@ def fossil_emission_factors(system_type, emission_source, combustion_efficiency_
         #kgCO2/kWh KBOB 2009/1:2016 Endenergie
     elif emission_source =="ZERO_2050":
         treibhausgaskoeffizient = {"Oil": 0.301, "Natural Gas": 0.228, "Wood": 0.027, "Pellets": 0.027,
-                                   "district": 0.042}
+                                   "district": 0.0264}
     else:
         quit("Fossil emission factors could not be built. Simulation stopped")
 
@@ -222,7 +222,7 @@ def fossil_emission_factors_UBP(system_type, emission_source_UBP, combustion_eff
         UBPkoeffizient = {"Oil": 234., "Natural Gas": 137., "Wood": 93.1, "Pellets": 81.1, "district": 92.8}
     #UBP/kWh KBOB: 2009/1:2016 Endenergie
     elif emission_source_UBP =="ZERO_2050":
-        UBPkoeffizient = {"Oil": 234., "Natural Gas": 137., "Wood": 93.1, "Pellets": 81.1, "district": 92.2}
+        UBPkoeffizient = {"Oil": 234., "Natural Gas": 137., "Wood": 93.1, "Pellets": 81.1, "district": 44.6}
     else:
         quit("Fossil emission UBP factors could not be built. Simulation stopped")
 
@@ -277,13 +277,21 @@ def energy_cost_per_kWh(energy_type, energy_cost_source, combustion_efficiency_f
 
     return  op_cost_final
 
-def pv_cost_interpolation(pv_kWp):
+def pv_cost_interpolation(pv_kWp, pv_type):
     # pv cost per kW via power-trendline TODO: maybe there is a more elegant way to do this in python instead of excel
     if pv_kWp == 0.:
-        pv_cost_per_kW = 0
+       pv_cost_per_kW = 0
     else:
-        pv_cost_per_kW = 5855.3 * pow(pv_kWp, -0.328) # for BAPV
-    # pv_cost_per_kW = 6615.5 * pow(pv_kWp, -0.328)  # for BIPV
+            if pv_type == "m-Si_2050":
+               pv_cost_per_kW = 2322.8 * pow(pv_kWp, -0.328) # for BAPV 2050; 60% cost reduction (IRENA)
+
+            elif pv_type == "m-Si_2020":
+               pv_cost_per_kW = 5855.3 * pow(pv_kWp, -0.328) # for BAPV 2020: swissolar
+               # pv_cost_per_kW = 6615.5 * pow(pv_kWp, -0.328)  # for BIPV
+            else:
+                 print("You have not entered a valid PV-type")
+                 quit()
+
     return pv_cost_per_kW
 
 def extract_wall_data(filepath, name="Betonwand, Wärmedämmung mit Lattenrost, Verkleidung", area=0,
