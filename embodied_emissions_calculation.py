@@ -185,7 +185,7 @@ def calculate_system_related_embodied_emissions(ee_database_path, gebaeudekatego
 
 
 def calculate_envelope_emissions(database_path, total_wall_area, wall_type, total_window_area,
-                                 window_type, total_roof_area, roof_type, energy_reference_area, ceiling_type):
+                                 window_type, total_roof_area, roof_type, floor_area, ceiling_type):
     """
     This function calculate the embodied emissions of the building envelope based on the input database and the given
     geometrical values (Ausmass). The database includes values per respective dimension and lifetime.
@@ -224,8 +224,8 @@ def calculate_envelope_emissions(database_path, total_wall_area, wall_type, tota
     floor_embodied_per_area = database['GWP[kgCO2eq/m2]'][ceiling_type]
     floor_embodied_per_area_UBP = database['UBP[/m2]'][ceiling_type]
     floor_lifetime = database['lifetime'][ceiling_type]
-    floor_embodied = floor_embodied_per_area * energy_reference_area / floor_lifetime
-    floor_embodied_UBP = floor_embodied_per_area_UBP * energy_reference_area / floor_lifetime
+    floor_embodied = floor_embodied_per_area * floor_area / floor_lifetime #ATTENTION!!: Linus, you might to change this back to EBF!
+    floor_embodied_UBP = floor_embodied_per_area_UBP * floor_area / floor_lifetime #ATTENTION!!: Linus, you might to change this back to EBF!
 
     embodied_envelope = wall_embodied + window_embodied + roof_embodied + floor_embodied
     embodied_envelope_UBP = wall_embodied_UBP + window_embodied_UBP + roof_embodied_UBP + floor_embodied_UBP
