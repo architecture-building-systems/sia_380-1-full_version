@@ -20,6 +20,7 @@ class Building(object):
                  thermal_storage_capacity_per_floor_area,
                  heat_pump_efficiency,
                  combustion_efficiency_factor,
+                 electricity_decarbonization_factor,
                  korrekturfaktor_luftungs_eff_f_v,
                  height_above_sea,
                  shading_factor_monthly,
@@ -60,6 +61,7 @@ class Building(object):
         self.cooling_supply_temperature = dp.lookup_supply_temperatures_according_to_rc(self.cold_emission_system)[1]
         self.heat_pump_efficiency = heat_pump_efficiency
         self.combustion_efficiency_factor = combustion_efficiency_factor
+        self.electricity_decarbonization_factor = electricity_decarbonization_factor
         self.has_mechanical_ventilation = has_mechanical_ventilation
 
         # Further optional attributes:
@@ -571,7 +573,8 @@ class Building(object):
             pass
 
 
-    def run_SIA_380_emissions(self, emission_factor_source, emission_factor_source_UBP, emission_factor_type, weather_data_sia):
+    def run_SIA_380_emissions(self, emission_factor_source, emission_factor_source_UBP, emission_factor_type, weather_data_sia,
+                              energy_cost_source):
         """
         Beachte: Die SIA Norm kennt keinen flexiblen Strommix. Soll das Stromprodukt ausgewählt werden können,
         müssten hiere noch weitere Anpassungen durchgeführt werden.
@@ -652,8 +655,8 @@ class Building(object):
             self.cooling_elec = 0.0
 
         self.electricity_demand += (self.heating_elec + self.dhw_elec + self.cooling_elec)
-        # At one point it might be useful to store these monthly values into a spreadsheet. For now they are only printed,
-        # for a quick reliability check of the results.
+        # TODO: At one point it might be useful to store these monthly values into a spreadsheet.
+        # For now they are only printed for a quick reliability check of the results.
         #print("total electricity demand:", self.electricity_demand)
         #print("heating electricty demand", self.heating_elec)
         #print("dhw electricity demand:", self.dhw_elec)
@@ -680,14 +683,17 @@ class Building(object):
         self.fossil_dhw_emissions_UBP = np.empty(12)
         self.electricity_emissions = np.empty(12)
         self.electricity_emissions_UBP = np.empty(12)
+        self.fossil_heating_energy_costs = np.empty(12)
+        self.fossil_dhw_energy_costs = np.empty(12)
+        self.electricity_energy_costs = np.empty(12)
 
 
         # account for fossil heating emissions in GWP and UBP
         if self.heating_system in ["Oil", "Natural Gas", "Wood", "Pellets", "district"]:
             self.fossil_heating_emissions = \
-                self.heizwarmebedarf * dp.fossil_emission_factors(self.heating_system,self.combustion_efficiency_factor).mean()
+                self.heizwarmebedarf * dp.fossil_emission_factors(self.heating_system, emission_factor_source, self.combustion_efficiency_factor).mean()
             self.fossil_heating_emissions_UBP = \
-                self.heizwarmebedarf * dp.fossil_emission_factors_UBP(self.heating_system,self.combustion_efficiency_factor).mean()
+                self.heizwarmebedarf * dp.fossil_emission_factors_UBP(self.heating_system, emission_factor_source_UBP, self.combustion_efficiency_factor).mean()
         else:
             self.fossil_heating_emissions = 0.0
             self.fossil_heating_emissions_UBP = 0.0
@@ -697,16 +703,16 @@ class Building(object):
         # account for fossil dhw emissions in GWP and UBP
         if self.dhw_heating_system in ["Oil", "Natural Gas", "Wood", "Pellets", "district"]:
             self.fossil_dhw_emissions = \
-                self.dhw_demand * dp.fossil_emission_factors(self.dhw_heating_system,self.combustion_efficiency_factor).mean()
+                self.dhw_demand * dp.fossil_emission_factors(self.dhw_heating_system, emission_factor_source, self.combustion_efficiency_factor).mean()
             self.fossil_dhw_emissions_UBP = \
-                self.dhw_demand * dp.fossil_emission_factors_UBP(self.dhw_heating_system,self.combustion_efficiency_factor).mean()
+                self.dhw_demand * dp.fossil_emission_factors_UBP(self.dhw_heating_system, emission_factor_source_UBP, self.combustion_efficiency_factor).mean()
         else:
             self.fossil_dhw_emissions = 0.0
             self.fossil_dhw_emissions_UBP = 0.0
 
         # account for net grid import emissions in GWP and UBP
         self.grid_electricity_emissions = self.net_electricity_demand * dp.build_yearly_emission_factors(
-            emission_factor_source, emission_factor_type).mean()
+            emission_factor_source, emission_factor_type).mean() * self.electricity_decarbonization_factor
         self.grid_electricity_emissions[self.grid_electricity_emissions < 0.0] = 0.0
 
         self.grid_electricity_emissions_UBP = self.net_electricity_demand * dp.build_yearly_emission_factors_UBP(
@@ -717,6 +723,27 @@ class Building(object):
                                      self.grid_electricity_emissions ## always make sure to be clear what these emissions include (see SIA 380)
         self.operational_emissions_UBP = self.fossil_heating_emissions_UBP + self.fossil_dhw_emissions_UBP + \
                                      self.grid_electricity_emissions_UBP ## always make sure to be clear what these emissions include (see SIA 380)
+
+        ### calculate operational emissions
+        # fossil fuel costs
+        if self.heating_system in ["Oil", "Natural Gas", "Wood", "Pellets", "district"]:
+            self.fossil_heating_energy_costs = \
+                self.heizwarmebedarf * dp.energy_cost_per_kWh(self.heating_system, energy_cost_source, self.combustion_efficiency_factor)
+        else:
+            self.fossil_heating_energy_costs = 0.0
+
+        if self.dhw_heating_system in ["Oil", "Natural Gas", "Wood", "Pellets", "district"]:
+            self.fossil_dhw_energy_costs = \
+                self.dhw_demand * dp.energy_cost_per_kWh(self.dhw_heating_system, energy_cost_source, self.combustion_efficiency_factor)
+        else:
+            self.fossil_dhw_energy_costs = 0.0
+
+        # electricity costs
+        self.electricity_energy_costs = self.net_electricity_demand * dp.energy_cost_per_kWh("electricity", energy_cost_source)
+        self.electricity_energy_costs[self.electricity_energy_costs < 0.0] = 0.0
+
+        # total energy costs
+        self.energy_costs = self.fossil_heating_energy_costs + self.fossil_dhw_energy_costs + self.electricity_energy_costs
 
     def run_SIA_electricity_demand(self, occupancy_path):
         self.app_light_other_electricity_monthly_demand = dp.hourly_to_monthly(

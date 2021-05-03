@@ -4,6 +4,7 @@ import simulation_engine as se
 import simulation_engine_dynamic as sime
 import data_prep as dp
 import embodied_emissions_calculation as eec
+import investment_cost_calculation as icc
 import pandas as pd
 import time
 
@@ -30,6 +31,9 @@ performance_matrix_path_hourly = os.path.join(main_path, results_folder, 'operat
 performance_matrix_path_hourly_UBP = os.path.join(main_path, results_folder, 'operational_emissions_hourly_UBP.xlsx')
 performance_matrix_path_monthly = os.path.join(main_path, results_folder, 'operational_emissions_monthly.xlsx')
 performance_matrix_path_monthly_UBP = os.path.join(main_path, results_folder, 'operational_emissions_monthly_UBP.xlsx')
+energy_costs_path_hourly = os.path.join(main_path, results_folder, 'energy_costs_hourly.xlsx')
+energy_costs_path_monthly = os.path.join(main_path, results_folder, 'energy_costs_monthly.xlsx')
+operation_maintenance_costs_path = os.path.join(main_path, results_folder, 'operation_maintenance_costs.xlsx')
 embodied_systems_stat_performance_path = os.path.join(main_path, results_folder, 'embodied_systems_monthly.xlsx')
 embodied_systems_stat_performance_path_UBP = os.path.join(main_path, results_folder, 'embodied_systems_monthly_UBP.xlsx')
 embodied_systems_dyn_performance_path = os.path.join(main_path, results_folder, 'embodied_systems_hourly.xlsx')
@@ -37,6 +41,9 @@ embodied_systems_dyn_performance_path_UBP = os.path.join(main_path, results_fold
 embodied_envelope_performance_path = os.path.join(main_path, results_folder, 'embodied_envelope.xlsx')
 embodied_envelope_performance_path_UBP = os.path.join(main_path, results_folder, 'embodied_envelope_UBP.xlsx')
 embodied_envelope_performance_detailed_path = os.path.join(main_path, results_folder, 'embodied_envelope_detailed')
+investment_costs_systems_path_hourly = os.path.join(main_path, results_folder, 'investment_costs_systems_hourly.xlsx')
+investment_costs_systems_path_monthly = os.path.join(main_path, results_folder, 'investment_costs_systems_monthly.xlsx')
+investment_costs_envelope_path = os.path.join(main_path, results_folder, 'investment_costs_envelope.xlsx')
 
 dyn_heat_path = os.path.join(main_path, results_folder, 'heat_demand_hourly.xlsx')
 dyn_cold_path = os.path.join(main_path, results_folder, 'cooling_demand_hourly.xlsx')
@@ -75,6 +82,9 @@ emission_performance_matrix_dyn = np.empty((len(configurations.index), len(scena
 emission_performance_matrix_dyn_UBP = np.empty((len(configurations.index), len(scenarios.index)))
 emission_performance_matrix_stat = np.empty((len(configurations.index), len(scenarios.index)))
 emission_performance_matrix_stat_UBP = np.empty((len(configurations.index), len(scenarios.index)))
+energy_costs_matrix_dyn = np.empty((len(configurations.index), len(scenarios.index)))
+energy_costs_matrix_stat = np.empty((len(configurations.index), len(scenarios.index)))
+operation_maintenance_costs = np.empty(len(configurations.index))
 heating_demand_dyn = np.empty((len(configurations.index), len(scenarios.index)))
 heating_demand_stat = np.empty((len(configurations.index), len(scenarios.index)))
 dhw_demand_dyn = np.empty((len(configurations.index), len(scenarios.index)))
@@ -167,6 +177,14 @@ for config_index, config in configurations.iterrows():
     window_areas = np.array(config['window areas'].split(" "), dtype=float)
     window_orientations = np.array(config['window orientations'].split(" "), dtype=str)
 
+    #operation and maintenance costs are calculated here, as they are only dependent on heating/cooling type (config)
+    if cooling_system == heizsystem:
+        operation_maintenance_costs[config_index] = dp.operation_maintenance_yearly_costs(heizsystem) / energiebezugsflache
+    else:
+        operation_maintenance_costs[config_index] = (dp.operation_maintenance_yearly_costs(heizsystem) +
+                                                     dp.operation_maintenance_yearly_costs(cooling_system)) / \
+                                                    energiebezugsflache
+
     #This print helps keeping track of the simulation progress.
     print("Configuration %s prepared" %config_index)
 
@@ -188,11 +206,13 @@ for config_index, config in configurations.iterrows():
         cooling_setpoint = scenario['cooling setpoint']  # number in deC or select "SIA" to follow the SIA380-1 code
         heat_pump_efficiency = scenario['heat pump efficiency']
         combustion_efficiency_factor = scenario['combustion efficiency factor']
+        electricity_decarbonization_factor = scenario['electricity decarbonization factor']
 
         shading_factor_season = np.array(str(scenario['shading factor']).split(" "), dtype=float)
-            # array with shading factors (per season: winter, spring, summer, fall)
+        # array with shading factors (per season: winter, spring, summer, fall)
         electricity_factor_source = scenario['emission source']
         electricity_factor_source_UBP = scenario['emission source UBP']
+        energy_cost_source = scenario['energy cost source']
         shading_factor_monthly = dp.factor_season_to_month(shading_factor_season)
         shading_factor_hourly = dp.factor_month_to_hour(shading_factor_monthly)
         weather_data_sia = dp.epw_to_sia_irrad(weatherfile_path)
@@ -201,7 +221,7 @@ for config_index, config in configurations.iterrows():
         thermal_bridge_add_on = scenario['thermal bridge add on']  # in %
         thermal_bridge_factor = 1.0 + (thermal_bridge_add_on / 100.0)
 
-        # the thermal bridge factor leads to an overal increase in transmittance losses. It is implemented here
+        # the thermal bridge factor leads to an overall increase in transmittance losses. It is implemented here
         # because that is the easiest way. For result analysis the input file u-values need to be used.
         u_windows = u_windows_raw * thermal_bridge_factor
         u_walls = u_walls_raw * thermal_bridge_factor
@@ -252,7 +272,7 @@ for config_index, config in configurations.iterrows():
         Gebaeude_static = se.Building(gebaeudekategorie_sia, regelung, windows, walls, roof, floor, energiebezugsflache,
                                       anlagennutzungsgrad_wrg, infiltration_volume_flow, ventilation_volume_flow,
                                       increased_ventilation_volume_flow, warmespeicherfahigkeit_pro_EBF,
-                                      heat_pump_efficiency, combustion_efficiency_factor,
+                                      heat_pump_efficiency, combustion_efficiency_factor, electricity_decarbonization_factor,
                                       korrekturfaktor_luftungs_eff_f_v, hohe_uber_meer, shading_factor_monthly, heizsystem, dhw_heizsystem,
                                       cooling_system, heat_emission_system, cold_emission_system, heating_setpoint,
                                       cooling_setpoint, area_per_person, has_mechanical_ventilation)
@@ -267,7 +287,7 @@ for config_index, config in configurations.iterrows():
         Gebaeude_dyn = sime.Sim_Building(gebaeudekategorie_sia, regelung, windows, walls, roof, floor, energiebezugsflache,
                                        anlagennutzungsgrad_wrg, infiltration_volume_flow, ventilation_volume_flow,
                                          increased_ventilation_volume_flow, warmespeicherfahigkeit_pro_EBF,
-                                         heat_pump_efficiency, combustion_efficiency_factor,
+                                         heat_pump_efficiency, combustion_efficiency_factor, electricity_decarbonization_factor,
                                        korrekturfaktor_luftungs_eff_f_v, hohe_uber_meer, shading_factor_hourly, heizsystem, cooling_system,
                                          heat_emission_system, cold_emission_system,
                                        dhw_heizsystem, heating_setpoint, cooling_setpoint, area_per_person,
@@ -287,6 +307,7 @@ for config_index, config in configurations.iterrows():
         Gebaeude_dyn.run_dynamic_emissions(emission_factor_source=electricity_factor_source,
                                            emission_factor_source_UBP=electricity_factor_source_UBP,
                                            emission_factor_type=electricity_factor_type,
+                                           energy_cost_source=energy_cost_source,
                                            grid_export_assumption="c")
 
 
@@ -295,13 +316,15 @@ for config_index, config in configurations.iterrows():
         Gebaeude_static.run_SIA_380_emissions(emission_factor_source=electricity_factor_source,
                                               emission_factor_source_UBP=electricity_factor_source_UBP,
                                               emission_factor_type=electricity_factor_type,
-                                              weather_data_sia=weather_data_sia)
+                                              weather_data_sia=weather_data_sia,
+                                              energy_cost_source=energy_cost_source)
 
 
 
         emission_performance_matrix_dyn[config_index, scenario_index] = Gebaeude_dyn.operational_emissions.sum()/energiebezugsflache
         emission_performance_matrix_dyn_UBP[
             config_index, scenario_index] = Gebaeude_dyn.operational_emissions_UBP.sum() / energiebezugsflache
+        energy_costs_matrix_dyn[config_index, scenario_index] = Gebaeude_dyn.energy_costs.sum() / energiebezugsflache
 
         heating_demand_dyn[config_index, scenario_index] = Gebaeude_dyn.heating_demand.sum()/1000.0/energiebezugsflache
         cooling_demand_dyn[config_index, scenario_index] = Gebaeude_dyn.cooling_demand.sum()/1000.0/energiebezugsflache
@@ -309,6 +332,7 @@ for config_index, config in configurations.iterrows():
 
         emission_performance_matrix_stat[config_index, scenario_index] = Gebaeude_static.operational_emissions.sum()
         emission_performance_matrix_stat_UBP[config_index, scenario_index] = Gebaeude_static.operational_emissions_UBP.sum()
+        energy_costs_matrix_stat[config_index, scenario_index] = Gebaeude_static.energy_costs.sum()
 
         heating_demand_stat[config_index, scenario_index] = Gebaeude_static.heizwarmebedarf.sum()
         cooling_demand_stat[config_index, scenario_index] = Gebaeude_static.monthly_cooling_demand.sum()
@@ -387,12 +411,18 @@ pd.DataFrame(emission_performance_matrix_stat, index=configurations.index, colum
 pd.DataFrame(emission_performance_matrix_stat_UBP, index=configurations.index, columns=scenarios.index).to_excel(
          performance_matrix_path_monthly_UBP)
 
+# store energy costs and operational and maintenance costs
+pd.DataFrame(energy_costs_matrix_dyn, index=configurations.index, columns=scenarios.index).to_excel(
+         energy_costs_path_hourly)
+pd.DataFrame(energy_costs_matrix_stat, index=configurations.index, columns=scenarios.index).to_excel(
+         energy_costs_path_monthly)
+pd.DataFrame(operation_maintenance_costs, index=configurations.index).to_excel(operation_maintenance_costs_path)
+
 # store self consumption ratio
 pd.DataFrame(annual_self_consumption_ratios_dyn, index=configurations.index, columns=scenarios.index).to_excel(sc_ratio_hourly_path)
 pd.DataFrame(annual_self_consumption_ratios_stat, index=configurations.index, columns=scenarios.index).to_excel(sc_ratio_monthly_path)
 
 # store electrical_autarky
-
 pd.DataFrame(electrical_annual_autarky_stat, index=configurations.index, columns=scenarios.index).to_excel(el_autarky_stat_path)
 pd.DataFrame(electrical_annual_autarky_dyn, index=configurations.index, columns=scenarios.index).to_excel(el_autarky_dyn_path)
 
@@ -441,7 +471,7 @@ sucks...
 """
 
 
-###################################### EMBODIED EMISSIONS ##############################################################
+###################################### EMBODIED EMISSIONS AND INVESTMENT COSTS #########################################
 """ The embodied emissions only need to be calculated per Configuration. They are assumed to only come into 
 the calculation at the beginning of the life cycle. This means, that for now, they are not dependent on the 
 scenarios. (only scenario 0)
@@ -467,6 +497,9 @@ eee_roof_UBP = np.empty((len(configurations.index), len(scenarios.index)))
 eee_floor = np.empty((len(configurations.index), len(scenarios.index)))
 eee_floor_UBP = np.empty((len(configurations.index), len(scenarios.index)))
 
+investment_costs_systems_matrix_stat = np.empty((len(configurations.index), len(scenarios.index)))
+investment_costs_systems_matrix_dyn = np.empty((len(configurations.index), len(scenarios.index)))
+investment_costs_envelope_matrix = np.empty((len(configurations.index), len(scenarios.index)))
 
 """
 ###################################### SYSTEM SIMULATION #######################################################
@@ -542,6 +575,7 @@ for config_index, config in configurations.iterrows():
     total_wall_area = np.array(config['wall areas'].split(" "), dtype=float).sum()
     total_window_area = np.array(config['window areas'].split(" "), dtype=float).sum()
     total_roof_area = np.array(config["roof area"]).sum()
+    floor_area = np.array(config["floor area"]).sum()
 
     wall_type = config['wall type']
     window_type = config["window type"]
@@ -555,7 +589,7 @@ for config_index, config in configurations.iterrows():
                                          window_type=config['window type'],
                                          total_roof_area=total_roof_area,
                                          roof_type=config['roof type'],
-                                         energy_reference_area=energiebezugsflache,
+                                         floor_area=floor_area,
                                          ceiling_type=config['ceiling type'])
 
 
@@ -563,6 +597,7 @@ for config_index, config in configurations.iterrows():
 
         envelope_lifetime_factor = scenario['envelope lifetime factor']
         system_lifetime_factor = scenario['system lifetime factor']
+        zinssatz = scenario['zinssatz']
 
         embodied_systems_emissions_performance_matrix_stat[config_index, scenario_index] = embodied_impact_stat[0] / energiebezugsflache/ system_lifetime_factor
         embodied_systems_emissions_performance_matrix_stat_UBP[config_index, scenario_index] = embodied_impact_stat[1] / energiebezugsflache/ system_lifetime_factor
@@ -583,7 +618,65 @@ for config_index, config in configurations.iterrows():
         eee_floor[config_index, scenario_index] = annualized_embodied_emsissions_envelope[8]/energiebezugsflache/ envelope_lifetime_factor
         eee_floor_UBP[config_index, scenario_index] = annualized_embodied_emsissions_envelope[9]/energiebezugsflache/ envelope_lifetime_factor
 
+        # As the zinssatz is dependent on scenarios, the investment calculation has to be made for each scenario
+        annual_investment_costs_systems_stat = \
+            icc.calculate_system_related_investment_cost(ee_database_path=sys_ee_database_path,
+                                                         gebaeudekategorie=scenarios.loc[0, 'building use type'],
+                                                         energy_reference_area=config['energy reference area'],
+                                                         heizsystem=heating_system,
+                                                         heat_emission_system=config['heat emission system'],
+                                                         heat_distribution=config['heat distribution'],
+                                                         nominal_heating_power=nominal_heating_power_stat[config_index],
+                                                         dhw_heizsystem=dhw_heizsystem,
+                                                         cooling_system=config['cooling system'],
+                                                         cold_emission_system=config['cold emission system'],
+                                                         nominal_cooling_power=nominal_cooling_power_stat[config_index],
+                                                         pv_area=np.array(str(config['PV area']).split(" "),
+                                                                          dtype=float).sum(),
+                                                         pv_type=config['PV type'],
+                                                         pv_efficiency=config['PV efficiency'],
+                                                         has_mechanical_ventilation=config['mechanical ventilation'],
+                                                         zinssatz=zinssatz)
 
+        annual_investment_costs_systems_dyn = \
+            icc.calculate_system_related_investment_cost(ee_database_path=sys_ee_database_path,
+                                                         gebaeudekategorie=scenarios.loc[0, 'building use type'],
+                                                         energy_reference_area=config['energy reference area'],
+                                                         heizsystem=heating_system,
+                                                         heat_emission_system=config['heat emission system'],
+                                                         heat_distribution=config['heat distribution'],
+                                                         nominal_heating_power=nominal_heating_power_dyn[config_index],
+                                                         dhw_heizsystem=dhw_heizsystem,
+                                                         cooling_system=config['cooling system'],
+                                                         cold_emission_system=config['cold emission system'],
+                                                         nominal_cooling_power=nominal_cooling_power_dyn[config_index],
+                                                         pv_area=np.array(str(config['PV area']).split(" "),
+                                                                          dtype=float).sum(),
+                                                         pv_type=config['PV type'],
+                                                         pv_efficiency=config['PV efficiency'],
+                                                         has_mechanical_ventilation=config['mechanical ventilation'],
+                                                         zinssatz=zinssatz)
+
+        annual_investment_costs_envelope = \
+            icc.calculate_envelope_investment_cost(database_path=env_ee_database_path,
+                                             total_wall_area=total_wall_area,
+                                             wall_type=config['wall type'],
+                                             total_window_area=total_window_area,
+                                             window_type=config['window type'],
+                                             total_roof_area=total_roof_area,
+                                             roof_type=config['roof type'],
+                                             floor_area=floor_area,
+                                             ceiling_type=config['ceiling type'],
+                                             zinssatz=zinssatz)
+
+        investment_costs_systems_matrix_stat[config_index, scenario_index] = \
+            annual_investment_costs_systems_stat / energiebezugsflache / system_lifetime_factor
+
+        investment_costs_systems_matrix_dyn[config_index, scenario_index] = \
+           annual_investment_costs_systems_dyn / energiebezugsflache / system_lifetime_factor
+
+        investment_costs_envelope_matrix[config_index, scenario_index] = \
+            annual_investment_costs_envelope / energiebezugsflache / envelope_lifetime_factor
 
 """
 Last but not least, all the created dataframes from the embodied part are stored in the file locations given in the 
@@ -617,3 +710,11 @@ pd.DataFrame(eee_floor_UBP).to_excel(os.path.join(embodied_envelope_performance_
 
 
 os.path.join(main_path, results_folder, 'embodied_envelope_detailed')
+
+# Investment costs for systems and envelope
+pd.DataFrame(investment_costs_systems_matrix_stat, index=configurations.index).to_excel(
+    investment_costs_systems_path_monthly)
+pd.DataFrame(investment_costs_systems_matrix_dyn, index=configurations.index).to_excel(
+    investment_costs_systems_path_hourly)
+pd.DataFrame(investment_costs_envelope_matrix, index=configurations.index).to_excel(
+    investment_costs_envelope_path)
