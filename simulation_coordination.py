@@ -173,6 +173,8 @@ for config_index, config in configurations.iterrows():
     pv_tilt = np.array(str(config['PV tilt']).split(" "), dtype=float)  # in degrees
     pv_azimuth = np.array(str(config['PV azimuth']).split(" "), dtype=float) # The north=0 convention applies
 
+    max_electrical_storage_capacity = config['electrical storage capacity']  # in Wh !!!!
+
     wall_areas = np.array(config['wall areas'].split(" "), dtype=float)
     window_areas = np.array(config['window areas'].split(" "), dtype=float)
     window_orientations = np.array(config['window orientations'].split(" "), dtype=str)
@@ -291,7 +293,7 @@ for config_index, config in configurations.iterrows():
                                        korrekturfaktor_luftungs_eff_f_v, hohe_uber_meer, shading_factor_hourly, heizsystem, cooling_system,
                                          heat_emission_system, cold_emission_system,
                                        dhw_heizsystem, heating_setpoint, cooling_setpoint, area_per_person,
-                                         has_mechanical_ventilation)
+                                         has_mechanical_ventilation, max_electrical_storage_capacity)
 
         Gebaeude_dyn.pv_production = pv_yield_hourly  # in kWh (! ACHTUNG, RC immer in Wh !)
 
@@ -338,7 +340,11 @@ for config_index, config in configurations.iterrows():
         cooling_demand_stat[config_index, scenario_index] = Gebaeude_static.monthly_cooling_demand.sum()
         dhw_demand_stat[config_index, scenario_index] = Gebaeude_static.dhw_demand.sum()
 
-        annual_self_consumption_ratios_dyn[config_index, scenario_index] = dp.calculate_self_consumption(Gebaeude_dyn.electricity_demand, pv_yield_hourly)
+        # annual_self_consumption_ratios_dyn[config_index, scenario_index] = dp.calculate_self_consumption(Gebaeude_dyn.electricity_demand, pv_yield_hourly)
+
+        annual_self_consumption_ratios_dyn[config_index, scenario_index] = dp.calculate_self_consumption(
+            Gebaeude_dyn.electricity_demand, Gebaeude_dyn.net_electricity_demand, pv_yield_hourly)
+
         annual_self_consumption_ratios_stat[config_index, scenario_index] = Gebaeude_static.annual_self_consumption
 
         annual_pv_yield[config_index, scenario_index] = pv_yield_hourly.sum()

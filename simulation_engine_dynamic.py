@@ -38,7 +38,8 @@ class Sim_Building(object):
                  heating_setpoint="SIA",
                  cooling_setpoint="SIA",
                  area_per_person="SIA",
-                 has_mechanical_ventilation=False):
+                 has_mechanical_ventilation=False,
+                 max_electrical_storage_capacity=0):
 
         ### Similar to SIA some are unecessary.
         self.gebaeudekategorie_sia = gebaeudekategorie_sia
@@ -112,6 +113,8 @@ class Sim_Building(object):
             self.heating_system = dhw_heating_system
         else:
             self.max_heating_energy_per_floor_area = np.inf
+
+        self.max_electrical_storage_capacity = max_electrical_storage_capacity
 
 
     def run_rc_simulation(self, weatherfile_path, occupancy_path, cooling_setpoint=None):
@@ -356,8 +359,11 @@ class Sim_Building(object):
                                   self.cooling_electricity_demand
 
         net_electricity_demand = self.electricity_demand-self.pv_production
-        net_electricity_demand[net_electricity_demand < 0.0] = 0.0
-        self.net_electricity_demand = net_electricity_demand
+        net_electricity_demand_after_storage = dp.net_electricity_demand_after_storage(net_electricity_demand, self.max_electrical_storage_capacity)
+        net_electricity_demand_after_storage[net_electricity_demand_after_storage < 0.0] = 0.0  # Here, net electricity demand means imports from grid. TODO: Fix the wording
+        self.net_electricity_demand = net_electricity_demand_after_storage
+
+
 
 
         self.fossil_emissions = np.empty(8760)

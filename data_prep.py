@@ -764,7 +764,7 @@ def estimate_self_consumption(electricity_demand, pv_peak_power, building_catego
     return monthly_sc
 
 
-def calculate_self_consumption(hourly_demand, hourly_production):
+def calculate_self_consumption(hourly_demand, grid_import, hourly_production):
     """
     This function simply calculates the self consumption based on simulation results for demand and solar production.
     :param hourly_demand: np.array of hourly values
@@ -776,10 +776,49 @@ def calculate_self_consumption(hourly_demand, hourly_production):
         self_consumption_ratio = 0
     else:
         self_consumption = np.empty(len(hourly_demand))
-        for hour in range(len(hourly_demand)):
-            self_consumption[hour] = min(hourly_production[hour], hourly_demand[hour])
+        # for hour in range(len(hourly_demand)):
+        #     self_consumption[hour] = min(hourly_production[hour], hourly_demand[hour])
+        self_consumption = hourly_demand - grid_import
         self_consumption_ratio = self_consumption.sum()/hourly_production.sum()
     return self_consumption_ratio
+
+
+def net_electricity_demand_after_storage(net_electricity_demand_before_storage, max_storage_capacity):
+    """
+    Make sure that the energy inputs are at the same scale as the storage capacity e.g. kWh and kWh or Wh and Wh. Do not mix!
+    """
+    if max_storage_capacity <= 0.0:
+        return net_electricity_demand_before_storage
+
+    initial_soc = 0.5  # in relative
+    soc_storage = np.zeros(
+        len(net_electricity_demand_before_storage) + 1)  # This is necessary to lose the plus one error
+    soc_storage[0] = initial_soc
+    net_electricity_demand_after_storage = np.empty(len(net_electricity_demand_before_storage))
+
+    for hour in range(len(net_electricity_demand_before_storage)):
+
+        if (net_electricity_demand_before_storage[hour] > 0) & (soc_storage[hour] > 0.0):
+            stored_energy = soc_storage[hour] * max_storage_capacity
+            used_stored_energy = min(stored_energy, net_electricity_demand_before_storage[hour])
+            net_electricity_demand_after_storage[hour] = net_electricity_demand_before_storage[
+                                                             hour] - used_stored_energy
+            soc_storage[hour + 1] = (stored_energy - used_stored_energy) / max_storage_capacity
+
+        elif (net_electricity_demand_before_storage[hour] < 0) & (soc_storage[hour] < 1.0):
+            free_storage = (1 - soc_storage[hour]) * max_storage_capacity
+            energy_newly_stored = min(free_storage, -net_electricity_demand_before_storage[
+                hour])  ## Achtung, hier mit negativen Zahlen
+            net_electricity_demand_after_storage[hour] = net_electricity_demand_before_storage[
+                                                             hour] + energy_newly_stored
+            soc_storage[hour + 1] = (max_storage_capacity - free_storage + energy_newly_stored) / max_storage_capacity
+
+        else:
+            soc_storage[hour + 1] = soc_storage[hour]
+            net_electricity_demand_after_storage[hour] = net_electricity_demand_before_storage[hour]
+
+    return (net_electricity_demand_after_storage)
+
 
 def factor_season_to_month(seasonal_factor):
     """
