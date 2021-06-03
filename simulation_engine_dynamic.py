@@ -295,8 +295,8 @@ class Sim_Building(object):
         self.solar_gains = solar_gains.to_numpy()
             # self.total_heat_demand[hour] = Office.heating_demand + Office.dhw_demand  ## add again when dhw is solved
 
-    def run_SIA_electricity_demand(self, occupancy_path):
-        self.app_light_other_electricity_monthly_demand = dp.sia_electricity_per_erf_hourly(occupancy_path,
+    def run_SIA_electricity_demand(self, occupancy_data):
+        self.app_light_other_electricity_monthly_demand = dp.sia_electricity_per_erf_hourly(occupancy_data,
                                                                                             self.gebaeudekategorie_sia,
                                                                                             self.has_mechanical_ventilation)
 

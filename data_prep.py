@@ -383,15 +383,22 @@ def hourly_to_monthly(hourly_array):
     :param hourly_array: hourly np.array with 8760 entries
     :return: monthly array with 12 entries that sum up the respective hour¨ly values.
     """
+    ind = [0, 744, 744, 1416, 1416, 2160, 2160, 2880, 2880, 3624, 3624, 4344, 4344, 5088, 5088, 5832, 5832, 6552, 6552,
+           7296, 7296, 8016, 8016, 8759]
     hours_per_month = np.array([31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31])*24
     monthly_values = np.empty(12)
     start_hour = 0
+
+    # month_new_values = np.add.reduceat(hourly_array, ind)[::2]
 
     for month in range(12):
         end_hour = start_hour+hours_per_month[month]
         monthly_values[month] = hourly_array[start_hour:end_hour].sum()
         start_hour = start_hour + hours_per_month[month]
-    return monthly_values
+    # print("max", (month_new_values-monthly_values).max())
+    # print("min", (month_new_values - monthly_values).max())
+
+    return monthly_values # month_new_values
 
 def hourly_to_monthly_average(hourly_array):
     """
@@ -409,7 +416,7 @@ def hourly_to_monthly_average(hourly_array):
         start_hour = start_hour + hours_per_month[month]
     return monthly_values
 
-def sia_electricity_per_erf_hourly(occupancy_path, gebaeudekategorie_sia, has_mechanical_ventilation):
+def sia_electricity_per_erf_hourly(occupancyProfile, gebaeudekategorie_sia, has_mechanical_ventilation):
         """
         This function distributes the electricity demand of SIA380-1 according to occupancy schedules of SIA2024
         It is questionable if this is correct but probably a good first approximation.
@@ -429,13 +436,17 @@ def sia_electricity_per_erf_hourly(occupancy_path, gebaeudekategorie_sia, has_me
         else:
             ventilation_electricity = {1.1: 0., 1.2: 0., 2.1: 0., 2.2: 0., 3.1: 0., 3.2: 0.}
 
-        occupancyProfile = pd.read_csv(occupancy_path)
-        occupancy_factor = np.empty(8760)
-        total = occupancyProfile['People'].sum()
-        for hour in range(8760):
-            occupancy_factor[hour] = occupancyProfile.loc[hour, 'People']/total
+        # occupancy_factor = np.empty(8760)
+        occupancy_schedule = occupancyProfile['People'].to_numpy()
+        total_numpy = occupancy_schedule.sum()
+        occupancy_factor_II = occupancy_schedule/total_numpy
+        # print("Profile", occupancy_schedule)
+        # total = occupancyProfile['People'].sum()
+        # for hour in range(8760):
+        #     occupancy_factor[hour] = occupancyProfile.loc[hour, 'People']/total
 
-        return occupancy_factor * (elektrizitatsbedarf[int(gebaeudekategorie_sia)] + ventilation_electricity[gebaeudekategorie_sia])
+
+        return occupancy_factor_II * (elektrizitatsbedarf[int(gebaeudekategorie_sia)] + ventilation_electricity[gebaeudekategorie_sia])
 
 def sia_annaul_dhw_demand(gebaeudekategorie_sia):
     """
@@ -454,7 +465,7 @@ def sia_annaul_dhw_demand(gebaeudekategorie_sia):
 
     return annual_dhw_demand[gebaeudekategorie_sia]
 
-def epw_to_sia_irrad(epw_path, model="isotropic"):
+def epw_to_sia_irrad(header_data, weather_data, model="isotropic"):
     """
     THIS FUNCTION DOES NOT WORK PROPERLY WHEN COMPARED TO METEONORM SIA DATA.
     ESPECIALLY THE DIFFUSE MODEL SHOULD BE CHANGED TO PEREZ
@@ -464,22 +475,10 @@ def epw_to_sia_irrad(epw_path, model="isotropic"):
     :return: dictionary for SIA compatible irradiation data. Dicitonary filled with numpy arrays of floats. Output in
     MJ as in SIA 2028.
     """
-    start = time.time()
 
-    # Set EPW Labels and import epw file
-    epw_labels = ['year', 'month', 'day', 'hour', 'minute', 'datasource', 'drybulb_C', 'dewpoint_C', 'relhum_percent',
-                  'atmos_Pa', 'exthorrad_Whm2', 'extdirrad_Whm2', 'horirsky_Whm2', 'glohorrad_Whm2',
-                  'dirnorrad_Whm2', 'difhorrad_Whm2', 'glohorillum_lux', 'dirnorillum_lux', 'difhorillum_lux',
-                  'zenlum_lux', 'winddir_deg', 'windspd_ms', 'totskycvr_tenths', 'opaqskycvr_tenths', 'visibility_km',
-                  'ceiling_hgt_m', 'presweathobs', 'presweathcodes', 'precip_wtr_mm', 'aerosol_opt_thousandths',
-                  'snowdepth_cm', 'days_last_snow', 'Albedo', 'liq_precip_depth_mm', 'liq_precip_rate_Hour']
 
-    # Import EPW file
-    header_data = pd.read_csv(epw_path, header=None, nrows=1)
     latitude = header_data.iloc[0,6]
     longitude = header_data.iloc[0,7]
-    weather_data = pd.read_csv(epw_path, skiprows=8, header=None, names=epw_labels).drop('datasource', axis=1)
-
     global_horizontal_hourly = weather_data['glohorrad_Whm2'].to_numpy()
 
     solar_zenith_deg, solar_azimuth_deg = calc_sun_position(latitude, longitude)
@@ -677,7 +676,7 @@ def string_orientation_to_angle(string_orientation):
     return translation[string_orientation]
 
 def photovoltaic_yield_hourly(pv_azimuth, pv_tilt, stc_efficiency, performance_ratio, pv_area,
-                              epw_path, model="isotropic"):
+                              header_data, weather_data, model="isotropic"):
     """
     :param pv_azimuth: angle or array of angles with north convention (N=0/360)
     :param pv_tilt: tilt or arrays of tilt of the pv array 0deg = horizontal
@@ -696,10 +695,9 @@ def photovoltaic_yield_hourly(pv_azimuth, pv_tilt, stc_efficiency, performance_r
                   'snowdepth_cm', 'days_last_snow', 'Albedo', 'liq_precip_depth_mm', 'liq_precip_rate_Hour']
 
     # Import EPW file
-    header_data = pd.read_csv(epw_path, header=None, nrows=1)
+
     latitude = header_data.iloc[0, 6]
     longitude = header_data.iloc[0, 7]
-    weather_data = pd.read_csv(epw_path, skiprows=8, header=None, names=epw_labels).drop('datasource', axis=1)
 
     solar_zenith_deg, solar_azimuth_deg = calc_sun_position(latitude, longitude)
 

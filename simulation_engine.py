@@ -745,10 +745,11 @@ class Building(object):
         # total energy costs
         self.energy_costs = self.fossil_heating_energy_costs + self.fossil_dhw_energy_costs + self.electricity_energy_costs
 
-    def run_SIA_electricity_demand(self, occupancy_path):
+    def run_SIA_electricity_demand(self, occupancy_data):
         self.app_light_other_electricity_monthly_demand = dp.hourly_to_monthly(
-            dp.sia_electricity_per_erf_hourly(occupancy_path, self.gebaeudekategorie_sia,
+            dp.sia_electricity_per_erf_hourly(occupancy_data, self.gebaeudekategorie_sia,
                                               self.has_mechanical_ventilation))
+
 
 
     def run_heating_sizing_384_201(self, weatherfile_path):
