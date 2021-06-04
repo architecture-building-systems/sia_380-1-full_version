@@ -131,10 +131,20 @@ epw_labels = ['year', 'month', 'day', 'hour', 'minute', 'datasource', 'drybulb_C
                   'snowdepth_cm', 'days_last_snow', 'Albedo', 'liq_precip_depth_mm', 'liq_precip_rate_Hour']
 weather_file_dict_headers = {}
 weather_file_dict_bodies = {}
+weather_sia_dict = {}
 for unique_path in unique_weather_paths:
     weather_file_dict_headers[unique_path] = pd.read_csv(unique_path, header=None, nrows=1)
     weather_file_dict_bodies[unique_path] = pd.read_csv(unique_path, skiprows=8, header=None, names=epw_labels)
+    weather_sia_dict[unique_path] = dp.epw_to_sia_irrad(weather_file_dict_headers[unique_path],
+                                           weather_file_dict_bodies[unique_path])
 
+## sun paths are precalculated
+solar_zenith_dict = {}
+solar_azimuth_dict = {}
+for unique_path in unique_weather_paths:
+    latitude = weather_file_dict_headers[unique_path].iloc[0,6]
+    longitude = weather_file_dict_headers[unique_path].iloc[0, 7]
+    solar_zenith_dict[unique_path], solar_azimuth_dict[unique_path] = dp.calc_sun_position(latitude, longitude)
 
 # Here, all the occupancy profiles are imported to omit file opening in every loop:
 unique_use_types = scenarios['building use type'].unique()
@@ -242,7 +252,8 @@ for config_index, config in configurations.iterrows():
         energy_cost_source = scenario['energy cost source']
         shading_factor_monthly = dp.factor_season_to_month(shading_factor_season)
         shading_factor_hourly = dp.factor_month_to_hour(shading_factor_monthly)
-        weather_data_sia = dp.epw_to_sia_irrad(weather_file_dict_headers[weatherfile_path],weather_file_dict_bodies[weatherfile_path])
+        weather_data_sia = weather_sia_dict[weatherfile_path]
+        # weather_data_sia = dp.epw_to_sia_irrad(weather_file_dict_headers[weatherfile_path],weather_file_dict_bodies[weatherfile_path])
         infiltration_volume_flow = infiltration_volume_flow_planned * scenario['infiltration volume flow factor']
         # This accounts for improper construction/tightness
         thermal_bridge_add_on = scenario['thermal bridge add on']  # in %
@@ -294,7 +305,11 @@ for config_index, config in configurations.iterrows():
         pv_yield_hourly = np.zeros(8760)
         for pv_number in range(len(pv_area)):
             pv_yield_hourly += dp.photovoltaic_yield_hourly(pv_azimuth[pv_number], pv_tilt[pv_number], pv_efficiency,
-                                                           pv_performance_ratio, pv_area[pv_number], weather_file_dict_headers[weatherfile_path], weather_file_dict_bodies[weatherfile_path])
+                                                           pv_performance_ratio, pv_area[pv_number],
+                                                            weather_file_dict_headers[weatherfile_path],
+                                                            weather_file_dict_bodies[weatherfile_path],
+                                                            solar_zenith_dict[weatherfile_path],
+                                                            solar_azimuth_dict[weatherfile_path])
         ## heating demand and emission calculation
 
         Gebaeude_static = se.Building(gebaeudekategorie_sia, regelung, windows, walls, roof, floor, energiebezugsflache,

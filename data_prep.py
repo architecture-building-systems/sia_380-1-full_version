@@ -555,7 +555,7 @@ def calc_sun_position(latitude_deg, longitude_deg):
     :return: tuple of two numpy arrays with the solar position for every hour of the year in deg according to the
             convention that north is 0/360° for azimuth
     """
-
+    start = time.time()
     # Set the date in UTC based off the hour of year and the year itself
     start_of_year = datetime.datetime(2019, 1, 1, 0, 0, 0, 0)
     end_of_year = datetime.datetime(2019, 12, 31, 23, 0, 0, 0)
@@ -584,7 +584,6 @@ def calc_sun_position(latitude_deg, longitude_deg):
     # higher altitude
     hour_angle_deg = (15 * (12 - solar_time))
 
-    start = time.time()
     ## zenith in radians!!
     zenith_rad = pvlib.solarposition.solar_zenith_analytical(latitude=np.radians(latitude_deg),
                                                           hourangle=np.radians(hour_angle_deg),
@@ -597,58 +596,6 @@ def calc_sun_position(latitude_deg, longitude_deg):
 
     zenith_deg = np.degrees(zenith_rad)
     azimuth_deg = np.degrees(azimuth_rad)
-
-    return zenith_deg, azimuth_deg
-
-
-def calc_sun_position_II(latitude_deg, longitude_deg, year, hoy):
-    """
-    TODO: I don't think this function is still in use. Check it and remove if possible.
-    :param latitude_deg:
-    :param longitude_deg:
-    :param year:
-    :param hoy:
-    :return:
-    """
-
-    # Set the date in UTC based off the hour of year and the year itself
-    start_of_year = datetime.datetime(year, 1, 1, 0, 0, 0, 0)
-    utc_datetime = start_of_year + datetime.timedelta(hours=hoy)
-    day_of_year = int(hoy/24)+1
-
-    ## declination in radians
-    declination = pvlib.solarposition.declination_cooper69(day_of_year) #in radians!!
-
-    lstm = 15 * round(longitude_deg/15, 0)
-
-    # Normalise the day to 2*pi
-    # There is some reason as to why it is 364 and not 365.26
-    angle_of_day = (day_of_year - 81) * (2 * math.pi / 364)
-
-    # The deviation between local standard time and true solar time
-    equation_of_time = (9.87 * math.sin(2 * angle_of_day)) - \
-        (7.53 * math.cos(angle_of_day)) - (1.5 * math.sin(angle_of_day))
-
-    # True Solar Time
-    solar_time = ((utc_datetime.hour * 60) + utc_datetime.minute +
-                  (4 * (longitude_deg - lstm)) + equation_of_time) / 60.0
-
-    # Angle between the local longitude and longitude where the sun is at
-    # higher altitude
-    hour_angle_deg = (15 * (12 - solar_time))
-
-    ## zenith in radians!!
-    zenith_rad = pvlib.solarposition.solar_zenith_analytical(latitude=math.radians(latitude_deg),
-                                                          hourangle=math.radians(hour_angle_deg),
-                                                          declination=declination)
-
-    azimuth_rad = pvlib.solarposition.solar_azimuth_analytical(latitude=math.radians(latitude_deg),
-                                                               hourangle=math.radians(hour_angle_deg),
-                                                               declination=declination,
-                                                               zenith=zenith_rad)
-
-    zenith_deg = math.degrees(zenith_rad)
-    azimuth_deg = math.degrees(azimuth_rad)
 
     return zenith_deg, azimuth_deg
 
@@ -676,7 +623,7 @@ def string_orientation_to_angle(string_orientation):
     return translation[string_orientation]
 
 def photovoltaic_yield_hourly(pv_azimuth, pv_tilt, stc_efficiency, performance_ratio, pv_area,
-                              header_data, weather_data, model="isotropic"):
+                              header_data, weather_data, solar_zenith_deg, solar_azimuth_deg, model="isotropic"):
     """
     :param pv_azimuth: angle or array of angles with north convention (N=0/360)
     :param pv_tilt: tilt or arrays of tilt of the pv array 0deg = horizontal
@@ -695,17 +642,17 @@ def photovoltaic_yield_hourly(pv_azimuth, pv_tilt, stc_efficiency, performance_r
                   'snowdepth_cm', 'days_last_snow', 'Albedo', 'liq_precip_depth_mm', 'liq_precip_rate_Hour']
 
     # Import EPW file
-
     latitude = header_data.iloc[0, 6]
     longitude = header_data.iloc[0, 7]
 
-    solar_zenith_deg, solar_azimuth_deg = calc_sun_position(latitude, longitude)
-
+    # solar_zenith_deg, solar_azimuth_deg = calc_sun_position(latitude, longitude)
     normal_direct_radiation = weather_data['dirnorrad_Whm2']
     horizontal_diffuse_radiation = weather_data['difhorrad_Whm2']
     global_horizontal_value = weather_data['glohorrad_Whm2']
     dni_extra = weather_data['extdirrad_Whm2']
+
     relative_air_mass = pvlib.atmosphere.get_relative_airmass(zenith=solar_zenith_deg)
+
 
     irrad = pvlib.irradiance.get_total_irradiance(pv_tilt, pv_azimuth, solar_zenith_deg,
                                                       solar_azimuth_deg, normal_direct_radiation,
