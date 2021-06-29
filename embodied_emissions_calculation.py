@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 
 
-def calculate_system_related_embodied_emissions(ee_database_path, gebaeudekategorie, energy_reference_area,
+def calculate_system_related_embodied_emissions(ee_database, gebaeudekategorie, energy_reference_area,
                                                 heizsystem, heat_emission_system,
                                                 heat_distribution, nominal_heating_power, dhw_heizsystem,
                                                 cooling_system, cold_emission_system, nominal_cooling_power,
@@ -33,7 +33,7 @@ def calculate_system_related_embodied_emissions(ee_database_path, gebaeudekatego
     :return: embodied emissions for building systems in kgCO2eq/a or UBP/a
     """
 
-    database = pd.read_excel(ee_database_path, index_col="Name")
+    database = ee_database
 
     # Calculation of embodied emissions for the thermal systems
 
@@ -184,7 +184,7 @@ def calculate_system_related_embodied_emissions(ee_database_path, gebaeudekatego
     return embodied_thermal_electrical_vent, embodied_thermal_electrical_vent_UBP
 
 
-def calculate_envelope_emissions(database_path, total_wall_area, wall_type, total_window_area,
+def calculate_envelope_emissions(database, total_wall_area, wall_type, total_window_area,
                                  window_type, total_roof_area, roof_type, floor_area, ceiling_type):
     """
     This function calculate the embodied emissions of the building envelope based on the input database and the given
@@ -201,7 +201,6 @@ def calculate_envelope_emissions(database_path, total_wall_area, wall_type, tota
     :return: envelope embodied emissions in kgCO2eq/a or UBP/a, splitted into the individual envelope components
     """
 
-    database = pd.read_excel(database_path, index_col="Name")
 
     wall_embodied_per_area = database['GWP[kgCO2eq/m2]'][wall_type]
     wall_embodied_per_area_UBP = database['UBP[/m2]'][wall_type]

@@ -558,6 +558,13 @@ This part of the simulation is pure data lookup and simple operations. It is the
 whole simulation process.    
 """
 
+sys_ee_database = pd.read_excel(sys_ee_database_path, index_col="Name")  # systems embodied emissions
+env_ee_database = pd.read_excel(env_ee_database_path, index_col="Name")  # envelope emobdied emissions
+
+
+
+
+start= time.time()
 
 for config_index, config in configurations.iterrows():
     """
@@ -584,7 +591,7 @@ for config_index, config in configurations.iterrows():
     # ventilation
     relevant_volume_flow = max(config['ventilation volume flow'], config['increased ventilation volume flow'])
 
-    embodied_impact_stat = eec.calculate_system_related_embodied_emissions(ee_database_path=sys_ee_database_path,
+    embodied_impact_stat = eec.calculate_system_related_embodied_emissions(ee_database=sys_ee_database,
                                                         gebaeudekategorie=scenarios.loc[0, 'building use type'],
                                                         energy_reference_area=config['energy reference area'],
                                                         heizsystem=heating_system,
@@ -602,7 +609,7 @@ for config_index, config in configurations.iterrows():
                                                         max_aussenluft_volumenstrom=relevant_volume_flow)
 
 
-    embodied_impact_dyn =  eec.calculate_system_related_embodied_emissions(ee_database_path=sys_ee_database_path,
+    embodied_impact_dyn = eec.calculate_system_related_embodied_emissions(ee_database=sys_ee_database,
                                                         gebaeudekategorie=scenarios.loc[0, 'building use type'],
                                                         energy_reference_area=config['energy reference area'],
                                                         heizsystem=config['heating system'],
@@ -619,6 +626,7 @@ for config_index, config in configurations.iterrows():
                                                         has_mechanical_ventilation=config['mechanical ventilation'],
                                                         max_aussenluft_volumenstrom=relevant_volume_flow)
 
+
     total_wall_area = np.array(config['wall areas'].split(" "), dtype=float).sum()
     total_window_area = np.array(config['window areas'].split(" "), dtype=float).sum()
     total_roof_area = np.array(config["roof area"]).sum()
@@ -628,8 +636,9 @@ for config_index, config in configurations.iterrows():
     window_type = config["window type"]
     roof_type = config["roof type"]
 
+
     annualized_embodied_emsissions_envelope = \
-        eec.calculate_envelope_emissions(database_path=env_ee_database_path,
+        eec.calculate_envelope_emissions(database=env_ee_database,
                                          total_wall_area=total_wall_area,
                                          wall_type=config['wall type'],
                                          total_window_area=total_window_area,
@@ -638,7 +647,6 @@ for config_index, config in configurations.iterrows():
                                          roof_type=config['roof type'],
                                          floor_area=floor_area,
                                          ceiling_type=config['ceiling type'])
-
 
     for scenario_index, scenario in scenarios.iterrows():
 
@@ -667,7 +675,7 @@ for config_index, config in configurations.iterrows():
 
         # As the zinssatz is dependent on scenarios, the investment calculation has to be made for each scenario
         annual_investment_costs_systems_stat = \
-            icc.calculate_system_related_investment_cost(ee_database_path=sys_ee_database_path,
+            icc.calculate_system_related_investment_cost(ee_database=sys_ee_database,
                                                          gebaeudekategorie=scenarios.loc[0, 'building use type'],
                                                          energy_reference_area=config['energy reference area'],
                                                          heizsystem=heating_system,
@@ -686,7 +694,7 @@ for config_index, config in configurations.iterrows():
                                                          zinssatz=zinssatz)
 
         annual_investment_costs_systems_dyn = \
-            icc.calculate_system_related_investment_cost(ee_database_path=sys_ee_database_path,
+            icc.calculate_system_related_investment_cost(ee_database=sys_ee_database,
                                                          gebaeudekategorie=scenarios.loc[0, 'building use type'],
                                                          energy_reference_area=config['energy reference area'],
                                                          heizsystem=heating_system,
@@ -705,7 +713,7 @@ for config_index, config in configurations.iterrows():
                                                          zinssatz=zinssatz)
 
         annual_investment_costs_envelope = \
-            icc.calculate_envelope_investment_cost(database_path=env_ee_database_path,
+            icc.calculate_envelope_investment_cost(database=env_ee_database,
                                              total_wall_area=total_wall_area,
                                              wall_type=config['wall type'],
                                              total_window_area=total_window_area,
