@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import data_prep as dp
 
-def calculate_system_related_investment_cost(ee_database_path, gebaeudekategorie, energy_reference_area,
+def calculate_system_related_investment_cost(ee_database, gebaeudekategorie, energy_reference_area,
                                                 heizsystem, heat_emission_system,
                                                 heat_distribution, nominal_heating_power, dhw_heizsystem,
                                                 cooling_system, cold_emission_system, nominal_cooling_power,
@@ -34,7 +34,7 @@ def calculate_system_related_investment_cost(ee_database_path, gebaeudekategorie
     :return: annual investment cost of system components in CHF/a
     """
     # TODO maybe there is a need to change linear cost development to non-linear, especially for PV!
-    database = pd.read_excel(ee_database_path, index_col="Name")
+    database = ee_database
     if zinssatz == 0.0:
         i = 0.0000001
     else:
@@ -152,7 +152,7 @@ def calculate_system_related_investment_cost(ee_database_path, gebaeudekategorie
     # in CHF/a
 
 
-def calculate_envelope_investment_cost(database_path, total_wall_area, wall_type, total_window_area,
+def calculate_envelope_investment_cost(database, total_wall_area, wall_type, total_window_area,
                                  window_type, total_roof_area, roof_type, floor_area, ceiling_type, zinssatz):
     """
     This function calculates the annual investment cost for envelope components. The total investment cost are divided
@@ -171,7 +171,6 @@ def calculate_envelope_investment_cost(database_path, total_wall_area, wall_type
     :return: annual investment cost of envelope components
     """
 
-    database = pd.read_excel(database_path, index_col="Name")
     if zinssatz == 0.0:
         i = 0.0000001
     else:

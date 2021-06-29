@@ -120,6 +120,38 @@ electricity_factor_type = "annual"  # Can be "annual", "monthly", "hourly" (Hour
                                      # source: empa_ac )
 
 
+# Here all the weatherfiles are imported to omit file opening in every loop (time savings)
+unique_weather_paths = scenarios['weatherfile'].unique()
+
+epw_labels = ['year', 'month', 'day', 'hour', 'minute', 'datasource', 'drybulb_C', 'dewpoint_C', 'relhum_percent',
+                  'atmos_Pa', 'exthorrad_Whm2', 'extdirrad_Whm2', 'horirsky_Whm2', 'glohorrad_Whm2',
+                  'dirnorrad_Whm2', 'difhorrad_Whm2', 'glohorillum_lux', 'dirnorillum_lux', 'difhorillum_lux',
+                  'zenlum_lux', 'winddir_deg', 'windspd_ms', 'totskycvr_tenths', 'opaqskycvr_tenths', 'visibility_km',
+                  'ceiling_hgt_m', 'presweathobs', 'presweathcodes', 'precip_wtr_mm', 'aerosol_opt_thousandths',
+                  'snowdepth_cm', 'days_last_snow', 'Albedo', 'liq_precip_depth_mm', 'liq_precip_rate_Hour']
+weather_file_dict_headers = {}
+weather_file_dict_bodies = {}
+weather_sia_dict = {}
+for unique_path in unique_weather_paths:
+    weather_file_dict_headers[unique_path] = pd.read_csv(unique_path, header=None, nrows=1)
+    weather_file_dict_bodies[unique_path] = pd.read_csv(unique_path, skiprows=8, header=None, names=epw_labels)
+    weather_sia_dict[unique_path] = dp.epw_to_sia_irrad(weather_file_dict_headers[unique_path],
+                                           weather_file_dict_bodies[unique_path])
+
+## sun paths are precalculated
+solar_zenith_dict = {}
+solar_azimuth_dict = {}
+for unique_path in unique_weather_paths:
+    latitude = weather_file_dict_headers[unique_path].iloc[0,6]
+    longitude = weather_file_dict_headers[unique_path].iloc[0, 7]
+    solar_zenith_dict[unique_path], solar_azimuth_dict[unique_path] = dp.calc_sun_position(latitude, longitude)
+
+# Here, all the occupancy profiles are imported to omit file opening in every loop:
+unique_use_types = scenarios['building use type'].unique()
+occupancy_schedules_dic = {}
+for use_type in unique_use_types:
+    occupancy_path = translations[translations['building use type'] == use_type]['occupancy schedule'].to_numpy()[0]
+    occupancy_schedules_dic[use_type] = pd.read_csv(occupancy_path)
 
 
 for config_index, config in configurations.iterrows():
@@ -173,6 +205,8 @@ for config_index, config in configurations.iterrows():
     pv_tilt = np.array(str(config['PV tilt']).split(" "), dtype=float)  # in degrees
     pv_azimuth = np.array(str(config['PV azimuth']).split(" "), dtype=float) # The north=0 convention applies
 
+    max_electrical_storage_capacity = config['electrical storage capacity']  # in Wh !!!!
+
     wall_areas = np.array(config['wall areas'].split(" "), dtype=float)
     window_areas = np.array(config['window areas'].split(" "), dtype=float)
     window_orientations = np.array(config['window orientations'].split(" "), dtype=str)
@@ -184,6 +218,9 @@ for config_index, config in configurations.iterrows():
         operation_maintenance_costs[config_index] = (dp.operation_maintenance_yearly_costs(heizsystem) +
                                                      dp.operation_maintenance_yearly_costs(cooling_system)) / \
                                                     energiebezugsflache
+
+
+
 
     #This print helps keeping track of the simulation progress.
     print("Configuration %s prepared" %config_index)
@@ -215,7 +252,8 @@ for config_index, config in configurations.iterrows():
         energy_cost_source = scenario['energy cost source']
         shading_factor_monthly = dp.factor_season_to_month(shading_factor_season)
         shading_factor_hourly = dp.factor_month_to_hour(shading_factor_monthly)
-        weather_data_sia = dp.epw_to_sia_irrad(weatherfile_path)
+        weather_data_sia = weather_sia_dict[weatherfile_path]
+        # weather_data_sia = dp.epw_to_sia_irrad(weather_file_dict_headers[weatherfile_path],weather_file_dict_bodies[weatherfile_path])
         infiltration_volume_flow = infiltration_volume_flow_planned * scenario['infiltration volume flow factor']
         # This accounts for improper construction/tightness
         thermal_bridge_add_on = scenario['thermal bridge add on']  # in %
@@ -263,10 +301,15 @@ for config_index, config in configurations.iterrows():
 
         ## PV calculation
         # pv yield in Wh for each hour
+
         pv_yield_hourly = np.zeros(8760)
         for pv_number in range(len(pv_area)):
             pv_yield_hourly += dp.photovoltaic_yield_hourly(pv_azimuth[pv_number], pv_tilt[pv_number], pv_efficiency,
-                                                           pv_performance_ratio, pv_area[pv_number], weatherfile_path)
+                                                           pv_performance_ratio, pv_area[pv_number],
+                                                            weather_file_dict_headers[weatherfile_path],
+                                                            weather_file_dict_bodies[weatherfile_path],
+                                                            solar_zenith_dict[weatherfile_path],
+                                                            solar_azimuth_dict[weatherfile_path])
         ## heating demand and emission calculation
 
         Gebaeude_static = se.Building(gebaeudekategorie_sia, regelung, windows, walls, roof, floor, energiebezugsflache,
@@ -282,7 +325,7 @@ for config_index, config in configurations.iterrows():
         Gebaeude_static.run_SIA_380_1(weather_data_sia)
         Gebaeude_static.run_ISO_52016_monthly(weather_data_sia)
         Gebaeude_static.run_dhw_demand()
-        Gebaeude_static.run_SIA_electricity_demand(occupancy_path)
+        Gebaeude_static.run_SIA_electricity_demand(occupancy_schedules_dic[gebaeudekategorie_sia])
 
         Gebaeude_dyn = sime.Sim_Building(gebaeudekategorie_sia, regelung, windows, walls, roof, floor, energiebezugsflache,
                                        anlagennutzungsgrad_wrg, infiltration_volume_flow, ventilation_volume_flow,
@@ -291,14 +334,14 @@ for config_index, config in configurations.iterrows():
                                        korrekturfaktor_luftungs_eff_f_v, hohe_uber_meer, shading_factor_hourly, heizsystem, cooling_system,
                                          heat_emission_system, cold_emission_system,
                                        dhw_heizsystem, heating_setpoint, cooling_setpoint, area_per_person,
-                                         has_mechanical_ventilation)
+                                         has_mechanical_ventilation, max_electrical_storage_capacity)
 
         Gebaeude_dyn.pv_production = pv_yield_hourly  # in kWh (! ACHTUNG, RC immer in Wh !)
 
         Gebaeude_dyn.run_rc_simulation(weatherfile_path=weatherfile_path,
                                      occupancy_path=occupancy_path)
 
-        Gebaeude_dyn.run_SIA_electricity_demand(occupancy_path)
+        Gebaeude_dyn.run_SIA_electricity_demand(occupancy_schedules_dic[gebaeudekategorie_sia])
 
 
 
@@ -338,7 +381,11 @@ for config_index, config in configurations.iterrows():
         cooling_demand_stat[config_index, scenario_index] = Gebaeude_static.monthly_cooling_demand.sum()
         dhw_demand_stat[config_index, scenario_index] = Gebaeude_static.dhw_demand.sum()
 
-        annual_self_consumption_ratios_dyn[config_index, scenario_index] = dp.calculate_self_consumption(Gebaeude_dyn.electricity_demand, pv_yield_hourly)
+        # annual_self_consumption_ratios_dyn[config_index, scenario_index] = dp.calculate_self_consumption(Gebaeude_dyn.electricity_demand, pv_yield_hourly)
+
+        annual_self_consumption_ratios_dyn[config_index, scenario_index] = dp.calculate_self_consumption(
+            Gebaeude_dyn.electricity_demand, Gebaeude_dyn.net_electricity_demand, pv_yield_hourly)
+
         annual_self_consumption_ratios_stat[config_index, scenario_index] = Gebaeude_static.annual_self_consumption
 
         annual_pv_yield[config_index, scenario_index] = pv_yield_hourly.sum()
@@ -511,6 +558,13 @@ This part of the simulation is pure data lookup and simple operations. It is the
 whole simulation process.    
 """
 
+sys_ee_database = pd.read_excel(sys_ee_database_path, index_col="Name")  # systems embodied emissions
+env_ee_database = pd.read_excel(env_ee_database_path, index_col="Name")  # envelope emobdied emissions
+
+
+
+
+start= time.time()
 
 for config_index, config in configurations.iterrows():
     """
@@ -537,7 +591,7 @@ for config_index, config in configurations.iterrows():
     # ventilation
     relevant_volume_flow = max(config['ventilation volume flow'], config['increased ventilation volume flow'])
 
-    embodied_impact_stat = eec.calculate_system_related_embodied_emissions(ee_database_path=sys_ee_database_path,
+    embodied_impact_stat = eec.calculate_system_related_embodied_emissions(ee_database=sys_ee_database,
                                                         gebaeudekategorie=scenarios.loc[0, 'building use type'],
                                                         energy_reference_area=config['energy reference area'],
                                                         heizsystem=heating_system,
@@ -555,7 +609,7 @@ for config_index, config in configurations.iterrows():
                                                         max_aussenluft_volumenstrom=relevant_volume_flow)
 
 
-    embodied_impact_dyn =  eec.calculate_system_related_embodied_emissions(ee_database_path=sys_ee_database_path,
+    embodied_impact_dyn = eec.calculate_system_related_embodied_emissions(ee_database=sys_ee_database,
                                                         gebaeudekategorie=scenarios.loc[0, 'building use type'],
                                                         energy_reference_area=config['energy reference area'],
                                                         heizsystem=config['heating system'],
@@ -572,6 +626,7 @@ for config_index, config in configurations.iterrows():
                                                         has_mechanical_ventilation=config['mechanical ventilation'],
                                                         max_aussenluft_volumenstrom=relevant_volume_flow)
 
+
     total_wall_area = np.array(config['wall areas'].split(" "), dtype=float).sum()
     total_window_area = np.array(config['window areas'].split(" "), dtype=float).sum()
     total_roof_area = np.array(config["roof area"]).sum()
@@ -581,8 +636,9 @@ for config_index, config in configurations.iterrows():
     window_type = config["window type"]
     roof_type = config["roof type"]
 
+
     annualized_embodied_emsissions_envelope = \
-        eec.calculate_envelope_emissions(database_path=env_ee_database_path,
+        eec.calculate_envelope_emissions(database=env_ee_database,
                                          total_wall_area=total_wall_area,
                                          wall_type=config['wall type'],
                                          total_window_area=total_window_area,
@@ -591,7 +647,6 @@ for config_index, config in configurations.iterrows():
                                          roof_type=config['roof type'],
                                          floor_area=floor_area,
                                          ceiling_type=config['ceiling type'])
-
 
     for scenario_index, scenario in scenarios.iterrows():
 
@@ -620,7 +675,7 @@ for config_index, config in configurations.iterrows():
 
         # As the zinssatz is dependent on scenarios, the investment calculation has to be made for each scenario
         annual_investment_costs_systems_stat = \
-            icc.calculate_system_related_investment_cost(ee_database_path=sys_ee_database_path,
+            icc.calculate_system_related_investment_cost(ee_database=sys_ee_database,
                                                          gebaeudekategorie=scenarios.loc[0, 'building use type'],
                                                          energy_reference_area=config['energy reference area'],
                                                          heizsystem=heating_system,
@@ -639,7 +694,7 @@ for config_index, config in configurations.iterrows():
                                                          zinssatz=zinssatz)
 
         annual_investment_costs_systems_dyn = \
-            icc.calculate_system_related_investment_cost(ee_database_path=sys_ee_database_path,
+            icc.calculate_system_related_investment_cost(ee_database=sys_ee_database,
                                                          gebaeudekategorie=scenarios.loc[0, 'building use type'],
                                                          energy_reference_area=config['energy reference area'],
                                                          heizsystem=heating_system,
@@ -658,7 +713,7 @@ for config_index, config in configurations.iterrows():
                                                          zinssatz=zinssatz)
 
         annual_investment_costs_envelope = \
-            icc.calculate_envelope_investment_cost(database_path=env_ee_database_path,
+            icc.calculate_envelope_investment_cost(database=env_ee_database,
                                              total_wall_area=total_wall_area,
                                              wall_type=config['wall type'],
                                              total_window_area=total_window_area,

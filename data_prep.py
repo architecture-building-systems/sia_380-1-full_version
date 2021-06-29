@@ -383,15 +383,22 @@ def hourly_to_monthly(hourly_array):
     :param hourly_array: hourly np.array with 8760 entries
     :return: monthly array with 12 entries that sum up the respective hour¨ly values.
     """
+    ind = [0, 744, 744, 1416, 1416, 2160, 2160, 2880, 2880, 3624, 3624, 4344, 4344, 5088, 5088, 5832, 5832, 6552, 6552,
+           7296, 7296, 8016, 8016, 8759]
     hours_per_month = np.array([31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31])*24
     monthly_values = np.empty(12)
     start_hour = 0
+
+    # month_new_values = np.add.reduceat(hourly_array, ind)[::2]
 
     for month in range(12):
         end_hour = start_hour+hours_per_month[month]
         monthly_values[month] = hourly_array[start_hour:end_hour].sum()
         start_hour = start_hour + hours_per_month[month]
-    return monthly_values
+    # print("max", (month_new_values-monthly_values).max())
+    # print("min", (month_new_values - monthly_values).max())
+
+    return monthly_values # month_new_values
 
 def hourly_to_monthly_average(hourly_array):
     """
@@ -409,7 +416,7 @@ def hourly_to_monthly_average(hourly_array):
         start_hour = start_hour + hours_per_month[month]
     return monthly_values
 
-def sia_electricity_per_erf_hourly(occupancy_path, gebaeudekategorie_sia, has_mechanical_ventilation):
+def sia_electricity_per_erf_hourly(occupancyProfile, gebaeudekategorie_sia, has_mechanical_ventilation):
         """
         This function distributes the electricity demand of SIA380-1 according to occupancy schedules of SIA2024
         It is questionable if this is correct but probably a good first approximation.
@@ -429,13 +436,17 @@ def sia_electricity_per_erf_hourly(occupancy_path, gebaeudekategorie_sia, has_me
         else:
             ventilation_electricity = {1.1: 0., 1.2: 0., 2.1: 0., 2.2: 0., 3.1: 0., 3.2: 0.}
 
-        occupancyProfile = pd.read_csv(occupancy_path)
-        occupancy_factor = np.empty(8760)
-        total = occupancyProfile['People'].sum()
-        for hour in range(8760):
-            occupancy_factor[hour] = occupancyProfile.loc[hour, 'People']/total
+        # occupancy_factor = np.empty(8760)
+        occupancy_schedule = occupancyProfile['People'].to_numpy()
+        total_numpy = occupancy_schedule.sum()
+        occupancy_factor_II = occupancy_schedule/total_numpy
+        # print("Profile", occupancy_schedule)
+        # total = occupancyProfile['People'].sum()
+        # for hour in range(8760):
+        #     occupancy_factor[hour] = occupancyProfile.loc[hour, 'People']/total
 
-        return occupancy_factor * (elektrizitatsbedarf[int(gebaeudekategorie_sia)] + ventilation_electricity[gebaeudekategorie_sia])
+
+        return occupancy_factor_II * (elektrizitatsbedarf[int(gebaeudekategorie_sia)] + ventilation_electricity[gebaeudekategorie_sia])
 
 def sia_annaul_dhw_demand(gebaeudekategorie_sia):
     """
@@ -454,7 +465,7 @@ def sia_annaul_dhw_demand(gebaeudekategorie_sia):
 
     return annual_dhw_demand[gebaeudekategorie_sia]
 
-def epw_to_sia_irrad(epw_path, model="isotropic"):
+def epw_to_sia_irrad(header_data, weather_data, model="isotropic"):
     """
     THIS FUNCTION DOES NOT WORK PROPERLY WHEN COMPARED TO METEONORM SIA DATA.
     ESPECIALLY THE DIFFUSE MODEL SHOULD BE CHANGED TO PEREZ
@@ -464,22 +475,10 @@ def epw_to_sia_irrad(epw_path, model="isotropic"):
     :return: dictionary for SIA compatible irradiation data. Dicitonary filled with numpy arrays of floats. Output in
     MJ as in SIA 2028.
     """
-    start = time.time()
 
-    # Set EPW Labels and import epw file
-    epw_labels = ['year', 'month', 'day', 'hour', 'minute', 'datasource', 'drybulb_C', 'dewpoint_C', 'relhum_percent',
-                  'atmos_Pa', 'exthorrad_Whm2', 'extdirrad_Whm2', 'horirsky_Whm2', 'glohorrad_Whm2',
-                  'dirnorrad_Whm2', 'difhorrad_Whm2', 'glohorillum_lux', 'dirnorillum_lux', 'difhorillum_lux',
-                  'zenlum_lux', 'winddir_deg', 'windspd_ms', 'totskycvr_tenths', 'opaqskycvr_tenths', 'visibility_km',
-                  'ceiling_hgt_m', 'presweathobs', 'presweathcodes', 'precip_wtr_mm', 'aerosol_opt_thousandths',
-                  'snowdepth_cm', 'days_last_snow', 'Albedo', 'liq_precip_depth_mm', 'liq_precip_rate_Hour']
 
-    # Import EPW file
-    header_data = pd.read_csv(epw_path, header=None, nrows=1)
     latitude = header_data.iloc[0,6]
     longitude = header_data.iloc[0,7]
-    weather_data = pd.read_csv(epw_path, skiprows=8, header=None, names=epw_labels).drop('datasource', axis=1)
-
     global_horizontal_hourly = weather_data['glohorrad_Whm2'].to_numpy()
 
     solar_zenith_deg, solar_azimuth_deg = calc_sun_position(latitude, longitude)
@@ -556,7 +555,7 @@ def calc_sun_position(latitude_deg, longitude_deg):
     :return: tuple of two numpy arrays with the solar position for every hour of the year in deg according to the
             convention that north is 0/360° for azimuth
     """
-
+    start = time.time()
     # Set the date in UTC based off the hour of year and the year itself
     start_of_year = datetime.datetime(2019, 1, 1, 0, 0, 0, 0)
     end_of_year = datetime.datetime(2019, 12, 31, 23, 0, 0, 0)
@@ -585,7 +584,6 @@ def calc_sun_position(latitude_deg, longitude_deg):
     # higher altitude
     hour_angle_deg = (15 * (12 - solar_time))
 
-    start = time.time()
     ## zenith in radians!!
     zenith_rad = pvlib.solarposition.solar_zenith_analytical(latitude=np.radians(latitude_deg),
                                                           hourangle=np.radians(hour_angle_deg),
@@ -598,58 +596,6 @@ def calc_sun_position(latitude_deg, longitude_deg):
 
     zenith_deg = np.degrees(zenith_rad)
     azimuth_deg = np.degrees(azimuth_rad)
-
-    return zenith_deg, azimuth_deg
-
-
-def calc_sun_position_II(latitude_deg, longitude_deg, year, hoy):
-    """
-    TODO: I don't think this function is still in use. Check it and remove if possible.
-    :param latitude_deg:
-    :param longitude_deg:
-    :param year:
-    :param hoy:
-    :return:
-    """
-
-    # Set the date in UTC based off the hour of year and the year itself
-    start_of_year = datetime.datetime(year, 1, 1, 0, 0, 0, 0)
-    utc_datetime = start_of_year + datetime.timedelta(hours=hoy)
-    day_of_year = int(hoy/24)+1
-
-    ## declination in radians
-    declination = pvlib.solarposition.declination_cooper69(day_of_year) #in radians!!
-
-    lstm = 15 * round(longitude_deg/15, 0)
-
-    # Normalise the day to 2*pi
-    # There is some reason as to why it is 364 and not 365.26
-    angle_of_day = (day_of_year - 81) * (2 * math.pi / 364)
-
-    # The deviation between local standard time and true solar time
-    equation_of_time = (9.87 * math.sin(2 * angle_of_day)) - \
-        (7.53 * math.cos(angle_of_day)) - (1.5 * math.sin(angle_of_day))
-
-    # True Solar Time
-    solar_time = ((utc_datetime.hour * 60) + utc_datetime.minute +
-                  (4 * (longitude_deg - lstm)) + equation_of_time) / 60.0
-
-    # Angle between the local longitude and longitude where the sun is at
-    # higher altitude
-    hour_angle_deg = (15 * (12 - solar_time))
-
-    ## zenith in radians!!
-    zenith_rad = pvlib.solarposition.solar_zenith_analytical(latitude=math.radians(latitude_deg),
-                                                          hourangle=math.radians(hour_angle_deg),
-                                                          declination=declination)
-
-    azimuth_rad = pvlib.solarposition.solar_azimuth_analytical(latitude=math.radians(latitude_deg),
-                                                               hourangle=math.radians(hour_angle_deg),
-                                                               declination=declination,
-                                                               zenith=zenith_rad)
-
-    zenith_deg = math.degrees(zenith_rad)
-    azimuth_deg = math.degrees(azimuth_rad)
 
     return zenith_deg, azimuth_deg
 
@@ -677,7 +623,7 @@ def string_orientation_to_angle(string_orientation):
     return translation[string_orientation]
 
 def photovoltaic_yield_hourly(pv_azimuth, pv_tilt, stc_efficiency, performance_ratio, pv_area,
-                              epw_path, model="isotropic"):
+                              header_data, weather_data, solar_zenith_deg, solar_azimuth_deg, model="isotropic"):
     """
     :param pv_azimuth: angle or array of angles with north convention (N=0/360)
     :param pv_tilt: tilt or arrays of tilt of the pv array 0deg = horizontal
@@ -696,18 +642,17 @@ def photovoltaic_yield_hourly(pv_azimuth, pv_tilt, stc_efficiency, performance_r
                   'snowdepth_cm', 'days_last_snow', 'Albedo', 'liq_precip_depth_mm', 'liq_precip_rate_Hour']
 
     # Import EPW file
-    header_data = pd.read_csv(epw_path, header=None, nrows=1)
     latitude = header_data.iloc[0, 6]
     longitude = header_data.iloc[0, 7]
-    weather_data = pd.read_csv(epw_path, skiprows=8, header=None, names=epw_labels).drop('datasource', axis=1)
 
-    solar_zenith_deg, solar_azimuth_deg = calc_sun_position(latitude, longitude)
-
+    # solar_zenith_deg, solar_azimuth_deg = calc_sun_position(latitude, longitude)
     normal_direct_radiation = weather_data['dirnorrad_Whm2']
     horizontal_diffuse_radiation = weather_data['difhorrad_Whm2']
     global_horizontal_value = weather_data['glohorrad_Whm2']
     dni_extra = weather_data['extdirrad_Whm2']
+
     relative_air_mass = pvlib.atmosphere.get_relative_airmass(zenith=solar_zenith_deg)
+
 
     irrad = pvlib.irradiance.get_total_irradiance(pv_tilt, pv_azimuth, solar_zenith_deg,
                                                       solar_azimuth_deg, normal_direct_radiation,
@@ -764,7 +709,7 @@ def estimate_self_consumption(electricity_demand, pv_peak_power, building_catego
     return monthly_sc
 
 
-def calculate_self_consumption(hourly_demand, hourly_production):
+def calculate_self_consumption(hourly_demand, grid_import, hourly_production):
     """
     This function simply calculates the self consumption based on simulation results for demand and solar production.
     :param hourly_demand: np.array of hourly values
@@ -776,10 +721,49 @@ def calculate_self_consumption(hourly_demand, hourly_production):
         self_consumption_ratio = 0
     else:
         self_consumption = np.empty(len(hourly_demand))
-        for hour in range(len(hourly_demand)):
-            self_consumption[hour] = min(hourly_production[hour], hourly_demand[hour])
+        # for hour in range(len(hourly_demand)):
+        #     self_consumption[hour] = min(hourly_production[hour], hourly_demand[hour])
+        self_consumption = hourly_demand - grid_import
         self_consumption_ratio = self_consumption.sum()/hourly_production.sum()
     return self_consumption_ratio
+
+
+def net_electricity_demand_after_storage(net_electricity_demand_before_storage, max_storage_capacity):
+    """
+    Make sure that the energy inputs are at the same scale as the storage capacity e.g. kWh and kWh or Wh and Wh. Do not mix!
+    """
+    if max_storage_capacity <= 0.0:
+        return net_electricity_demand_before_storage
+
+    initial_soc = 0.5  # in relative
+    soc_storage = np.zeros(
+        len(net_electricity_demand_before_storage) + 1)  # This is necessary to lose the plus one error
+    soc_storage[0] = initial_soc
+    net_electricity_demand_after_storage = np.empty(len(net_electricity_demand_before_storage))
+
+    for hour in range(len(net_electricity_demand_before_storage)):
+
+        if (net_electricity_demand_before_storage[hour] > 0) & (soc_storage[hour] > 0.0):
+            stored_energy = soc_storage[hour] * max_storage_capacity
+            used_stored_energy = min(stored_energy, net_electricity_demand_before_storage[hour])
+            net_electricity_demand_after_storage[hour] = net_electricity_demand_before_storage[
+                                                             hour] - used_stored_energy
+            soc_storage[hour + 1] = (stored_energy - used_stored_energy) / max_storage_capacity
+
+        elif (net_electricity_demand_before_storage[hour] < 0) & (soc_storage[hour] < 1.0):
+            free_storage = (1 - soc_storage[hour]) * max_storage_capacity
+            energy_newly_stored = min(free_storage, -net_electricity_demand_before_storage[
+                hour])  ## Achtung, hier mit negativen Zahlen
+            net_electricity_demand_after_storage[hour] = net_electricity_demand_before_storage[
+                                                             hour] + energy_newly_stored
+            soc_storage[hour + 1] = (max_storage_capacity - free_storage + energy_newly_stored) / max_storage_capacity
+
+        else:
+            soc_storage[hour + 1] = soc_storage[hour]
+            net_electricity_demand_after_storage[hour] = net_electricity_demand_before_storage[hour]
+
+    return (net_electricity_demand_after_storage)
+
 
 def factor_season_to_month(seasonal_factor):
     """
