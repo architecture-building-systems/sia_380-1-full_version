@@ -240,9 +240,10 @@ def operation_maintenance_yearly_costs(system_type):
     this function returns the operation and maintenance cost in CHF/a for the system_type
     :param system_type: string
     :return: O&M costs for the input system in CHF/a
+    ! Für den Moment gilt die Annahme, dass eine Split unit installation gleiche Kosten hat wie eine ASHP !
     """
     operation_maintenance_cost = {"Oil": 780.0, "Natural Gas": 690.0, "Wood": 820.0, "Pellets": 870.0, "district": 820.0,
-               "ASHP": 330.0, "GSHP": 410.0, "None": 0.0, "electric": 330}
+               "ASHP": 330.0, "GSHP": 410.0, "None": 0.0, "electric": 330, "split unit":330}
 
     return operation_maintenance_cost[system_type]
 
@@ -324,7 +325,7 @@ def translate_system_sia_to_rc(system):
                          'Wood':supply_system.OilBoilerMed , 'Pellets':supply_system.OilBoilerNew,
                          'GSHP':supply_system.HeatPumpWater, 'ASHP':supply_system.HeatPumpAir,
                          'electric':supply_system.ElectricHeating, 'district':supply_system.OilBoilerNew,
-                         'None':supply_system.DirectHeater}
+                         'None':supply_system.DirectHeater, 'split unit':supply_system.HeatPumpAir}
     return system_dictionary[system]
 
 def translate_heat_emission_system(system):
@@ -376,6 +377,12 @@ def calculate_monthly_gshp_cop(heat_supply_temp, cold_supply_temp, ground_temper
     monthly_cooling_cop = heat_pump_efficiency * (cold_supply_temp+273.15)/cooling_delta_temp
 
     return monthly_heating_cop, monthly_cooling_cop
+
+def calculate_monthly_split_unit_cop():
+
+    monthly_cooling_cop = np.repeat(6.0, 12)
+    return monthly_cooling_cop
+
 
 def hourly_to_monthly(hourly_array):
     """

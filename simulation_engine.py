@@ -647,6 +647,10 @@ class Building(object):
                                                                                self.heat_pump_efficiency)
             self.cooling_elec = self.monthly_cooling_demand/ashp_cop_cooling
 
+        elif self.cooling_system == "split unit":
+            split_unit_cop_cooling = dp.calculate_monthly_split_unit_cop()
+            self.cooling_elec = self.monthly_cooling_demand/split_unit_cop_cooling
+
         elif self.cooling_system == "electric":
             print("Pure electric cooling is not a possible choice, simulation terminated")
             quit()
