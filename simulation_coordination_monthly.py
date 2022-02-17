@@ -86,7 +86,11 @@ electricity_factor_type = "annual"  # Can be "annual", "monthly", "hourly" (Hour
                                      # source: empa_ac )
 
 # Here all the weatherfiles are imported to omit file opening in every loop (time savings)
-unique_weather_paths = scenarios['weatherfile'].unique()
+
+weatherfile_translation_file = os.path.join(main_path, 'data', 'weather_file_translation.xlsx')
+weatherfile_translation = pd.read_excel(weatherfile_translation_file)
+unique_weather_paths = weatherfile_translation['filename'].unique()
+# unique_weather_paths = scenarios['weatherfile'].unique()
 
 epw_labels = ['year', 'month', 'day', 'hour', 'minute', 'datasource', 'drybulb_C', 'dewpoint_C', 'relhum_percent',
                   'atmos_Pa', 'exthorrad_Whm2', 'extdirrad_Whm2', 'horirsky_Whm2', 'glohorrad_Whm2',
@@ -197,7 +201,10 @@ for config_index, config in configurations.iterrows():
         # print("Scenario", scenario_index)
         # start = time.time()
 
-        weatherfile_path = scenario["weatherfile"]
+        weatherfile_path = weatherfile_translation.loc[(weatherfile_translation["location"] == config['location']) & (
+                    weatherfile_translation["scenario"] == scenario['weatherfile'])]['filename'].tolist()[0]  # this weird construction is necessary to get the string instead of a pd Series
+        # weatherfile_path = scenario["weatherfile"]
+
         gebaeudekategorie_sia = scenario["building use type"]
         occupancy_path = \
         translations[translations['building use type'] == gebaeudekategorie_sia]['occupancy schedule'].to_numpy()[0]
