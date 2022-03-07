@@ -574,7 +574,7 @@ class Building(object):
 
 
     def run_SIA_380_emissions(self, emission_factor_source, emission_factor_source_UBP, emission_factor_type, weather_data_sia,
-                              energy_cost_source):
+                              energy_cost_source, country):
         """
         Beachte: Die SIA Norm kennt keinen flexiblen Strommix. Soll das Stromprodukt ausgewählt werden können,
         müssten hiere noch weitere Anpassungen durchgeführt werden.
@@ -715,8 +715,7 @@ class Building(object):
             self.fossil_dhw_emissions_UBP = 0.0
 
         # account for net grid import emissions in GWP and UBP
-        self.grid_electricity_emissions = self.net_electricity_demand * dp.build_yearly_emission_factors(
-            emission_factor_source, emission_factor_type).mean() * self.electricity_decarbonization_factor
+        self.grid_electricity_emissions = self.net_electricity_demand * dp.build_country_yearly_emission_factors(country=country).mean() * self.electricity_decarbonization_factor
         self.grid_electricity_emissions[self.grid_electricity_emissions < 0.0] = 0.0
 
         self.grid_electricity_emissions_UBP = self.net_electricity_demand * dp.build_yearly_emission_factors_UBP(

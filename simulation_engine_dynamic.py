@@ -271,7 +271,6 @@ class Sim_Building(object):
             # Extract the outdoor temperature in Zurich for that hour
             t_out = Loc.weather_data['drybulb_C'][hour]
 
-
             Office.solve_building_energy(internal_gains=internal_gains, solar_gains=solar_gains[hour],
                                          t_out=t_out,
                                          t_m_prev=t_m_prev, dhw_demand=dhw_demand)
@@ -303,7 +302,7 @@ class Sim_Building(object):
 
 
     def run_dynamic_emissions(self, emission_factor_source, emission_factor_source_UBP, emission_factor_type, energy_cost_source,
-                              grid_export_assumption='c'):
+                              grid_export_assumption='c', country='eu'):
         """
 
         :return:
@@ -318,7 +317,7 @@ class Sim_Building(object):
 
 
         ### Too many ifs. TODO: simplify by adding into a single function or table.
-        grid_emission_factors = dp.build_yearly_emission_factors(source=emission_factor_source, export_assumption=grid_export_assumption)
+        grid_emission_factors = dp.build_country_yearly_emission_factors(country=country)
         grid_emission_factors_UBP = dp.build_yearly_emission_factors_UBP(source_UBP=emission_factor_source_UBP,
                                                                  export_assumption=grid_export_assumption)
         grid_cost_factors = np.repeat(dp.energy_cost_per_kWh("electricity", energy_cost_source), 8760)

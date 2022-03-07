@@ -321,7 +321,8 @@ for config_index, config in configurations.iterrows():
                                               emission_factor_source_UBP=electricity_factor_source_UBP,
                                               emission_factor_type=electricity_factor_type,
                                               weather_data_sia=weather_data_sia,
-                                              energy_cost_source=energy_cost_source)
+                                              energy_cost_source=energy_cost_source,
+                                              country=config["Country"])
 
 
 

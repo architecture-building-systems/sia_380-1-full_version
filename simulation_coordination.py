@@ -358,7 +358,8 @@ for config_index, config in configurations.iterrows():
                                            emission_factor_source_UBP=electricity_factor_source_UBP,
                                            emission_factor_type=electricity_factor_type,
                                            energy_cost_source=energy_cost_source,
-                                           grid_export_assumption="c")
+                                           grid_export_assumption="c",
+                                           country=config["Country"])
 
 
         Gebaeude_static.pv_peak_power = pv_area.sum() * pv_efficiency  # in kW (required for simplified Eigenverbrauchsabschätzung)
@@ -367,7 +368,8 @@ for config_index, config in configurations.iterrows():
                                               emission_factor_source_UBP=electricity_factor_source_UBP,
                                               emission_factor_type=electricity_factor_type,
                                               weather_data_sia=weather_data_sia,
-                                              energy_cost_source=energy_cost_source)
+                                              energy_cost_source=energy_cost_source,
+                                              country=config["Country"])
 
 
 
