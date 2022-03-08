@@ -351,8 +351,10 @@ for config_index, config in configurations.iterrows():
 
         # COPs for heating systems without a HP are =1
         if heizsystem == "ASHP" or heizsystem == "GSHP":
-            annual_heating_cop_stat[config_index, scenario_index] = Gebaeude_static.heizwarmebedarf.sum()/ Gebaeude_static.heating_elec.sum()
-
+            if Gebaeude_static.heating_elec.sum() !=0:
+                annual_heating_cop_stat[config_index, scenario_index] = Gebaeude_static.heizwarmebedarf.sum()/ Gebaeude_static.heating_elec.sum()
+            else:
+                annual_heating_cop_stat[config_index, scenario_index] = 1.0
         else:
             annual_heating_cop_stat[config_index, scenario_index] = 1.0
 
