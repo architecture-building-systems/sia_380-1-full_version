@@ -106,12 +106,12 @@ def build_country_yearly_emission_factors(country):
 
     elif country=="AT":
         # here a constant factor of the european power mix is assumed, the type therefore does not matter
-        hourly_emission_factor = np.repeat(0.334, 8760) / 1000.0  # kgCO2eq/kWh www.co2-monitor.ch/de/information/glossar/
+        hourly_emission_factor = np.repeat(334, 8760) / 1000.0  # kgCO2eq/kWh www.co2-monitor.ch/de/information/glossar/
         #https://www.sciencedirect.com/science/article/pii/S1361920916307933
 
     elif country=="DE":
         # here a constant factor of the european power mix is assumed, the type therefore does not matter
-        hourly_emission_factor = np.repeat(0.615, 8760) / 1000.0  # kgCO2eq/kWh www.co2-monitor.ch/de/information/glossar/
+        hourly_emission_factor = np.repeat(615, 8760) / 1000.0  # kgCO2eq/kWh www.co2-monitor.ch/de/information/glossar/
         #https://www.sciencedirect.com/science/article/pii/S1361920916307933
 
     elif country=="DK":
@@ -121,22 +121,22 @@ def build_country_yearly_emission_factors(country):
 
     elif country=="ES":
         # here a constant factor of the european power mix is assumed, the type therefore does not matter
-        hourly_emission_factor = np.repeat(0.341, 8760) / 1000.0  # kgCO2eq/kWh www.co2-monitor.ch/de/information/glossar/
+        hourly_emission_factor = np.repeat(341, 8760) / 1000.0  # kgCO2eq/kWh www.co2-monitor.ch/de/information/glossar/
         #https://www.sciencedirect.com/science/article/pii/S1361920916307933
 
     elif country=="FR":
         # here a constant factor of the european power mix is assumed, the type therefore does not matter
-        hourly_emission_factor = np.repeat(0.105, 8760) / 1000.0  # kgCO2eq/kWh www.co2-monitor.ch/de/information/glossar/
+        hourly_emission_factor = np.repeat(105, 8760) / 1000.0  # kgCO2eq/kWh www.co2-monitor.ch/de/information/glossar/
         #https://www.sciencedirect.com/science/article/pii/S1361920916307933
 
     elif country=="GR":
         # here a constant factor of the european power mix is assumed, the type therefore does not matter
-        hourly_emission_factor = np.repeat(0.767, 8760) / 1000.0  # kgCO2eq/kWh www.co2-monitor.ch/de/information/glossar/
+        hourly_emission_factor = np.repeat(767, 8760) / 1000.0  # kgCO2eq/kWh www.co2-monitor.ch/de/information/glossar/
         #https://www.sciencedirect.com/science/article/pii/S1361920916307933
 
     elif country=="IT":
         # here a constant factor of the european power mix is assumed, the type therefore does not matter
-        hourly_emission_factor = np.repeat(0.431, 8760) / 1000.0  # kgCO2eq/kWh www.co2-monitor.ch/de/information/glossar/
+        hourly_emission_factor = np.repeat(431, 8760) / 1000.0  # kgCO2eq/kWh www.co2-monitor.ch/de/information/glossar/
         #https://www.sciencedirect.com/science/article/pii/S1361920916307933
 
     elif country=="SE":
