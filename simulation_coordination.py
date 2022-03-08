@@ -436,8 +436,16 @@ for config_index, config in configurations.iterrows():
             annual_dhw_cop_dyn[config_index, scenario_index] = 1.0
 
         if cooling_system == "ASHP" or cooling_system == "GSHP":
-            annual_cooling_cop_stat[config_index, scenario_index] = Gebaeude_static.monthly_cooling_demand.sum() / Gebaeude_static.cooling_elec.sum()
-            annual_cooling_cop_dyn[config_index, scenario_index] = Gebaeude_dyn.cooling_demand.sum()*-1. / Gebaeude_dyn.cooling_electricity_demand.sum()
+            if Gebaeude_static.cooling_elec.sum() != 0:
+                annual_cooling_cop_stat[
+                    config_index, scenario_index] = Gebaeude_static.monthly_cooling_demand.sum() / Gebaeude_static.cooling_elec.sum()
+            else:
+                annual_cooling_cop_stat[config_index, scenario_index] = 1.0
+
+            if Gebaeude_dyn.cooling_electricity_demand.sum() !=0:
+                annual_cooling_cop_dyn[config_index, scenario_index] = Gebaeude_dyn.cooling_demand.sum()*-1. / Gebaeude_dyn.cooling_electricity_demand.sum()
+            else:
+                annual_cooling_cop_dyn[config_index, scenario_index] = 1.0
         else:
             annual_cooling_cop_stat[config_index, scenario_index] = 1.0
             annual_cooling_cop_dyn[config_index, scenario_index] = 1.0
