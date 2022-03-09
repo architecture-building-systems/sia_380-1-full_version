@@ -141,7 +141,7 @@ def build_country_yearly_emission_factors(country):
 
     elif country=="SE":
         # here a constant factor of the european power mix is assumed, the type therefore does not matter
-        hourly_emission_factor = np.repeat(0.047, 8760) / 1000.0  # kgCO2eq/kWh www.co2-monitor.ch/de/information/glossar/
+        hourly_emission_factor = np.repeat(47, 8760) / 1000.0  # kgCO2eq/kWh www.co2-monitor.ch/de/information/glossar/
         #https://www.sciencedirect.com/science/article/pii/S1361920916307933
 
     elif country=="EU28":
