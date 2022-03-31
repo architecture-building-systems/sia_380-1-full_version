@@ -180,6 +180,8 @@ for config_index, config in configurations.iterrows():
     window_areas = np.array(config['window areas'].split(" "), dtype=float)
     window_orientations = np.array(config['window orientations'].split(" "), dtype=str)
 
+    set_back_reduction_factor = config["F_red_temp"]
+
     #operation and maintenance costs are calculated here, as they are only dependent on heating/cooling type (config)
     if cooling_system == heizsystem:
         operation_maintenance_costs[config_index] = dp.operation_maintenance_yearly_costs(heizsystem) / energiebezugsflache
@@ -235,6 +237,7 @@ for config_index, config in configurations.iterrows():
         thermal_bridge_add_on = scenario['thermal bridge add on']  # in %
         thermal_bridge_factor = 1.0 + (thermal_bridge_add_on / 100.0)
 
+        # print(u_windows_raw)
         # the thermal bridge factor leads to an overall increase in transmittance losses. It is implemented here
         # because that is the easiest way. For result analysis the input file u-values need to be used.
         u_windows = u_windows_raw * thermal_bridge_factor
@@ -296,7 +299,7 @@ for config_index, config in configurations.iterrows():
                                       heat_pump_efficiency, combustion_efficiency_factor, electricity_decarbonization_factor,
                                       korrekturfaktor_luftungs_eff_f_v, hohe_uber_meer, shading_factor_monthly, heizsystem, dhw_heizsystem,
                                       cooling_system, heat_emission_system, cold_emission_system, heating_setpoint,
-                                      cooling_setpoint, area_per_person, has_mechanical_ventilation)
+                                      cooling_setpoint, area_per_person, has_mechanical_ventilation, set_back_reduction_factor)
 
         # print("Object initialization", time.time() - start)
         # start = time.time()

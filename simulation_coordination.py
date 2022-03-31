@@ -143,6 +143,9 @@ for unique_path in unique_weather_paths:
     weather_sia_dict[unique_path] = dp.epw_to_sia_irrad(weather_file_dict_headers[unique_path],
                                            weather_file_dict_bodies[unique_path])
 
+    print(unique_path)
+    print(weather_sia_dict[unique_path])
+
 ## sun paths are precalculated
 solar_zenith_dict = {}
 solar_azimuth_dict = {}
@@ -401,7 +404,7 @@ for config_index, config in configurations.iterrows():
 
         # This is the consumption before PV!! factor /1000 to transform to kWh [kWh]
         annual_electricity_consumption_dyn[config_index, scenario_index] = Gebaeude_dyn.electricity_demand.sum()/1000.0 /energiebezugsflache
-        # This is the consumptio before PV!! The multiplication is necessary because the montly model does calculations
+        # This is the consumption before PV!! The multiplication is necessary because the montly model does calculations
         # with normalised values [kWh]
         annual_electricity_consumption_stat[config_index, scenario_index] = Gebaeude_static.electricity_demand.sum()
 

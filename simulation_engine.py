@@ -32,7 +32,8 @@ class Building(object):
                  heating_setpoint="SIA",
                  cooling_setpoint="SIA",
                  area_per_person="SIA",
-                 has_mechanical_ventilation=False):
+                 has_mechanical_ventilation=False,
+                 set_back_reduction_factor=1):
 
         self.gebaeudekategorie_sia = gebaeudekategorie_sia
         self.regelung = regelung
@@ -73,6 +74,8 @@ class Building(object):
         self.nominal_cooling_power = None
         self.pv_peak_power = None  # in kW
         self.annual_self_consumption = None
+
+        self.heating_set_back_reduction_factor = set_back_reduction_factor
 
 
     def run_SIA_380_1(self, weather_data_sia):
@@ -138,6 +141,11 @@ class Building(object):
         totale_warmeeintrage = np.empty(12)
         genutzte_warmeeintrage = np.empty(12)
         heizwarmebedarf = np.empty(12)
+
+        verluste_dach = np.empty(12)
+        verluste_wand = np.empty(12)
+        verluste_ground = np.empty(12)
+        verluste_fenster = np.empty(12)
 
 
         ## Berechnung nach SIA380-1 Anhang D
@@ -222,14 +230,17 @@ class Building(object):
 
 
             q_re_084 = np.sum((theta_ic_083-theta_e_011) * t_c_009 * a_re_018 * u_re_041 * 24 / (a_e_017*1000)) # Dach geg Aussenluft [kWh/m2]
+            verluste_dach[month]=q_re_084
             q_ru_085 = np.sum((theta_ic_083-theta_e_011) * t_c_009 * a_ru_019 * u_ru_042 * b_ur_043 * 24 / (a_e_017*1000))  # Decke gegen unbeheizte Räume [kWh/m2]
             q_we_086 = np.sum((theta_ic_083-theta_e_011) * t_c_009 * a_we_020 * u_we_044 * 24 / (a_e_017*1000))  # Wand gegen Aussenluft
+            verluste_wand[month] = q_we_086
             q_wu_087 = np.sum((theta_ic_083-theta_e_011) * t_c_009 * a_wu_021 * u_wu_045 * b_uw_046 * 24 / (a_e_017*1000))  # Wand gegen unbeheizte Räume
             q_wg_088 = np.sum((theta_ic_083-theta_e_011) * t_c_009 * a_wg_022 * u_wg0_047 * b_gw_048 * 24 / (a_e_017*1000))  # Wand gegen Erdreich
             q_wn_089 = np.sum((theta_ic_083-theta_in_050) * t_c_009 * a_wn_023 * u_wn_049 * 24 / (a_e_017 * 1000))  # Wand gegen benachbarte Räume
             q_fe_090 = np.sum((theta_ic_083-theta_e_011) * t_c_009 * a_fe_024 * u_fe_051 * 24 / (a_e_017 * 1000))  # Boden gegen Aussenluft
             q_fu_091 = np.sum((theta_ic_083-theta_e_011) * t_c_009 * a_fu_025 * u_fu_052 * b_uf_054 * 24 / (a_e_017 * 1000))  # Boden gegen unbeheizte Räume
             q_fg_092 = np.sum((theta_ic_083-theta_e_011 + delta_theta_059) * t_c_009 * a_fg_026 * u_fg0_055 * b_gf_056 * 24 / (a_e_017 * 1000))  # Boden gegen Erdreich mit Bauteilheizung
+            verluste_ground[month] = q_fg_092
             q_fu_093 = np.sum((theta_ic_083-theta_e_011 + delta_theta_059) * t_c_009 * a_fu_027 * u_fu_053 * b_uf_054 * 24 / (a_e_017 * 1000))  # Boden gegen unbeheizte Räume mit Bauteilheizung
             q_fn_094 = np.sum((theta_ic_083 - theta_in_050 + delta_theta_059) * t_c_009 * a_fn_028 * u_fn_057 * 24 / (a_e_017 * 1000))  # Boden gegen beheizte Räume mit Bauteilheizung
             q_rn_095 = np.sum((theta_ic_083 - theta_in_050 + delta_theta_059) * t_c_009 * a_rn_029 * u_rn_058 * 24 / (a_e_017 * 1000))  # Decke gegen beheizte Räume mit Bauteilheizung
@@ -237,6 +248,11 @@ class Building(object):
 
 
             q_w_097_to_100 = np.sum((theta_ic_083 - theta_e_011) * t_c_009 * self.windows[1] * self.windows[2] * 24 / (a_e_017 * 1000))
+
+            # print("theta_ic", theta_ic_083 )
+            # print("theta_e", theta_e_011)
+            # print("hdd", (theta_ic_083 - theta_e_011-2) * t_c_009)
+            verluste_fenster[month] = q_w_097_to_100
 
             q_lrw_101 = np.sum((theta_ic_083 - theta_e_011) * t_c_009 * i_rw_035 * psi_rw_065 * 24 / (a_e_017 * 1000))
             q_lwf_102 = np.sum((theta_ic_083 - theta_e_011) * t_c_009 * i_wf_036 * psi_wf_066 * 24 / (a_e_017 * 1000))
@@ -267,7 +283,7 @@ class Building(object):
                 q_v_110 = (theta_ic_083-theta_e_011) * q_th_109 * t_c_009 * rhoa_ca_108 * 24 / 1000
 
 
-            q_tot_111 = q_t_107 + q_v_110
+            q_tot_111 = (q_t_107 + q_v_110) * self.heating_set_back_reduction_factor
             h_112 = np.sum(a_re_018*u_re_041) + np.sum(a_ru_019 * u_ru_042 * b_ur_043) + np.sum(a_we_020 * u_we_044) \
                     + np.sum(a_wu_021 * u_wu_045 * b_uw_046) + np.sum(a_wg_022 * u_wg0_047 * b_gw_048) + np.sum(a_fe_024 * u_fe_051) \
                     + np.sum(a_fu_025 * u_fu_052 * b_uf_054) + np.sum(a_fg_026 * u_fg0_055 * b_gf_056) + np.sum(a_fu_027 * u_fu_053 * b_uf_054)\
@@ -277,6 +293,7 @@ class Building(object):
                     + np.sum(i_f_039 * b_uf_054 * psi_f_069) + np.sum(z_040 * chi_070)\
                     + np.sum(a_e_017 * rhoa_ca_108 * q_th_109)  # Diese Gleichung überprüfen lassen.
 
+
             ### Wärmeeinträge
             q_i_el_113 = e_f_el_006 * f_el_007 * t_c_009 / 365
             q_l_p_114 = q_p_004 * t_p_005 * t_c_009/(a_p_003 * 1000)
@@ -284,7 +301,11 @@ class Building(object):
 
             q_s_121 = np.sum(g_s_windows * self.windows[1] * self.windows[3] * 0.9 * f_f_072 * f_sh_073 * f_sh / a_e_017)
 
+
             q_g_122 = q_i_115 + q_s_121  # Interne Wärmegewinne
+
+            # print("q_tot", q_tot_111)
+
             if q_tot_111 == 0:  # This is not part of SIA380 but needs to be specified for months with no heating demand
                 gamma_123 = None
             else:
@@ -294,7 +315,6 @@ class Building(object):
             a_125 = a_0_079 + (tau_124/tau_0_080)
 
             # print(q_g_122)
-            # print(tau_124)
 
             if gamma_123 == None:
                 eta_g_126 = 0  # This is not part of SIA380-1 but needs to be specified for months with no heating demand
@@ -303,12 +323,22 @@ class Building(object):
                 eta_g_126 = a_125/(a_125+1)
             else:
                 eta_g_126 = (1-gamma_123**a_125)/(1-gamma_123**(a_125 + 1))  # Hier weicht die Formel unter 3.5.6.2 von der Zusammenstellung im Anhang D ab
+            # print("gamma", gamma_123)
+
 
             q_ug_127 = q_g_122 * eta_g_126
             # f_ug_128 = q_ug_127 / q_tot_111
 
+            # print("gamma", gamma_123)
+            # print("eta", eta_g_126)
+            # print("q_ug", q_ug_127)
+
             ### Heizwärmebedarf:
             q_h_129 = q_tot_111 - q_ug_127
+
+            if theta_e_011 >= 12.0:
+                q_h_129 = 0
+
 
             transmissionsverluste[month] = q_t_107
             luftungsverluste[month] = q_v_110
@@ -319,7 +349,18 @@ class Building(object):
             genutzte_warmeeintrage[month] = q_ug_127
             heizwarmebedarf[month] = q_h_129
 
+        # print("Solare Eintrage", solare_eintrage)
+        # print("genutzte_warmeeintrage", genutzte_warmeeintrage.sum())
+        # print("heizwärmebedarf", heizwarmebedarf.sum())
+        # print("transmissions_verluste", transmissionsverluste.sum())
+        # print("ventilation_verluste", luftungsverluste.sum())
+        # print("temperatur_mittelwert", temperatur_mittelwert)
         # vereinfachte Normheizlast mit Angaben aus SIA 380-1 gemäss SIA 384.201
+        #
+        # print("Dach", verluste_dach)
+        # print("Ground", verluste_ground)
+        # print("Wand", verluste_wand)
+        # print("fenster", verluste_fenster)
 
 
         self.totaler_warmetransferkoeffizient = h_112
