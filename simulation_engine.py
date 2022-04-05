@@ -319,7 +319,7 @@ class Building(object):
             if gamma_123 == None:
                 eta_g_126 = 0  # This is not part of SIA380-1 but needs to be specified for months with no heating demand
 
-            elif gamma_123 ==1:
+            elif gamma_123 == 1:
                 eta_g_126 = a_125/(a_125+1)
             else:
                 eta_g_126 = (1-gamma_123**a_125)/(1-gamma_123**(a_125 + 1))  # Hier weicht die Formel unter 3.5.6.2 von der Zusammenstellung im Anhang D ab

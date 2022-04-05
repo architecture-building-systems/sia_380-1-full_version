@@ -7,7 +7,7 @@ def calculate_system_related_embodied_emissions(ee_database, gebaeudekategorie, 
                                                 heat_distribution, nominal_heating_power, dhw_heizsystem,
                                                 cooling_system, cold_emission_system, nominal_cooling_power,
                                                 pv_area, pv_type, pv_efficiency, has_mechanical_ventilation,
-                                                max_aussenluft_volumenstrom):
+                                                max_aussenluft_volumenstrom, battery_capacity):
     """
     This function is used to calculate the annualized embodied emissions of the considered building systems. A database
     file is called that includes impact and lifetime values. Further the system sizing has to be known for some power
@@ -177,9 +177,19 @@ def calculate_system_related_embodied_emissions(ee_database, gebaeudekategorie, 
     embodied_electrical = pv_embodied
     embodied_electrical_UBP = pv_embodied_UBP
 
+    # embodied emissions of batteries
+    battery_embodied_per_kWh = database['Value']["battery"]
+    battery_UBP_per_kWh = database['Value_UBP']["battery"]
+    embodied_battery = battery_capacity/1000 * battery_embodied_per_kWh # division by 1000 because battery input comes in Wh
+    embodied_battery_UBP = battery_capacity/1000 *battery_UBP_per_kWh
+
     # Calculation of total embodied building systems: heater, cooler, distribution, emission, electric (PV), ventilation
-    embodied_thermal_electrical_vent = embodied_thermal + embodied_electrical + embodied_ventilation
-    embodied_thermal_electrical_vent_UBP = embodied_thermal_UBP + embodied_electrical_UBP + embodied_ventilation_UBP
+    embodied_thermal_electrical_vent = embodied_thermal + embodied_electrical + embodied_ventilation + embodied_battery
+    embodied_thermal_electrical_vent_UBP = embodied_thermal_UBP + embodied_electrical_UBP + embodied_ventilation_UBP + embodied_battery_UBP
+
+
+
+
 
     return embodied_thermal_electrical_vent, embodied_thermal_electrical_vent_UBP
 

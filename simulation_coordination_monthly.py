@@ -534,7 +534,8 @@ for config_index, config in configurations.iterrows():
                                                         pv_type=config['PV type'],
                                                         pv_efficiency=config['PV efficiency'],
                                                         has_mechanical_ventilation=config['mechanical ventilation'],
-                                                        max_aussenluft_volumenstrom=relevant_volume_flow)
+                                                        max_aussenluft_volumenstrom=relevant_volume_flow,
+                                                        battery_capacity=config['electrical storage capacity'])
 
 
     total_wall_area = np.array(config['wall areas'].split(" "), dtype=float).sum()

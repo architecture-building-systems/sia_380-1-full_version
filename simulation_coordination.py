@@ -143,8 +143,6 @@ for unique_path in unique_weather_paths:
     weather_sia_dict[unique_path] = dp.epw_to_sia_irrad(weather_file_dict_headers[unique_path],
                                            weather_file_dict_bodies[unique_path])
 
-    print(unique_path)
-    print(weather_sia_dict[unique_path])
 
 ## sun paths are precalculated
 solar_zenith_dict = {}
@@ -652,7 +650,8 @@ for config_index, config in configurations.iterrows():
                                                         pv_type=config['PV type'],
                                                         pv_efficiency=config['PV efficiency'],
                                                         has_mechanical_ventilation=config['mechanical ventilation'],
-                                                        max_aussenluft_volumenstrom=relevant_volume_flow)
+                                                        max_aussenluft_volumenstrom=relevant_volume_flow,
+                                                        battery_capacity=config['electrical storage capacity'])
 
 
     total_wall_area = np.array(config['wall areas'].split(" "), dtype=float).sum()
