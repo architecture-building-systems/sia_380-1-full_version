@@ -180,8 +180,10 @@ def calculate_system_related_embodied_emissions(ee_database, gebaeudekategorie, 
     # embodied emissions of batteries
     battery_embodied_per_kWh = database['Value']["battery"]
     battery_UBP_per_kWh = database['Value_UBP']["battery"]
-    embodied_battery = battery_capacity/1000 * battery_embodied_per_kWh # division by 1000 because battery input comes in Wh
-    embodied_battery_UBP = battery_capacity/1000 *battery_UBP_per_kWh
+    battery_lifetime = database['lifetime']['battery']
+
+    embodied_battery = battery_capacity/1000 * battery_embodied_per_kWh/battery_lifetime # division by 1000 because battery input comes in Wh
+    embodied_battery_UBP = battery_capacity/1000 *battery_UBP_per_kWh/battery_lifetime
 
     # Calculation of total embodied building systems: heater, cooler, distribution, emission, electric (PV), ventilation
     embodied_thermal_electrical_vent = embodied_thermal + embodied_electrical + embodied_ventilation + embodied_battery
