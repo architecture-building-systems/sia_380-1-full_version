@@ -589,6 +589,11 @@ class Building(object):
             else:
                 q_c_nd_ztc_m[month] = a_c_red_ztc_m * (q_c_gn_ztc_m[month] - eta_c_ht_ztc_m[month] * q_c_ht_ztc_m[month])
 
+        for month in range(12): ### This is a test
+            if theta_e_a_m[month]<=20.0: ### This is a test
+                q_c_nd_ztc_m[month] = 0 ### This is a test
+            else:
+                pass
 
         self.iso_transmission_losses = q_c_tr_ztc_m/self.energy_reference_area
         self.iso_solar_gains = q_hc_sol_wi/self.energy_reference_area
