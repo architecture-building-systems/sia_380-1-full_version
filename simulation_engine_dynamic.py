@@ -347,7 +347,7 @@ class Sim_Building(object):
             fossil_dhw_emission_factors_UBP = dp.fossil_emission_factors_UBP(self.dhw_heating_system, emission_factor_source_UBP, self.combustion_efficiency_factor)
             fossil_dhw_cost_factors = np.repeat(dp.energy_cost_per_kWh(self.dhw_heating_system, energy_cost_source, self.combustion_efficiency_factor), 8760)
         else:
-            fossil_dhw_emission_factors = np.repeat(0, 8760)
+            fossil_dhw_emission_factors = np.repeat(0, 8760) #done
             fossil_dhw_emission_factors_UBP = np.repeat(0, 8760)
             fossil_dhw_cost_factors = np.repeat(0, 8760)
 

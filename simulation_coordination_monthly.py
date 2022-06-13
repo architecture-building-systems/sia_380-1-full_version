@@ -299,7 +299,8 @@ for config_index, config in configurations.iterrows():
                                       heat_pump_efficiency, combustion_efficiency_factor, electricity_decarbonization_factor,
                                       korrekturfaktor_luftungs_eff_f_v, hohe_uber_meer, shading_factor_monthly, heizsystem, dhw_heizsystem,
                                       cooling_system, heat_emission_system, cold_emission_system, heating_setpoint,
-                                      cooling_setpoint, area_per_person, has_mechanical_ventilation, set_back_reduction_factor)
+                                      cooling_setpoint, area_per_person, has_mechanical_ventilation, set_back_reduction_factor,
+                                      max_electrical_storage_capacity)
 
         # print("Object initialization", time.time() - start)
         # start = time.time()

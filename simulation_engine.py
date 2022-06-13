@@ -33,7 +33,8 @@ class Building(object):
                  cooling_setpoint="SIA",
                  area_per_person="SIA",
                  has_mechanical_ventilation=False,
-                 set_back_reduction_factor=1):
+                 set_back_reduction_factor=1,
+                 max_electrical_storage_capacity=0):
 
         self.gebaeudekategorie_sia = gebaeudekategorie_sia
         self.regelung = regelung
@@ -64,6 +65,7 @@ class Building(object):
         self.combustion_efficiency_factor = combustion_efficiency_factor
         self.electricity_decarbonization_factor = electricity_decarbonization_factor
         self.has_mechanical_ventilation = has_mechanical_ventilation
+        self.battery_storage_capacity = max_electrical_storage_capacity
 
         # Further optional attributes:
         self.electricity_demand = None
@@ -716,7 +718,7 @@ class Building(object):
 
         # Divide by 100 because result comes in percentage
         sc_factors = dp.estimate_self_consumption(electricity_demand_for_self_consumption, self.pv_peak_power,
-                                                  self.gebaeudekategorie_sia)/100
+                                                  self.gebaeudekategorie_sia, self.battery_storage_capacity)/100
 
         # Achtung, hier kann net demand auch kleiner 0 sein;  pv_prod_month ist ebenfalls normalisiert bezüglich EBF
         self.net_electricity_demand = self.electricity_demand - (sc_factors * pv_prod_month)

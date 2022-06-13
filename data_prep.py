@@ -748,7 +748,7 @@ def photovoltaic_yield_hourly(pv_azimuth, pv_tilt, stc_efficiency, performance_r
     return hourly_yield.to_numpy()
 
 
-def estimate_self_consumption(electricity_demand, pv_peak_power, building_category):
+def estimate_self_consumption(electricity_demand, pv_peak_power, building_category, storage_size):
     """
     Source: https://pvspeicher.htw-berlin.de/wp-content/uploads/2015/05/HTW-Berlin-Solarspeicherstudie.pdf BILD 16
     These plots were analyzed and translated into the formula used below with a logarithmic assumption
@@ -758,19 +758,27 @@ def estimate_self_consumption(electricity_demand, pv_peak_power, building_catego
     :param electricity_demand: monthly value in Wh
     :param pv_prod_month: monthly value in Wh
     :param pv_peak_power: one value in kW
+    :param building category: residential or office
+    :param storage_size: storage size in Wh
     :return: monthly self consumption values in %
     """
     if pv_peak_power == 0:
         monthly_sc = np.repeat(100.0,12)
 
     elif int(building_category) == 1:
-        monthly_stoc = (pv_peak_power / 12) / (electricity_demand / 1000)
-        monthly_sc = (0.12 + 0.92 * np.exp(-1.64*monthly_stoc))*100.0
+        monthly_stoc = (pv_peak_power / 12) / (electricity_demand / 1000)  # /12 weil dann auf beiden Teilen des Bruches durch 12 dividiert wurde.
+        monthly_rel_storage = (storage_size / 12 / 1000) / (electricity_demand / 1000)
+        # monthly_sc = (0.12 + 0.92 * np.exp(-1.64*monthly_stoc))*100.0
+        monthly_sc = (-0.142 + 1.052 * np.exp(-0.933*monthly_stoc) + 0.502* np.sqrt(0.199 * monthly_rel_storage)) * 100.0
+        # times 100 because given in %
+
 
     elif int(building_category) == 3:
         monthly_stoc = (pv_peak_power / 12) / (electricity_demand / 1000)
         monthly_sc = (0.15 + 0.70 * np.exp(-0.81*monthly_stoc))*100.0
 
+        if storage_size != 0:
+            print("no SC model including storage is defined for this building category yet")
         ## updated self-consumption formula for office
         # monthly_sc = (0.17 + 0.68 * np.exp(-0.79 * monthly_stoc)) * 100.0
 
