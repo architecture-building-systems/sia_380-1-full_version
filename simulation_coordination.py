@@ -253,7 +253,7 @@ for config_index, config in configurations.iterrows():
         cooling_setpoint = scenario['cooling setpoint']  # number in deC or select "SIA" to follow the SIA380-1 code
         heat_pump_efficiency = scenario['heat pump efficiency']
         combustion_efficiency_factor = scenario['combustion efficiency factor']
-        electricity_decarbonization_factor = scenario['electricity decarbonization factor']
+        electricity_decarbonization_goal = scenario['electricity decarbonization goal']
 
         shading_factor_season = np.array(str(scenario['shading factor']).split(" "), dtype=float)
         # array with shading factors (per season: winter, spring, summer, fall)
@@ -325,7 +325,7 @@ for config_index, config in configurations.iterrows():
         Gebaeude_static = se.Building(gebaeudekategorie_sia, regelung, windows, walls, roof, floor, energiebezugsflache,
                                       anlagennutzungsgrad_wrg, infiltration_volume_flow, ventilation_volume_flow,
                                       increased_ventilation_volume_flow, warmespeicherfahigkeit_pro_EBF,
-                                      heat_pump_efficiency, combustion_efficiency_factor, electricity_decarbonization_factor,
+                                      heat_pump_efficiency, combustion_efficiency_factor, electricity_decarbonization_goal,
                                       korrekturfaktor_luftungs_eff_f_v, hohe_uber_meer, shading_factor_monthly, heizsystem, dhw_heizsystem,
                                       cooling_system, heat_emission_system, cold_emission_system, heating_setpoint,
                                       cooling_setpoint, area_per_person, has_mechanical_ventilation, set_back_reduction_factor,
@@ -341,7 +341,7 @@ for config_index, config in configurations.iterrows():
         Gebaeude_dyn = sime.Sim_Building(gebaeudekategorie_sia, regelung, windows, walls, roof, floor, energiebezugsflache,
                                        anlagennutzungsgrad_wrg, infiltration_volume_flow, ventilation_volume_flow,
                                          increased_ventilation_volume_flow, warmespeicherfahigkeit_pro_EBF,
-                                         heat_pump_efficiency, combustion_efficiency_factor, electricity_decarbonization_factor,
+                                         heat_pump_efficiency, combustion_efficiency_factor, electricity_decarbonization_goal,
                                        korrekturfaktor_luftungs_eff_f_v, hohe_uber_meer, shading_factor_hourly, heizsystem, cooling_system,
                                          heat_emission_system, cold_emission_system,
                                        dhw_heizsystem, heating_setpoint, cooling_setpoint, area_per_person,

@@ -83,13 +83,14 @@ def electric_appliances_sia(energy_reference_area, type=1, value="standard"):
 
     return demand_profile * energy_reference_area #Wh
 
-def build_country_yearly_emission_factors(country):
+def build_country_yearly_emission_factors(country, decarb_goal):
     """
     :param source: string, currently the choices are SIA, eu and KBOB. empa_ac should not yet be used
     :param type: string, only necessary for empa_ac
     :param export_assumption: string, only necessary for empa_ac
     :return: numpy array of length 8760 with the dimension kgCO2eq/kWh
     """
+
 
     if country == "SIA": #TODO: compare with values from KBOB
         #SIA has a constant factor, the type therefore does not matter
@@ -104,55 +105,44 @@ def build_country_yearly_emission_factors(country):
         hourly_emission_factor = np.repeat(630, 8760) / 1000.0  # kgCO2eq/kWh www.co2-monitor.ch/de/information/glossar/
         #ENTSO - E - Mix: 5480000 (UBP), 524 (GWP)
 
-    elif country=="AT":
-        # here a constant factor of the european power mix is assumed, the type therefore does not matter
-        hourly_emission_factor = np.repeat(334, 8760) / 1000.0  # kgCO2eq/kWh www.co2-monitor.ch/de/information/glossar/
-        #https://www.sciencedirect.com/science/article/pii/S1361920916307933
-
-    elif country=="DE":
-        # here a constant factor of the european power mix is assumed, the type therefore does not matter
-        hourly_emission_factor = np.repeat(615, 8760) / 1000.0  # kgCO2eq/kWh www.co2-monitor.ch/de/information/glossar/
-        #https://www.sciencedirect.com/science/article/pii/S1361920916307933
-
-    elif country=="DK":
-        # here a constant factor of the european power mix is assumed, the type therefore does not matter
-        hourly_emission_factor = np.repeat(377, 8760) / 1000.0  # kgCO2eq/kWh www.co2-monitor.ch/de/information/glossar/
-        #https://www.sciencedirect.com/science/article/pii/S1361920916307933
-
-    elif country=="ES":
-        # here a constant factor of the european power mix is assumed, the type therefore does not matter
-        hourly_emission_factor = np.repeat(341, 8760) / 1000.0  # kgCO2eq/kWh www.co2-monitor.ch/de/information/glossar/
-        #https://www.sciencedirect.com/science/article/pii/S1361920916307933
-
-    elif country=="FR":
-        # here a constant factor of the european power mix is assumed, the type therefore does not matter
-        hourly_emission_factor = np.repeat(105, 8760) / 1000.0  # kgCO2eq/kWh www.co2-monitor.ch/de/information/glossar/
-        #https://www.sciencedirect.com/science/article/pii/S1361920916307933
-
-    elif country=="GR":
-        # here a constant factor of the european power mix is assumed, the type therefore does not matter
-        hourly_emission_factor = np.repeat(767, 8760) / 1000.0  # kgCO2eq/kWh www.co2-monitor.ch/de/information/glossar/
-        #https://www.sciencedirect.com/science/article/pii/S1361920916307933
-
-    elif country=="IT":
-        # here a constant factor of the european power mix is assumed, the type therefore does not matter
-        hourly_emission_factor = np.repeat(431, 8760) / 1000.0  # kgCO2eq/kWh www.co2-monitor.ch/de/information/glossar/
-        #https://www.sciencedirect.com/science/article/pii/S1361920916307933
-
-    elif country=="SE":
-        # here a constant factor of the european power mix is assumed, the type therefore does not matter
-        hourly_emission_factor = np.repeat(47, 8760) / 1000.0  # kgCO2eq/kWh www.co2-monitor.ch/de/information/glossar/
-        #https://www.sciencedirect.com/science/article/pii/S1361920916307933
-
     elif country=="EU28":
         # here a constant factor of the european power mix is assumed, the type therefore does not matter
         hourly_emission_factor = np.repeat(0.447, 8760) / 1000.0  # kgCO2eq/kWh www.co2-monitor.ch/de/information/glossar/
         #https://www.sciencedirect.com/science/article/pii/S1361920916307933
 
-
-
     else:
-        quit("Emission factors for electricity could not be built. Simulation stopped")
+        """
+        ## for 60 years analysis period
+        elec_data = np.array([
+            ["AT", 0.334, 0.1498, 0.0948, 0.0398],
+            ["DE", 0.615, 0.2739, 0.172, 0.0702],
+            ["DK", 0.377, 0.1688, 0.1066, 0.0444],
+            ["ES", 0.341, 0.1529, 0.0967, 0.0405],
+            ["FR", 0.105, 0.0486, 0.0318, 0.015],
+            ["GR", 0.767, 0.341, 0.2138, 0.0867],
+            ["IT", 0.431, 0.1926, 0.1214, 0.0503],
+            ["SE", 0.047, 0.023, 0.0158, 0.0087]])
+
+        elec_data_df = pd.DataFrame(elec_data, columns=["country", "current", 2070, 2050, 2030])
+        elec_value = elec_data_df.loc[elec_data_df["country"]==country, decarb_goal].astype(float).values[0]
+        hourly_emission_factor = np.repeat(elec_value, 8760)
+
+        """
+        ## for 20 years analysis period
+        elec_data = np.array([
+            ["AT", 0.334, 0.2737, 0.236, 0.1113],
+            ["DE", 0.615, 0.5034, 0.4336, 0.2026],
+            ["DK", 0.377, 0.3089, 0.2663, 0.1252],
+            ["ES", 0.341, 0.2794, 0.241, 0.1135],
+            ["FR", 0.105, 0.0866, 0.075, 0.03684],
+            ["GR", 0.767, 0.6276, 0.5405, 0.252],
+            ["IT", 0.431, 0.353, 0.3042, 0.1428],
+            ["SE", 0.047, 0.0391, 0.0342, 0.018]])
+
+        elec_data_df = pd.DataFrame(elec_data, columns=["country", "current", 2070, 2050, 2030])
+        elec_value = elec_data_df.loc[elec_data_df["country"] == country, decarb_goal].astype(float).values[0]
+        hourly_emission_factor = np.repeat(elec_value, 8760)
+
 
 
     return hourly_emission_factor

@@ -26,7 +26,7 @@ class Sim_Building(object):
                  thermal_storage_capacity_per_floor_area,
                  heat_pump_efficiency,
                  combustion_efficiency_factor,
-                 electricity_decarbonization_factor,
+                 decarbonization_goal,
                  korrekturfaktor_luftungs_eff_f_v,
                  height_above_sea,
                  shading_factor_hourly,
@@ -96,7 +96,7 @@ class Sim_Building(object):
         self.t_set_cooling = cooling_setpoint
         self.heat_pump_efficiency = heat_pump_efficiency
         self.combustion_efficiency_factor = combustion_efficiency_factor
-        self.electricity_decarbonization_factor = electricity_decarbonization_factor
+        self.electricity_decarbonization_goal = decarbonization_goal
 
         self.dhw_supply_temperature = 60  # deg C fixed and hard coded
 
@@ -317,7 +317,7 @@ class Sim_Building(object):
 
 
         ### Too many ifs. TODO: simplify by adding into a single function or table.
-        grid_emission_factors = dp.build_country_yearly_emission_factors(country=country)
+        grid_emission_factors = dp.build_country_yearly_emission_factors(country=country, decarb_goal=self.electricity_decarbonization_goal)
         grid_emission_factors_UBP = dp.build_yearly_emission_factors_UBP(source_UBP=emission_factor_source_UBP,
                                                                  export_assumption=grid_export_assumption)
         grid_cost_factors = np.repeat(dp.energy_cost_per_kWh("electricity", energy_cost_source), 8760)
@@ -387,7 +387,7 @@ class Sim_Building(object):
                                           (self.cooling_fossil_demand[hour] * fossil_cooling_cost_factors[hour]) +
                                           (self.dhw_fossil_demand[hour] * fossil_dhw_cost_factors[hour]))/1000.0
 
-            self.electricity_emissions[hour] = (self.net_electricity_demand[hour] * grid_emission_factors[hour])/1000.0*self.electricity_decarbonization_factor
+            self.electricity_emissions[hour] = (self.net_electricity_demand[hour] * grid_emission_factors[hour])/1000.0
 
 
             self.electricity_emissions_UBP[hour] = (self.net_electricity_demand[hour] * grid_emission_factors_UBP[hour]) / 1000.0
